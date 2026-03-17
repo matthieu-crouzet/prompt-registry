@@ -3,14 +3,13 @@
  * Tests for GitHub-based Anthropic-style skills repository adapter
  */
 
-import * as assert from 'assert';
 import * as crypto from 'crypto';
 import nock from 'nock';
 import * as sinon from 'sinon';
 import { SkillsAdapter } from '../../src/adapters/SkillsAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('SkillsAdapter Tests', () => {
+describe('SkillsAdapter Tests', () => {
     const mockSource: RegistrySource = {
         id: 'test-skills-source',
         name: 'Test Skills Source',
@@ -113,35 +112,35 @@ Instructions for ${skill.name}
             });
     }
 
-    setup(() => {
+    beforeEach(() => {
         nock.cleanAll();
     });
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
         sinon.restore();
     });
 
-    suite('Constructor', () => {
-        test('should create adapter with valid GitHub URL', () => {
+    describe('Constructor', () => {
+        it('should create adapter with valid GitHub URL', () => {
             const adapter = new SkillsAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'skills');
+            expect(adapter.type).toBe('skills');
         });
 
-        test('should throw error for invalid URL', () => {
+        it('should throw error for invalid URL', () => {
             const invalidSource: RegistrySource = {
                 ...mockSource,
                 url: 'https://gitlab.com/owner/repo',
             };
             
-            assert.throws(() => {
+            expect(() => {
                 new SkillsAdapter(invalidSource);
-            }, /Invalid GitHub URL/);
+            }).toThrow(/Invalid GitHub URL/);
         });
     });
 
-    suite('fetchBundles()', () => {
-        test('should discover skills from skills/ directory', async () => {
+    describe('fetchBundles()', () => {
+        it('should discover skills from skills/ directory', async () => {
             setupSkillsStructureMocks({
                 skills: [{
                     id: 'algorithmic-art',
@@ -155,15 +154,15 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].name, 'algorithmic-art');
-            assert.strictEqual(bundles[0].description, 'Creating algorithmic art using p5.js');
-            assert.strictEqual(bundles[0].id, 'skills-test-owner-test-skills-repo-algorithmic-art');
-            assert.ok(bundles[0].tags.includes('skill'));
-            assert.ok(bundles[0].tags.includes('anthropic'));
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].name).toBe('algorithmic-art');
+            expect(bundles[0].description).toBe('Creating algorithmic art using p5.js');
+            expect(bundles[0].id).toBe('skills-test-owner-test-skills-repo-algorithmic-art');
+            expect(bundles[0].tags.includes('skill')).toBeTruthy();
+            expect(bundles[0].tags.includes('anthropic')).toBeTruthy();
         });
 
-        test('should discover multiple skills', async () => {
+        it('should discover multiple skills', async () => {
             setupSkillsStructureMocks({
                 skills: [
                     {
@@ -187,18 +186,18 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 3);
+            expect(bundles.length).toBe(3);
             
             const artBundle = bundles.find(b => b.name === 'algorithmic-art');
             const reviewBundle = bundles.find(b => b.name === 'code-review');
             const testingBundle = bundles.find(b => b.name === 'testing');
             
-            assert.ok(artBundle);
-            assert.ok(reviewBundle);
-            assert.ok(testingBundle);
+            expect(artBundle).toBeTruthy();
+            expect(reviewBundle).toBeTruthy();
+            expect(testingBundle).toBeTruthy();
         });
 
-        test('should include nested files when hashing remote skills', async () => {
+        it('should include nested files when hashing remote skills', async () => {
             const mockNestedSkill = (assetSha: string) => {
                 nock.cleanAll();
 
@@ -245,7 +244,7 @@ Instructions for ${skill.name}
             mockNestedSkill('sha-diagram');
             let adapter = new SkillsAdapter(mockSource);
             let bundles = await adapter.fetchBundles();
-            assert.strictEqual(bundles.length, 1);
+            expect(bundles.length).toBe(1);
             const versionWithOriginalAsset = bundles[0].version;
 
             mockNestedSkill('sha-diagram-updated');
@@ -253,11 +252,11 @@ Instructions for ${skill.name}
             bundles = await adapter.fetchBundles();
             const versionWithUpdatedAsset = bundles[0].version;
 
-            assert.notStrictEqual(versionWithOriginalAsset, versionWithUpdatedAsset);
-            assert.ok(versionWithUpdatedAsset.startsWith('hash:'), 'Version should be hash-based');
+            expect(versionWithOriginalAsset).not.toBe(versionWithUpdatedAsset);
+            expect(versionWithUpdatedAsset.startsWith('hash:'), 'Version should be hash-based').toBeTruthy();
         });
 
-        test('should handle many skills efficiently', async () => {
+        it('should handle many skills efficiently', async () => {
             // Create 10 skills to verify the adapter handles multiple skills correctly
             const manySkills = Array.from({ length: 10 }, (_, i) => ({
                 id: `skill-${i}`,
@@ -270,17 +269,17 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 10);
+            expect(bundles.length).toBe(10);
             
             // Verify all skills were discovered
             for (let i = 0; i < 10; i++) {
                 const bundle = bundles.find(b => b.name === `Skill ${i}`);
-                assert.ok(bundle, `Should find skill-${i}`);
-                assert.strictEqual(bundle.description, `Description for skill ${i}`);
+                expect(bundle, `Should find skill-${i}`).toBeTruthy();
+                expect(bundle.description).toBe(`Description for skill ${i}`);
             }
         });
 
-        test('should skip directories without SKILL.md', async () => {
+        it('should skip directories without SKILL.md', async () => {
             // Mock skills/ directory with one valid skill and one without SKILL.md
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-skills-repo/contents/skills')
@@ -310,13 +309,13 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].name, 'valid-skill');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].name).toBe('valid-skill');
         });
     });
 
-    suite('validate()', () => {
-        test('should validate repository with skills/ directory', async () => {
+    describe('validate()', () => {
+        it('should validate repository with skills/ directory', async () => {
             setupValidationMocks();
             setupSkillsStructureMocks({
                 skills: [{
@@ -329,12 +328,12 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
-            assert.strictEqual(result.bundlesFound, 1);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
+            expect(result.bundlesFound).toBe(1);
         });
 
-        test('should fail validation when skills/ directory is missing', async () => {
+        it('should fail validation when skills/ directory is missing', async () => {
             setupValidationMocks();
             
             // Mock 404 for skills directory
@@ -345,11 +344,11 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('skills')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('skills'))).toBeTruthy();
         });
 
-        test('should warn when no valid skills found', async () => {
+        it('should warn when no valid skills found', async () => {
             setupValidationMocks();
             
             // Empty skills directory - need to mock twice (once for validate check, once for scan)
@@ -362,26 +361,26 @@ Instructions for ${skill.name}
             const adapter = new SkillsAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.ok(result.warnings.some(w => w.includes('No valid skills')));
+            expect(result.valid).toBe(true);
+            expect(result.warnings.some(w => w.includes('No valid skills'))).toBeTruthy();
         });
     });
 
-    suite('getManifestUrl()', () => {
-        test('should return correct manifest URL for skill', () => {
+    describe('getManifestUrl()', () => {
+        it('should return correct manifest URL for skill', () => {
             const adapter = new SkillsAdapter(mockSource);
             const url = adapter.getManifestUrl('skills-test-owner-test-skills-repo-algorithmic-art');
             
-            assert.strictEqual(url, 'https://raw.githubusercontent.com/test-owner/test-skills-repo/main/skills/algorithmic-art/SKILL.md');
+            expect(url).toBe('https://raw.githubusercontent.com/test-owner/test-skills-repo/main/skills/algorithmic-art/SKILL.md');
         });
     });
 
-    suite('getDownloadUrl()', () => {
-        test('should return repository archive URL', () => {
+    describe('getDownloadUrl()', () => {
+        it('should return repository archive URL', () => {
             const adapter = new SkillsAdapter(mockSource);
             const url = adapter.getDownloadUrl('skills-test-owner-test-skills-repo-algorithmic-art');
             
-            assert.strictEqual(url, 'https://github.com/test-owner/test-skills-repo/archive/refs/heads/main.zip');
+            expect(url).toBe('https://github.com/test-owner/test-skills-repo/archive/refs/heads/main.zip');
         });
     });
 });

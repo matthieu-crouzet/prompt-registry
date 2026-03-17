@@ -5,17 +5,16 @@
  * for different authentication methods (VSCode, gh CLI, explicit token)
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { GitHubAdapter } from '../../src/adapters/GitHubAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('GitHubAdapter Authentication Tests', () => {
+describe('GitHubAdapter Authentication Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let source: RegistrySource;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         source = {
             id: 'test-source',
@@ -27,7 +26,7 @@ suite('GitHubAdapter Authentication Tests', () => {
         };
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -39,7 +38,7 @@ suite('GitHubAdapter Authentication Tests', () => {
     // 3. Move these to integration tests
     // Until then, these tests would call the REAL gh CLI and expose actual tokens - security risk!
 
-    test.skip('should use Bearer token format for VSCode authentication', async () => {
+    it.skip('should use Bearer token format for VSCode authentication', async () => {
         // Mock VSCode authentication
         const mockSession = {
             accessToken: 'gho_mockVSCodeToken12345678901234567890',
@@ -57,15 +56,15 @@ suite('GitHubAdapter Authentication Tests', () => {
         const getAuthToken = (adapter as any).getAuthenticationToken.bind(adapter);
         const token = await getAuthToken();
 
-        assert.strictEqual(token, mockSession.accessToken);
-        assert.strictEqual((adapter as any).authMethod, 'vscode');
+        expect(token).toBe(mockSession.accessToken);
+        expect((adapter as any).authMethod).toBe('vscode');
         
         // Verify getSession was called with correct params
-        assert.ok(getSessionStub.calledOnce);
-        assert.ok(getSessionStub.calledWith('github', ['repo'], { silent: true }));
+        expect(getSessionStub.calledOnce).toBeTruthy();
+        expect(getSessionStub.calledWith('github', ['repo'], { silent: true })).toBeTruthy();
     });
 
-    test.skip('should build correct Authorization header with Bearer format', async () => {
+    it.skip('should build correct Authorization header with Bearer format', async () => {
         // Mock VSCode authentication
         const mockToken = 'gho_testToken123';
         const mockSession = {
@@ -89,12 +88,8 @@ suite('GitHubAdapter Authentication Tests', () => {
         const httpsModule = require('https');
         const httpsGetStub = sandbox.stub(httpsModule, 'get').callsFake((url: any, options: any, callback: any) => {
             // Verify Authorization header format
-            assert.ok(options.headers.Authorization, 'Authorization header should exist');
-            assert.strictEqual(
-                options.headers.Authorization,
-                `Bearer ${mockToken}`,
-                'Should use Bearer format, not token format'
-            );
+            expect(options.headers.Authorization, 'Authorization header should exist').toBeTruthy();
+            expect(options.headers.Authorization, 'Should use Bearer format, not token format').toBe(`Bearer ${mockToken}`);
             
             // Return mock response
             const mockResponse: any = {
@@ -115,13 +110,13 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         try {
             await makeRequest('https://api.github.com/repos/test-owner/test-repo');
-            assert.ok(httpsGetStub.calledOnce, 'https.get should be called');
+            expect(httpsGetStub.calledOnce, 'https.get should be called').toBeTruthy();
         } catch (error) {
             // Expected if mock doesn't perfectly emulate response
         }
     });
 
-    test.skip('should use gh CLI token when VSCode auth fails', async () => {
+    it.skip('should use gh CLI token when VSCode auth fails', async () => {
         // Mock VSCode auth failure
         sandbox.stub(vscode.authentication, 'getSession').rejects(new Error('Not authenticated'));
 
@@ -140,11 +135,11 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         const token = await (adapter as any).getAuthenticationToken();
 
-        assert.strictEqual(token, mockToken);
-        assert.strictEqual((adapter as any).authMethod, 'gh-cli');
+        expect(token).toBe(mockToken);
+        expect((adapter as any).authMethod).toBe('gh-cli');
     });
 
-    test.skip('should use explicit token when both VSCode and gh CLI fail', async () => {
+    it.skip('should use explicit token when both VSCode and gh CLI fail', async () => {
         // Mock VSCode auth failure
         sandbox.stub(vscode.authentication, 'getSession').rejects(new Error('Not authenticated'));
 
@@ -164,11 +159,11 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         const token = await (adapter as any).getAuthenticationToken();
 
-        assert.strictEqual(token, mockToken);
-        assert.strictEqual((adapter as any).authMethod, 'explicit');
+        expect(token).toBe(mockToken);
+        expect((adapter as any).authMethod).toBe('explicit');
     });
 
-    test.skip('should return undefined when no authentication is available', async () => {
+    it.skip('should return undefined when no authentication is available', async () => {
         // Mock all auth methods failing
         sandbox.stub(vscode.authentication, 'getSession').rejects(new Error('Not authenticated'));
         sandbox.stub(require('child_process'), 'exec').callsFake((...args: any[]) => {
@@ -179,11 +174,11 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         const token = await (adapter as any).getAuthenticationToken();
 
-        assert.strictEqual(token, undefined);
-        assert.strictEqual((adapter as any).authMethod, 'none');
+        expect(token).toBe(undefined);
+        expect((adapter as any).authMethod).toBe('none');
     });
 
-    test.skip('should cache authentication token after first retrieval', async () => {
+    it.skip('should cache authentication token after first retrieval', async () => {
         const mockToken = 'gho_cachedToken123';
         const mockSession = {
             accessToken: mockToken,
@@ -201,14 +196,14 @@ suite('GitHubAdapter Authentication Tests', () => {
         const token1 = await (adapter as any).getAuthenticationToken();
         const token2 = await (adapter as any).getAuthenticationToken();
 
-        assert.strictEqual(token1, mockToken);
-        assert.strictEqual(token2, mockToken);
+        expect(token1).toBe(mockToken);
+        expect(token2).toBe(mockToken);
         
         // Should only call VSCode auth once (cached on second call)
-        assert.ok(getSessionStub.calledOnce, 'VSCode auth should only be called once');
+        expect(getSessionStub.calledOnce, 'VSCode auth should only be called once').toBeTruthy();
     });
 
-    test.skip('should include authentication in download requests', async () => {
+    it.skip('should include authentication in download requests', async () => {
         const mockToken = 'gho_downloadToken123';
         const mockSession = {
             accessToken: mockToken,
@@ -228,12 +223,8 @@ suite('GitHubAdapter Authentication Tests', () => {
         const httpsModule = require('https');
         const httpsGetStub = sandbox.stub(httpsModule, 'get').callsFake((url: any, options: any, callback: any) => {
             // Verify download includes auth
-            assert.ok(options.headers.Authorization, 'Download should include Authorization header');
-            assert.strictEqual(
-                options.headers.Authorization,
-                `Bearer ${mockToken}`,
-                'Download should use Bearer format'
-            );
+            expect(options.headers.Authorization, 'Download should include Authorization header').toBeTruthy();
+            expect(options.headers.Authorization, 'Download should use Bearer format').toBe(`Bearer ${mockToken}`);
             
             // Return mock response
             const mockResponse: any = {
@@ -254,13 +245,13 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         try {
             await (adapter as any).downloadFile('https://github.com/test-owner/test-repo/releases/download/v1.0.0/bundle.zip');
-            assert.ok(httpsGetStub.calledOnce, 'Download should use https.get');
+            expect(httpsGetStub.calledOnce, 'Download should use https.get').toBeTruthy();
         } catch (error) {
             // Expected if mock doesn't perfectly emulate response
         }
     });
 
-    test.skip('should provide helpful error message for 404 errors', async () => {
+    it.skip('should provide helpful error message for 404 errors', async () => {
         sandbox.stub(vscode.authentication, 'getSession').resolves(undefined);
 
         const adapter = new GitHubAdapter(source);
@@ -286,15 +277,15 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         try {
             await (adapter as any).makeRequest('https://api.github.com/repos/test-owner/private-repo');
-            assert.fail('Should have thrown an error');
+            expect.fail('Should have thrown an error');
         } catch (error: any) {
-            assert.ok(error.message.includes('404'));
-            assert.ok(error.message.includes('not accessible'));
-            assert.ok(error.message.includes('authentication'));
+            expect(error.message.includes('404')).toBeTruthy();
+            expect(error.message.includes('not accessible')).toBeTruthy();
+            expect(error.message.includes('authentication')).toBeTruthy();
         }
     });
 
-    test.skip('should provide helpful error message for 401 errors', async () => {
+    it.skip('should provide helpful error message for 401 errors', async () => {
         const mockSession = {
             accessToken: 'invalid_token',
             account: { id: 'test', label: 'test' },
@@ -327,15 +318,15 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         try {
             await (adapter as any).makeRequest('https://api.github.com/repos/test-owner/test-repo');
-            assert.fail('Should have thrown an error');
+            expect.fail('Should have thrown an error');
         } catch (error: any) {
-            assert.ok(error.message.includes('401'));
-            assert.ok(error.message.includes('Authentication failed'));
-            assert.ok(error.message.includes('invalid or expired'));
+            expect(error.message.includes('401')).toBeTruthy();
+            expect(error.message.includes('Authentication failed')).toBeTruthy();
+            expect(error.message.includes('invalid or expired')).toBeTruthy();
         }
     });
 
-    test.skip('should provide helpful error message for 403 errors', async () => {
+    it.skip('should provide helpful error message for 403 errors', async () => {
         const mockSession = {
             accessToken: 'token_without_repo_scope',
             account: { id: 'test', label: 'test' },
@@ -368,11 +359,11 @@ suite('GitHubAdapter Authentication Tests', () => {
 
         try {
             await (adapter as any).makeRequest('https://api.github.com/repos/test-owner/test-repo');
-            assert.fail('Should have thrown an error');
+            expect.fail('Should have thrown an error');
         } catch (error: any) {
-            assert.ok(error.message.includes('403'));
-            assert.ok(error.message.includes('Access forbidden'));
-            assert.ok(error.message.includes('required scopes'));
+            expect(error.message.includes('403')).toBeTruthy();
+            expect(error.message.includes('Access forbidden')).toBeTruthy();
+            expect(error.message.includes('required scopes')).toBeTruthy();
         }
     });
 });

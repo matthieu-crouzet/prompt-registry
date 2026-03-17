@@ -5,7 +5,6 @@
  * Focus on requirements from bundle-state-management-fixes spec.
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { RegistryManager } from '../../src/services/RegistryManager';
@@ -14,13 +13,13 @@ import { RegistrySource, InstalledBundle, Bundle } from '../../src/types/registr
 import { RepositoryAdapterFactory } from '../../src/adapters/RepositoryAdapter';
 import { BundleBuilder, TEST_SOURCE_IDS } from '../helpers/bundleTestHelpers';
 
-suite('RegistryManager - Settings Export/Import Behavior', () => {
+describe('RegistryManager - Settings Export/Import Behavior', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -54,21 +53,21 @@ suite('RegistryManager - Settings Export/Import Behavior', () => {
         (manager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should export settings as JSON string with required fields', async () => {
+    it('should export settings as JSON string with required fields', async () => {
         const exportedString = await manager.exportSettings('json');
         const exported = JSON.parse(exportedString);
         
-        assert.ok(exported.version, 'Should have version');
-        assert.ok(exported.exportedAt, 'Should have timestamp');
-        assert.ok(Array.isArray(exported.sources), 'Should have sources array');
-        assert.ok(Array.isArray(exported.profiles), 'Should have profiles array');
+        expect(exported.version, 'Should have version').toBeTruthy();
+        expect(exported.exportedAt, 'Should have timestamp').toBeTruthy();
+        expect(Array.isArray(exported.sources), 'Should have sources array').toBeTruthy();
+        expect(Array.isArray(exported.profiles), 'Should have profiles array').toBeTruthy();
     });
 
-    test('should import settings from JSON string', async () => {
+    it('should import settings from JSON string', async () => {
         const testData = {
             version: '1.0.0',
             exportedAt: new Date().toISOString(),
@@ -91,16 +90,16 @@ suite('RegistryManager - Settings Export/Import Behavior', () => {
         
         // Verify source was added
         const sources = await manager.listSources();
-        assert.ok(sources.length > 0, 'Should have imported sources');
+        expect(sources.length > 0, 'Should have imported sources').toBeTruthy();
     });
 });
 
-suite('RegistryManager - Version Selection Behavior', () => {
+describe('RegistryManager - Version Selection Behavior', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -131,28 +130,28 @@ suite('RegistryManager - Version Selection Behavior', () => {
         manager = RegistryManager.getInstance(mockContext);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should retrieve available versions for a bundle', async () => {
+    it('should retrieve available versions for a bundle', async () => {
         // This tests Requirement 2.1: Display dropdown with all available versions
         const bundleId = 'owner-repo-v2.0.0';
         
         const versions = await manager.getAvailableVersions(bundleId);
         
         // Should return array of version strings
-        assert.ok(Array.isArray(versions), 'Should return array of versions');
+        expect(Array.isArray(versions), 'Should return array of versions').toBeTruthy();
     });
 });
 
-suite('RegistryManager - Event Emission Behavior', () => {
+describe('RegistryManager - Event Emission Behavior', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -190,11 +189,11 @@ suite('RegistryManager - Event Emission Behavior', () => {
         (manager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should fire onBundleInstalled event when bundle is installed', async () => {
+    it('should fire onBundleInstalled event when bundle is installed', async () => {
         // Requirement 6.1: Fire onBundleInstalled event
         let eventFired = false;
         let firedBundleId: string | undefined;
@@ -257,13 +256,13 @@ suite('RegistryManager - Event Emission Behavior', () => {
         // Perform actual installation which should fire the event
         await manager.installBundle('test-bundle', { scope: 'user' });
         
-        assert.ok(eventFired, 'Event should fire when bundle is installed');
-        assert.strictEqual(firedBundleId, 'test-bundle', 'Event should contain correct bundle ID');
+        expect(eventFired, 'Event should fire when bundle is installed').toBeTruthy();
+        expect(firedBundleId, 'Event should contain correct bundle ID').toBe('test-bundle');
         
         listener.dispose();
     });
 
-    test('should fire onBundleUninstalled event when bundle is uninstalled', async () => {
+    it('should fire onBundleUninstalled event when bundle is uninstalled', async () => {
         // Requirement 6.2: Fire onBundleUninstalled event
         let eventFired = false;
         let firedBundleId: string | undefined;
@@ -294,13 +293,13 @@ suite('RegistryManager - Event Emission Behavior', () => {
         // Perform actual uninstallation which should fire the event
         await manager.uninstallBundle('test-bundle', 'user');
         
-        assert.ok(eventFired, 'Event should fire when bundle is uninstalled');
-        assert.strictEqual(firedBundleId, 'test-bundle', 'Event should contain correct bundle ID');
+        expect(eventFired, 'Event should fire when bundle is uninstalled').toBeTruthy();
+        expect(firedBundleId, 'Event should contain correct bundle ID').toBe('test-bundle');
         
         listener.dispose();
     });
 
-    test('should fire onBundleUpdated event when bundle is updated', async () => {
+    it('should fire onBundleUpdated event when bundle is updated', async () => {
         // Requirement 6.3: Fire onBundleUpdated event
         let eventFired = false;
         let firedUpdate: any;
@@ -375,14 +374,14 @@ suite('RegistryManager - Event Emission Behavior', () => {
         // Perform actual update which should fire the event
         await manager.updateBundle('test-bundle');
         
-        assert.ok(eventFired, 'Event should fire when bundle is updated');
-        assert.strictEqual(firedUpdate.bundleId, 'test-bundle', 'Event should contain correct bundle ID');
-        assert.strictEqual(firedUpdate.version, '2.0.0', 'Event should contain new version');
+        expect(eventFired, 'Event should fire when bundle is updated').toBeTruthy();
+        expect(firedUpdate.bundleId, 'Event should contain correct bundle ID').toBe('test-bundle');
+        expect(firedUpdate.version, 'Event should contain new version').toBe('2.0.0');
         
         listener.dispose();
     });
 
-    test('should pass source metadata to installer during update', async () => {
+    it('should pass source metadata to installer during update', async () => {
         const currentInstallation = {
             bundleId: 'skills-owner-repo-demo',
             version: 'hash:abc',
@@ -443,13 +442,13 @@ suite('RegistryManager - Event Emission Behavior', () => {
 
         await manager.updateBundle('skills-owner-repo-demo');
 
-        assert.ok(updateStub.calledOnce, 'Installer should be invoked once');
+        expect(updateStub.calledOnce, 'Installer should be invoked once').toBeTruthy();
         const callArgs = updateStub.firstCall.args;
-        assert.strictEqual(callArgs[3], 'skills', 'source type should be forwarded');
-        assert.strictEqual(callArgs[4], 'Remote Skills Source', 'source name should be forwarded');
+        expect(callArgs[3], 'source type should be forwarded').toBe('skills');
+        expect(callArgs[4], 'source name should be forwarded').toBe('Remote Skills Source');
     });
 
-    test('should refresh local skill installations on sync', async () => {
+    it('should refresh local skill installations on sync', async () => {
         const localSkillInstall: InstalledBundle = {
             bundleId: 'local-skills-repo-plan-angular-migration',
             version: 'hash:old',
@@ -505,24 +504,24 @@ suite('RegistryManager - Event Emission Behavior', () => {
 
         await manager.syncSource('local-source');
 
-        assert.strictEqual(mockAdapter.fetchBundles.callCount, 1, 'Local skills adapter should fetch bundles');
-        assert.strictEqual(updatedInstallations.length, 1, 'Installation record should be updated to latest hash');
+        expect(mockAdapter.fetchBundles.callCount, 'Local skills adapter should fetch bundles').toBe(1);
+        expect(updatedInstallations.length, 'Installation record should be updated to latest hash').toBe(1);
         const refreshed = updatedInstallations[0];
-        assert.strictEqual(refreshed.version, 'hash:new', 'Version should match latest content hash');
-        assert.ok(updatedEventPayload, 'Should emit onBundleUpdated for refreshed skill');
-        assert.strictEqual(updatedEventPayload?.bundleId, refreshed.bundleId);
+        expect(refreshed.version, 'Version should match latest content hash').toBe('hash:new');
+        expect(updatedEventPayload, 'Should emit onBundleUpdated for refreshed skill').toBeTruthy();
+        expect(updatedEventPayload?.bundleId).toBe(refreshed.bundleId);
 
         listener.dispose();
     });
 });
 
-suite('RegistryManager - Installation Record Structure', () => {
+describe('RegistryManager - Installation Record Structure', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -554,31 +553,31 @@ suite('RegistryManager - Installation Record Structure', () => {
         (manager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should list installed bundles', async () => {
+    it('should list installed bundles', async () => {
         // Requirement 4.5: Store both full bundle ID and source type
         const installed = await manager.listInstalledBundles();
         
-        assert.ok(Array.isArray(installed), 'Should return array of installed bundles');
+        expect(Array.isArray(installed), 'Should return array of installed bundles').toBeTruthy();
     });
 
-    test('should return empty array when no bundles installed', async () => {
+    it('should return empty array when no bundles installed', async () => {
         const installed = await manager.listInstalledBundles();
         
-        assert.strictEqual(installed.length, 0, 'Should return empty array');
+        expect(installed.length, 'Should return empty array').toBe(0);
     });
 });
 
-suite('RegistryManager - Source Management', () => {
+describe('RegistryManager - Source Management', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -610,17 +609,17 @@ suite('RegistryManager - Source Management', () => {
         (manager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should list sources', async () => {
+    it('should list sources', async () => {
         const sources = await manager.listSources();
         
-        assert.ok(Array.isArray(sources), 'Should return array of sources');
+        expect(Array.isArray(sources), 'Should return array of sources').toBeTruthy();
     });
 
-    test('should add a new source and make it available in source list', async () => {
+    it('should add a new source and make it available in source list', async () => {
         const newSource: RegistrySource = {
             id: 'new-source',
             name: 'New Source',
@@ -645,22 +644,22 @@ suite('RegistryManager - Source Management', () => {
         
         // Verify the source is now in the list
         const sources = await manager.listSources();
-        assert.ok(sources.some(s => s.id === 'new-source'), 'Added source should be in source list');
-        assert.strictEqual(sources[0].name, 'New Source', 'Source should have correct name');
+        expect(sources.some(s => s.id === 'new-source'), 'Added source should be in source list').toBeTruthy();
+        expect(sources[0].name, 'Source should have correct name').toBe('New Source');
         
         // Verify adapter was created and validated
-        assert.ok(factoryStub.called, 'Adapter factory should be called');
-        assert.ok(mockAdapter.validate.called, 'Adapter validation should be called');
+        expect(factoryStub.called, 'Adapter factory should be called').toBeTruthy();
+        expect(mockAdapter.validate.called, 'Adapter validation should be called').toBeTruthy();
     });
 });
 
-suite('RegistryManager - Version Change Installation', () => {
+describe('RegistryManager - Version Change Installation', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -689,11 +688,11 @@ suite('RegistryManager - Version Change Installation', () => {
         (manager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should allow installing different version when bundle already installed', async () => {
+    it('should allow installing different version when bundle already installed', async () => {
         const bundleId = 'test-bundle';
         
         // Mock existing installation with v1.0.0
@@ -735,13 +734,13 @@ suite('RegistryManager - Version Change Installation', () => {
         await manager.installBundle(bundleId, { scope: 'user', version: '1.0.1' });
 
         // Verify installation was recorded with correct version
-        assert.ok(mockStorage.recordInstallation.called, 'Installation should be recorded');
+        expect(mockStorage.recordInstallation.called, 'Installation should be recorded').toBeTruthy();
         const recordedInstallation = mockStorage.recordInstallation.firstCall.args[0];
-        assert.strictEqual(recordedInstallation.version, '1.0.1', 'Should install requested version 1.0.1');
-        assert.strictEqual(recordedInstallation.bundleId, bundleId, 'Should record correct bundle ID');
+        expect(recordedInstallation.version, 'Should install requested version 1.0.1').toBe('1.0.1');
+        expect(recordedInstallation.bundleId, 'Should record correct bundle ID').toBe(bundleId);
     });
 
-    test('should throw error when installing same version without force', async () => {
+    it('should throw error when installing same version without force', async () => {
         const bundleId = 'test-bundle';
         
         // Mock existing installation with v1.0.0
@@ -769,14 +768,10 @@ suite('RegistryManager - Version Change Installation', () => {
         sandbox.stub(manager as any, 'resolveInstallationBundle').resolves(mockBundle);
 
         // Should throw error for same version
-        await assert.rejects(
-            manager.installBundle(bundleId, { scope: 'user', version: '1.0.0' }),
-            /already installed/,
-            'Installing same version should throw error'
-        );
+        await expect(manager.installBundle(bundleId, { scope: 'user', version: '1.0.0' })).rejects.toThrow(/already installed/, 'Installing same version should throw error');
     });
 
-    test('should allow downgrade from v1.0.17 to v1.0.15', async () => {
+    it('should allow downgrade from v1.0.17 to v1.0.15', async () => {
         const bundleId = 'amadeus-airlines-solutions-workflow-instructions';
         
         // Mock existing installation with v1.0.17
@@ -817,20 +812,20 @@ suite('RegistryManager - Version Change Installation', () => {
         await manager.installBundle(bundleId, { scope: 'user', version: '1.0.15' });
 
         // Verify downgrade was recorded with correct version
-        assert.ok(mockStorage.recordInstallation.called, 'Downgrade should be recorded');
+        expect(mockStorage.recordInstallation.called, 'Downgrade should be recorded').toBeTruthy();
         const recordedInstallation = mockStorage.recordInstallation.firstCall.args[0];
-        assert.strictEqual(recordedInstallation.version, '1.0.15', 'Should install downgraded version 1.0.15');
-        assert.ok(recordedInstallation.bundleId.includes('1.0.15'), 'Bundle ID should reflect downgraded version');
+        expect(recordedInstallation.version, 'Should install downgraded version 1.0.15').toBe('1.0.15');
+        expect(recordedInstallation.bundleId.includes('1.0.15'), 'Bundle ID should reflect downgraded version').toBeTruthy();
     });
 });
 
-suite('RegistryManager - Bundle Resolution', () => {
+describe('RegistryManager - Bundle Resolution', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let registryManager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -861,11 +856,11 @@ suite('RegistryManager - Bundle Resolution', () => {
         (registryManager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should resolve bundle by versioned ID via identity matching', async () => {
+    it('should resolve bundle by versioned ID via identity matching', async () => {
         // Arrange - The scenario where update check returns versioned ID but sources have consolidated ID
         const versionedBundleId = 'amadeus-airlines-solutions-workflow-instructions-1.0.17';
         const identityBundleId = 'amadeus-airlines-solutions-workflow-instructions';
@@ -891,11 +886,11 @@ suite('RegistryManager - Bundle Resolution', () => {
         const result = await registryManager.getBundleDetails(versionedBundleId);
 
         // Assert - Should find the bundle via identity matching
-        assert.strictEqual(result.version, '1.0.18');
-        assert.ok(result.id.includes('amadeus-airlines-solutions-workflow-instructions'));
+        expect(result.version).toBe('1.0.18');
+        expect(result.id.includes('amadeus-airlines-solutions-workflow-instructions')).toBeTruthy();
     });
 
-    test('should resolve bundle by identity when source has versioned ID', async () => {
+    it('should resolve bundle by identity when source has versioned ID', async () => {
         // Arrange - Test the reverse case: identity -> versioned bundle
         const identityBundleId = 'amadeus-airlines-solutions-workflow-instructions';
         
@@ -920,11 +915,11 @@ suite('RegistryManager - Bundle Resolution', () => {
         const result = await registryManager.getBundleDetails(identityBundleId);
 
         // Assert - Should find the versioned bundle via identity matching
-        assert.strictEqual(result.version, '1.0.18');
-        assert.ok(result.id.includes('amadeus-airlines-solutions-workflow-instructions'));
+        expect(result.version).toBe('1.0.18');
+        expect(result.id.includes('amadeus-airlines-solutions-workflow-instructions')).toBeTruthy();
     });
 
-    test('should handle exact ID matches without identity matching', async () => {
+    it('should handle exact ID matches without identity matching', async () => {
         // Arrange - Test that exact matches still work
         const bundleId = 'exact-match-bundle-1.0.0';
         
@@ -949,18 +944,18 @@ suite('RegistryManager - Bundle Resolution', () => {
         const result = await registryManager.getBundleDetails(bundleId);
 
         // Assert - Should find exact match without needing identity matching
-        assert.strictEqual(result.version, '1.0.0');
-        assert.ok(result.id.includes('exact-match-bundle'));
+        expect(result.version).toBe('1.0.0');
+        expect(result.id.includes('exact-match-bundle')).toBeTruthy();
     });
 });
 
-suite('RegistryManager - Cache-Only Search Behavior', () => {
+describe('RegistryManager - Cache-Only Search Behavior', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let registryManager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -990,11 +985,11 @@ suite('RegistryManager - Cache-Only Search Behavior', () => {
         (registryManager as any).storage = mockStorage;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should return bundles from cache when cacheOnly is true', async () => {
+    it('should return bundles from cache when cacheOnly is true', async () => {
         // Arrange: Set up cached bundles
         const cachedBundle = BundleBuilder.github('cached-owner', 'cached-repo')
             .withVersion('1.0.0')
@@ -1017,12 +1012,12 @@ suite('RegistryManager - Cache-Only Search Behavior', () => {
         const result = await registryManager.searchBundles({ cacheOnly: true });
 
         // Assert: Should return the cached bundle
-        assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].id, cachedBundle.id);
-        assert.strictEqual(result[0].version, '1.0.0');
+        expect(result.length).toBe(1);
+        expect(result[0].id).toBe(cachedBundle.id);
+        expect(result[0].version).toBe('1.0.0');
     });
 
-    test('should return empty array when cache is empty and cacheOnly is true', async () => {
+    it('should return empty array when cache is empty and cacheOnly is true', async () => {
         // Arrange: Empty cache
         const mockSource: RegistrySource = {
             id: TEST_SOURCE_IDS.GITHUB,
@@ -1040,16 +1035,16 @@ suite('RegistryManager - Cache-Only Search Behavior', () => {
         const result = await registryManager.searchBundles({ cacheOnly: true });
 
         // Assert: Should return empty array (not throw, not hang)
-        assert.strictEqual(result.length, 0);
+        expect(result.length).toBe(0);
     });
 });
 
-suite('RegistryManager - Adapter Cache Clearing', () => {
+describe('RegistryManager - Adapter Cache Clearing', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let registryManager: RegistryManager;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         mockContext = {
@@ -1076,16 +1071,16 @@ suite('RegistryManager - Adapter Cache Clearing', () => {
         registryManager = RegistryManager.getInstance(mockContext);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('clearAdapterCache should not throw for any source ID', () => {
+    it('clearAdapterCache should not throw for any source ID', () => {
         // This tests the public API contract - method should be safe to call
-        assert.doesNotThrow(() => {
+        expect(() => {
             registryManager.clearAdapterCache('non-existent-source');
             registryManager.clearAdapterCache('source-1');
             registryManager.clearAdapterCache('');
-        });
+        }).not.toThrow();
     });
 });

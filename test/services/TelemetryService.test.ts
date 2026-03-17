@@ -1,4 +1,3 @@
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { TelemetryService } from '../../src/services/TelemetryService';
@@ -13,7 +12,7 @@ import { createMockInstalledBundle } from '../helpers/bundleTestHelpers';
 function parseTelemetryLog(call: sinon.SinonSpyCall): { eventName: string; data: Record<string, any> } {
     const message: string = call.args[0];
     const match = message.match(/^\[Telemetry\] (\S+)\s*(.*)?$/);
-    assert.ok(match, `Expected telemetry log format, got: ${message}`);
+    expect(match, `Expected telemetry log format, got: ${message}`).toBeTruthy();
     const eventName = match[1];
     const rawData = match[2]?.trim();
     const data = rawData && rawData !== 'undefined' ? JSON.parse(rawData) : {};
@@ -96,12 +95,12 @@ function createMockSource(overrides?: Partial<RegistrySource>): RegistrySource {
     } as RegistrySource;
 }
 
-suite('TelemetryService', () => {
+describe('TelemetryService', () => {
     let sandbox: sinon.SinonSandbox;
     let service: TelemetryService;
     let loggerStub: sinon.SinonStubbedInstance<Logger>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Stub logger
@@ -121,246 +120,246 @@ suite('TelemetryService', () => {
         loggerStub.info.resetHistory();
     });
 
-    teardown(() => {
+    afterEach(() => {
         service.dispose();
         TelemetryService.resetInstance();
         sandbox.restore();
     });
 
-    suite('lifecycle events', () => {
-        test('should log telemetryService.started on construction', () => {
+    describe('lifecycle events', () => {
+        it('should log telemetryService.started on construction', () => {
             TelemetryService.resetInstance();
             loggerStub.info.resetHistory();
 
             service = TelemetryService.getInstance();
 
-            assert.strictEqual(loggerStub.info.callCount, 1);
+            expect(loggerStub.info.callCount).toBe(1);
             const { eventName } = parseTelemetryLog(loggerStub.info.firstCall);
-            assert.strictEqual(eventName, 'telemetryService.started');
+            expect(eventName).toBe('telemetryService.started');
         });
 
-        test('should log telemetryService.stopped on dispose', () => {
+        it('should log telemetryService.stopped on dispose', () => {
             loggerStub.info.resetHistory();
 
             service.dispose();
 
-            assert.strictEqual(loggerStub.info.callCount, 1);
+            expect(loggerStub.info.callCount).toBe(1);
             const { eventName } = parseTelemetryLog(loggerStub.info.firstCall);
-            assert.strictEqual(eventName, 'telemetryService.stopped');
+            expect(eventName).toBe('telemetryService.stopped');
         });
     });
 
-    suite('subscribeToRegistryEvents()', () => {
+    describe('subscribeToRegistryEvents()', () => {
         let emitters: ReturnType<typeof createMockRegistryManager>['emitters'];
 
-        setup(() => {
+        beforeEach(() => {
             const mock = createMockRegistryManager();
             emitters = mock.emitters;
             service.subscribeToRegistryEvents(mock.mockRegistryManager as any);
         });
 
-        teardown(() => {
+        afterEach(() => {
             disposeEmitters(emitters);
         });
 
-        suite('bundle events', () => {
-            test('should track bundle.installed with bundle details', () => {
+        describe('bundle events', () => {
+            it('should track bundle.installed with bundle details', () => {
                 const bundle = createMockInstalledBundle('my-bundle', '1.0.0', {
                     scope: 'user',
                     sourceType: 'github'
                 });
                 emitters.bundleInstalled.fire(bundle);
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'bundle.installed');
-                assert.strictEqual(data.bundleId, 'my-bundle');
-                assert.strictEqual(data.version, '1.0.0');
-                assert.strictEqual(data.scope, 'user');
-                assert.strictEqual(data.sourceType, 'github');
+                expect(eventName).toBe('bundle.installed');
+                expect(data.bundleId).toBe('my-bundle');
+                expect(data.version).toBe('1.0.0');
+                expect(data.scope).toBe('user');
+                expect(data.sourceType).toBe('github');
             });
 
-            test('should default sourceType to unknown when not provided', () => {
+            it('should default sourceType to unknown when not provided', () => {
                 const bundle = createMockInstalledBundle('my-bundle', '1.0.0');
                 emitters.bundleInstalled.fire(bundle);
 
                 const { data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(data.sourceType, 'unknown');
+                expect(data.sourceType).toBe('unknown');
             });
 
-            test('should track bundle.uninstalled with bundleId', () => {
+            it('should track bundle.uninstalled with bundleId', () => {
                 emitters.bundleUninstalled.fire('my-bundle');
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'bundle.uninstalled');
-                assert.strictEqual(data.bundleId, 'my-bundle');
+                expect(eventName).toBe('bundle.uninstalled');
+                expect(data.bundleId).toBe('my-bundle');
             });
 
-            test('should track bundle.updated with bundle details', () => {
+            it('should track bundle.updated with bundle details', () => {
                 const bundle = createMockInstalledBundle('my-bundle', '2.0.0', {
                     scope: 'workspace',
                     sourceType: 'gitlab'
                 });
                 emitters.bundleUpdated.fire(bundle);
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'bundle.updated');
-                assert.strictEqual(data.bundleId, 'my-bundle');
-                assert.strictEqual(data.version, '2.0.0');
-                assert.strictEqual(data.scope, 'workspace');
-                assert.strictEqual(data.sourceType, 'gitlab');
+                expect(eventName).toBe('bundle.updated');
+                expect(data.bundleId).toBe('my-bundle');
+                expect(data.version).toBe('2.0.0');
+                expect(data.scope).toBe('workspace');
+                expect(data.sourceType).toBe('gitlab');
             });
 
-            test('should track bundles.installed with count and bundleIds', () => {
+            it('should track bundles.installed with count and bundleIds', () => {
                 const bundles = [
                     createMockInstalledBundle('bundle-a', '1.0.0'),
                     createMockInstalledBundle('bundle-b', '2.0.0'),
                 ];
                 emitters.bundlesInstalled.fire(bundles);
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'bundles.installed');
-                assert.strictEqual(data.count, 2);
-                assert.deepStrictEqual(data.bundleIds, ['bundle-a', 'bundle-b']);
+                expect(eventName).toBe('bundles.installed');
+                expect(data.count).toBe(2);
+                expect(data.bundleIds).toEqual(['bundle-a', 'bundle-b']);
             });
 
-            test('should track bundles.uninstalled with count and bundleIds', () => {
+            it('should track bundles.uninstalled with count and bundleIds', () => {
                 emitters.bundlesUninstalled.fire(['bundle-a', 'bundle-b']);
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'bundles.uninstalled');
-                assert.strictEqual(data.count, 2);
-                assert.deepStrictEqual(data.bundleIds, ['bundle-a', 'bundle-b']);
+                expect(eventName).toBe('bundles.uninstalled');
+                expect(data.count).toBe(2);
+                expect(data.bundleIds).toEqual(['bundle-a', 'bundle-b']);
             });
         });
 
-        suite('profile events', () => {
-            test('should track profile.activated with profile details', () => {
+        describe('profile events', () => {
+            it('should track profile.activated with profile details', () => {
                 emitters.profileActivated.fire(createMockProfile({ id: 'p1', name: 'Dev Profile' }));
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'profile.activated');
-                assert.strictEqual(data.profileId, 'p1');
-                assert.strictEqual(data.name, 'Dev Profile');
+                expect(eventName).toBe('profile.activated');
+                expect(data.profileId).toBe('p1');
+                expect(data.name).toBe('Dev Profile');
             });
 
-            test('should track profile.deactivated with profileId', () => {
+            it('should track profile.deactivated with profileId', () => {
                 emitters.profileDeactivated.fire('p1');
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'profile.deactivated');
-                assert.strictEqual(data.profileId, 'p1');
+                expect(eventName).toBe('profile.deactivated');
+                expect(data.profileId).toBe('p1');
             });
 
-            test('should track profile.created with profile details', () => {
+            it('should track profile.created with profile details', () => {
                 emitters.profileCreated.fire(createMockProfile({ id: 'p2', name: 'New Profile' }));
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'profile.created');
-                assert.strictEqual(data.profileId, 'p2');
-                assert.strictEqual(data.name, 'New Profile');
+                expect(eventName).toBe('profile.created');
+                expect(data.profileId).toBe('p2');
+                expect(data.name).toBe('New Profile');
             });
 
-            test('should track profile.updated with profile details', () => {
+            it('should track profile.updated with profile details', () => {
                 emitters.profileUpdated.fire(createMockProfile({ id: 'p1', name: 'Renamed' }));
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'profile.updated');
-                assert.strictEqual(data.profileId, 'p1');
-                assert.strictEqual(data.name, 'Renamed');
+                expect(eventName).toBe('profile.updated');
+                expect(data.profileId).toBe('p1');
+                expect(data.name).toBe('Renamed');
             });
 
-            test('should track profile.deleted with profileId', () => {
+            it('should track profile.deleted with profileId', () => {
                 emitters.profileDeleted.fire('p1');
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'profile.deleted');
-                assert.strictEqual(data.profileId, 'p1');
+                expect(eventName).toBe('profile.deleted');
+                expect(data.profileId).toBe('p1');
             });
         });
 
-        suite('source events', () => {
-            test('should track source.added with source details', () => {
+        describe('source events', () => {
+            it('should track source.added with source details', () => {
                 emitters.sourceAdded.fire(createMockSource({ id: 's1', type: 'github' as any }));
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'source.added');
-                assert.strictEqual(data.sourceId, 's1');
-                assert.strictEqual(data.type, 'github');
+                expect(eventName).toBe('source.added');
+                expect(data.sourceId).toBe('s1');
+                expect(data.type).toBe('github');
             });
 
-            test('should track source.removed with sourceId', () => {
+            it('should track source.removed with sourceId', () => {
                 emitters.sourceRemoved.fire('s1');
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'source.removed');
-                assert.strictEqual(data.sourceId, 's1');
+                expect(eventName).toBe('source.removed');
+                expect(data.sourceId).toBe('s1');
             });
 
-            test('should track source.updated with sourceId', () => {
+            it('should track source.updated with sourceId', () => {
                 emitters.sourceUpdated.fire('s1');
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'source.updated');
-                assert.strictEqual(data.sourceId, 's1');
+                expect(eventName).toBe('source.updated');
+                expect(data.sourceId).toBe('s1');
             });
 
-            test('should track source.synced with sourceId and bundleCount', () => {
+            it('should track source.synced with sourceId and bundleCount', () => {
                 emitters.sourceSynced.fire({ sourceId: 's1', bundleCount: 5 });
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'source.synced');
-                assert.strictEqual(data.sourceId, 's1');
-                assert.strictEqual(data.bundleCount, 5);
+                expect(eventName).toBe('source.synced');
+                expect(data.sourceId).toBe('s1');
+                expect(data.bundleCount).toBe(5);
             });
         });
 
-        suite('preference events', () => {
-            test('should track autoUpdate.preferenceChanged with bundleId and enabled', () => {
+        describe('preference events', () => {
+            it('should track autoUpdate.preferenceChanged with bundleId and enabled', () => {
                 emitters.autoUpdatePreferenceChanged.fire({ bundleId: 'my-bundle', enabled: true });
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName, data } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'autoUpdate.preferenceChanged');
-                assert.strictEqual(data.bundleId, 'my-bundle');
-                assert.strictEqual(data.enabled, true);
+                expect(eventName).toBe('autoUpdate.preferenceChanged');
+                expect(data.bundleId).toBe('my-bundle');
+                expect(data.enabled).toBe(true);
             });
 
-            test('should track repository.bundlesChanged', () => {
+            it('should track repository.bundlesChanged', () => {
                 emitters.repositoryBundlesChanged.fire();
 
-                assert.strictEqual(loggerStub.info.callCount, 1);
+                expect(loggerStub.info.callCount).toBe(1);
                 const { eventName } = parseTelemetryLog(loggerStub.info.firstCall);
-                assert.strictEqual(eventName, 'repository.bundlesChanged');
+                expect(eventName).toBe('repository.bundlesChanged');
             });
         });
     });
 
-    suite('telemetry levels', () => {
+    describe('telemetry levels', () => {
         let origCreate: any;
 
-        setup(() => {
+        beforeEach(() => {
             origCreate = (vscode.env as any).createTelemetryLogger;
         });
 
-        teardown(() => {
+        afterEach(() => {
             (vscode.env as any).createTelemetryLogger = origCreate;
         });
 
-        test('should NOT log usage events when level is "off" (usage and errors disabled)', () => {
+        it('should NOT log usage events when level is "off" (usage and errors disabled)', () => {
             TelemetryService.resetInstance();
 
             (vscode.env as any).createTelemetryLogger = (sender: any, options: any) => {
@@ -377,12 +376,12 @@ suite('TelemetryService', () => {
 
             mock.emitters.bundleInstalled.fire(createMockInstalledBundle('my-bundle', '1.0.0'));
 
-            assert.strictEqual(loggerStub.info.callCount, 0);
+            expect(loggerStub.info.callCount).toBe(0);
 
             disposeEmitters(mock.emitters);
         });
 
-        test('should NOT log usage events when level is "error" (only errors enabled)', () => {
+        it('should NOT log usage events when level is "error" (only errors enabled)', () => {
             TelemetryService.resetInstance();
 
             (vscode.env as any).createTelemetryLogger = (sender: any, options: any) => {
@@ -403,28 +402,28 @@ suite('TelemetryService', () => {
             mock.emitters.profileActivated.fire(createMockProfile());
             mock.emitters.sourceAdded.fire(createMockSource());
 
-            assert.strictEqual(loggerStub.info.callCount, 0);
+            expect(loggerStub.info.callCount).toBe(0);
 
             disposeEmitters(mock.emitters);
         });
 
-        test('should log usage events when level is "all"', () => {
+        it('should log usage events when level is "all"', () => {
             // Default mock has isUsageEnabled = true (simulates "all" level)
             const mock = createMockRegistryManager();
             service.subscribeToRegistryEvents(mock.mockRegistryManager as any);
 
             mock.emitters.bundleInstalled.fire(createMockInstalledBundle('my-bundle', '1.0.0'));
 
-            assert.strictEqual(loggerStub.info.callCount, 1);
+            expect(loggerStub.info.callCount).toBe(1);
             const { eventName } = parseTelemetryLog(loggerStub.info.firstCall);
-            assert.strictEqual(eventName, 'bundle.installed');
+            expect(eventName).toBe('bundle.installed');
 
             disposeEmitters(mock.emitters);
         });
     });
 
-    suite('dispose()', () => {
-        test('should clean up event subscriptions', () => {
+    describe('dispose()', () => {
+        it('should clean up event subscriptions', () => {
             const { mockRegistryManager, emitters } = createMockRegistryManager();
 
             service.subscribeToRegistryEvents(mockRegistryManager as any);
@@ -439,7 +438,7 @@ suite('TelemetryService', () => {
             emitters.sourceAdded.fire(createMockSource());
             emitters.repositoryBundlesChanged.fire();
 
-            assert.strictEqual(loggerStub.info.callCount, 0);
+            expect(loggerStub.info.callCount).toBe(0);
 
             disposeEmitters(emitters);
         });

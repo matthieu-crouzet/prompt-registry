@@ -2,22 +2,21 @@
  * Update Manager Unit Tests
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 
-suite('UpdateManager', () => {
+describe('UpdateManager', () => {
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Version Comparison', () => {
-        test('should correctly compare semantic versions', () => {
+    describe('Version Comparison', () => {
+        it('should correctly compare semantic versions', () => {
             const testCases = [
                 { v1: '1.0.0', v2: '1.0.1', expected: -1 },
                 { v1: '1.0.1', v2: '1.0.0', expected: 1 },
@@ -29,27 +28,27 @@ suite('UpdateManager', () => {
             for (const { v1, v2, expected } of testCases) {
                 const result = v1.localeCompare(v2, undefined, { numeric: true });
                 if (expected < 0) {
-                    assert.ok(result < 0, `${v1} should be less than ${v2}`);
+                    expect(result < 0, `${v1} should be less than ${v2}`).toBeTruthy();
                 } else if (expected > 0) {
-                    assert.ok(result > 0, `${v1} should be greater than ${v2}`);
+                    expect(result > 0, `${v1} should be greater than ${v2}`).toBeTruthy();
                 } else {
-                    assert.strictEqual(result, 0, `${v1} should equal ${v2}`);
+                    expect(result, `${v1} should equal ${v2}`).toBe(0);
                 }
             }
         });
 
-        test('should handle pre-release versions', () => {
+        it('should handle pre-release versions', () => {
             const versions = ['1.0.0-alpha', '1.0.0-beta', '1.0.0'];
 
             // alpha < beta < release
-            assert.ok('1.0.0-alpha' < '1.0.0-beta');
+            expect('1.0.0-alpha' < '1.0.0-beta').toBeTruthy();
             // String comparison doesn't work for semver - this test needs a semver library
             // For now, we skip the actual assertion or use semver.compare()
-            // assert.ok(semver.lt('1.0.0-beta', '1.0.0'));
-            assert.ok(true); // Placeholder - proper semver comparison needed
+            // expect(semver.lt('1.0.0-beta', '1.0.0')).toBeTruthy();
+            expect(true).toBeTruthy(); // Placeholder - proper semver comparison needed
         });
 
-        test('should handle build metadata', () => {
+        it('should handle build metadata', () => {
             const v1 = '1.0.0+build.123';
             const v2 = '1.0.0+build.456';
 
@@ -57,12 +56,12 @@ suite('UpdateManager', () => {
             const base1 = v1.split('+')[0];
             const base2 = v2.split('+')[0];
 
-            assert.strictEqual(base1, base2);
+            expect(base1).toBe(base2);
         });
     });
 
-    suite('Update Detection', () => {
-        test('should detect available updates', () => {
+    describe('Update Detection', () => {
+        it('should detect available updates', () => {
             const bundles = [
                 { id: 'bundle-1', installedVersion: '1.0.0', latestVersion: '1.1.0' },
                 { id: 'bundle-2', installedVersion: '2.0.0', latestVersion: '2.0.0' },
@@ -73,27 +72,27 @@ suite('UpdateManager', () => {
                 b => b.latestVersion > b.installedVersion
             );
 
-            assert.strictEqual(updatesAvailable.length, 2);
-            assert.ok(updatesAvailable.find(b => b.id === 'bundle-1'));
-            assert.ok(updatesAvailable.find(b => b.id === 'bundle-3'));
+            expect(updatesAvailable.length).toBe(2);
+            expect(updatesAvailable.find(b => b.id === 'bundle-1')).toBeTruthy();
+            expect(updatesAvailable.find(b => b.id === 'bundle-3')).toBeTruthy();
         });
 
-        test('should check for updates periodically', async () => {
+        it('should check for updates periodically', async () => {
             let lastCheck = Date.now() - 7200000; // 2 hours ago
             const checkInterval = 3600000; // 1 hour
 
             const shouldCheck = Date.now() - lastCheck > checkInterval;
 
-            assert.strictEqual(shouldCheck, true);
+            expect(shouldCheck).toBe(true);
 
             // Update last check time
             lastCheck = Date.now();
             const shouldCheckAgain = Date.now() - lastCheck > checkInterval;
 
-            assert.strictEqual(shouldCheckAgain, false);
+            expect(shouldCheckAgain).toBe(false);
         });
 
-        test('should respect user update preferences', () => {
+        it('should respect user update preferences', () => {
             const preferences = {
                 autoCheckUpdates: false,
                 updateChannel: 'stable',
@@ -101,13 +100,13 @@ suite('UpdateManager', () => {
 
             if (!preferences.autoCheckUpdates) {
                 // Skip automatic update check
-                assert.strictEqual(preferences.autoCheckUpdates, false);
+                expect(preferences.autoCheckUpdates).toBe(false);
             }
         });
     });
 
-    suite('Update Installation', () => {
-        test('should download update before installing', async () => {
+    describe('Update Installation', () => {
+        it('should download update before installing', async () => {
             const update = {
                 id: 'bundle-1',
                 version: '1.1.0',
@@ -115,10 +114,10 @@ suite('UpdateManager', () => {
             };
 
             const downloaded = true;
-            assert.strictEqual(downloaded, true);
+            expect(downloaded).toBe(true);
         });
 
-        test('should verify download integrity', async () => {
+        it('should verify download integrity', async () => {
             const download = {
                 url: 'https://example.com/bundle.zip',
                 checksum: 'abc123',
@@ -129,10 +128,10 @@ suite('UpdateManager', () => {
             const downloadedChecksum = 'abc123';
             const isValid = downloadedChecksum === download.checksum;
 
-            assert.strictEqual(isValid, true);
+            expect(isValid).toBe(true);
         });
 
-        test('should backup before updating', async () => {
+        it('should backup before updating', async () => {
             const bundle = {
                 id: 'bundle-1',
                 version: '1.0.0',
@@ -141,11 +140,11 @@ suite('UpdateManager', () => {
 
             const backupPath = `${bundle.installPath}.backup-${Date.now()}`;
 
-            assert.ok(backupPath.includes('backup'));
-            assert.ok(backupPath.includes(bundle.id));
+            expect(backupPath.includes('backup')).toBeTruthy();
+            expect(backupPath.includes(bundle.id)).toBeTruthy();
         });
 
-        test('should rollback on update failure', async () => {
+        it('should rollback on update failure', async () => {
             const bundle = {
                 id: 'bundle-1',
                 version: '1.0.0',
@@ -161,10 +160,10 @@ suite('UpdateManager', () => {
                 bundle.version = backup.version;
             }
 
-            assert.strictEqual(bundle.version, '1.0.0');
+            expect(bundle.version).toBe('1.0.0');
         });
 
-        test('should cleanup after successful update', async () => {
+        it('should cleanup after successful update', async () => {
             const tempFiles = [
                 '/tmp/bundle-download.zip',
                 '/tmp/bundle-extract/',
@@ -173,12 +172,12 @@ suite('UpdateManager', () => {
             // Simulate cleanup
             tempFiles.length = 0;
 
-            assert.strictEqual(tempFiles.length, 0);
+            expect(tempFiles.length).toBe(0);
         });
     });
 
-    suite('Update Notifications', () => {
-        test('should notify user of available updates', () => {
+    describe('Update Notifications', () => {
+        it('should notify user of available updates', () => {
             const updates = [
                 { id: 'bundle-1', version: '1.1.0' },
                 { id: 'bundle-2', version: '2.1.0' },
@@ -186,11 +185,11 @@ suite('UpdateManager', () => {
 
             const message = `${updates.length} update(s) available`;
 
-            assert.ok(message.includes('2'));
-            assert.ok(message.includes('available'));
+            expect(message.includes('2')).toBeTruthy();
+            expect(message.includes('available')).toBeTruthy();
         });
 
-        test('should group updates by severity', () => {
+        it('should group updates by severity', () => {
             const updates = [
                 { id: 'bundle-1', version: '1.0.1', severity: 'patch' },
                 { id: 'bundle-2', version: '1.1.0', severity: 'minor' },
@@ -203,12 +202,12 @@ suite('UpdateManager', () => {
                 major: updates.filter(u => u.severity === 'major'),
             };
 
-            assert.strictEqual(grouped.patch.length, 1);
-            assert.strictEqual(grouped.minor.length, 1);
-            assert.strictEqual(grouped.major.length, 1);
+            expect(grouped.patch.length).toBe(1);
+            expect(grouped.minor.length).toBe(1);
+            expect(grouped.major.length).toBe(1);
         });
 
-        test('should respect notification preferences', () => {
+        it('should respect notification preferences', () => {
             const preferences = {
                 notifyOnPatch: false,
                 notifyOnMinor: true,
@@ -219,12 +218,12 @@ suite('UpdateManager', () => {
 
             const shouldNotify = preferences.notifyOnPatch;
 
-            assert.strictEqual(shouldNotify, false);
+            expect(shouldNotify).toBe(false);
         });
     });
 
-    suite('Update Scheduling', () => {
-        test('should schedule updates for later', () => {
+    describe('Update Scheduling', () => {
+        it('should schedule updates for later', () => {
             const scheduled = new Map<string, Date>();
 
             const bundleId = 'bundle-1';
@@ -232,11 +231,11 @@ suite('UpdateManager', () => {
 
             scheduled.set(bundleId, scheduleTime);
 
-            assert.ok(scheduled.has(bundleId));
-            assert.ok(scheduled.get(bundleId)! > new Date());
+            expect(scheduled.has(bundleId)).toBeTruthy();
+            expect(scheduled.get(bundleId)! > new Date()).toBeTruthy();
         });
 
-        test('should process scheduled updates', async () => {
+        it('should process scheduled updates', async () => {
             const scheduled = new Map<string, Date>();
 
             scheduled.set('bundle-1', new Date(Date.now() - 1000)); // Past
@@ -246,11 +245,11 @@ suite('UpdateManager', () => {
                 .filter(([_, time]) => time <= new Date())
                 .map(([id, _]) => id);
 
-            assert.strictEqual(due.length, 1);
-            assert.strictEqual(due[0], 'bundle-1');
+            expect(due.length).toBe(1);
+            expect(due[0]).toBe('bundle-1');
         });
 
-        test('should cancel scheduled updates', () => {
+        it('should cancel scheduled updates', () => {
             const scheduled = new Map<string, Date>();
 
             scheduled.set('bundle-1', new Date());
@@ -258,13 +257,13 @@ suite('UpdateManager', () => {
 
             scheduled.delete('bundle-1');
 
-            assert.strictEqual(scheduled.size, 1);
-            assert.ok(!scheduled.has('bundle-1'));
+            expect(scheduled.size).toBe(1);
+            expect(!scheduled.has('bundle-1')).toBeTruthy();
         });
     });
 
-    suite('Batch Updates', () => {
-        test('should update multiple bundles', async () => {
+    describe('Batch Updates', () => {
+        it('should update multiple bundles', async () => {
             const bundles = [
                 { id: 'bundle-1', needsUpdate: true },
                 { id: 'bundle-2', needsUpdate: false },
@@ -273,10 +272,10 @@ suite('UpdateManager', () => {
 
             const toUpdate = bundles.filter(b => b.needsUpdate);
 
-            assert.strictEqual(toUpdate.length, 2);
+            expect(toUpdate.length).toBe(2);
         });
 
-        test('should handle partial failures in batch update', async () => {
+        it('should handle partial failures in batch update', async () => {
             const updates = [
                 { id: 'bundle-1', status: 'pending' },
                 { id: 'bundle-2', status: 'pending' },
@@ -294,12 +293,12 @@ suite('UpdateManager', () => {
                 }
             }
 
-            assert.strictEqual(updates[0].status, 'completed');
-            assert.strictEqual(updates[1].status, 'failed');
-            assert.strictEqual(updates[2].status, 'completed');
+            expect(updates[0].status).toBe('completed');
+            expect(updates[1].status).toBe('failed');
+            expect(updates[2].status).toBe('completed');
         });
 
-        test('should track batch update progress', async () => {
+        it('should track batch update progress', async () => {
             const total = 10;
             let completed = 0;
 
@@ -310,22 +309,22 @@ suite('UpdateManager', () => {
 
             const progress = (completed / total) * 100;
 
-            assert.strictEqual(progress, 100);
+            expect(progress).toBe(100);
         });
     });
 
-    suite('Update History', () => {
-        test('should track update history', () => {
+    describe('Update History', () => {
+        it('should track update history', () => {
             const history = [
                 { bundleId: 'bundle-1', from: '1.0.0', to: '1.1.0', date: new Date() },
                 { bundleId: 'bundle-1', from: '1.1.0', to: '1.2.0', date: new Date() },
             ];
 
-            assert.strictEqual(history.length, 2);
-            assert.strictEqual(history[0].bundleId, 'bundle-1');
+            expect(history.length).toBe(2);
+            expect(history[0].bundleId).toBe('bundle-1');
         });
 
-        test('should allow reverting to previous version', () => {
+        it('should allow reverting to previous version', () => {
             const history = [
                 { bundleId: 'bundle-1', from: '1.0.0', to: '1.1.0' },
             ];
@@ -333,10 +332,10 @@ suite('UpdateManager', () => {
             const lastUpdate = history[history.length - 1];
             const revertToVersion = lastUpdate.from;
 
-            assert.strictEqual(revertToVersion, '1.0.0');
+            expect(revertToVersion).toBe('1.0.0');
         });
 
-        test('should limit history size', () => {
+        it('should limit history size', () => {
             let history = Array.from({ length: 100 }, (_, i) => ({
                 id: i,
                 date: new Date(),
@@ -347,30 +346,30 @@ suite('UpdateManager', () => {
                 history = history.slice(-maxHistory);
             }
 
-            assert.strictEqual(history.length, 50);
+            expect(history.length).toBe(50);
         });
     });
 
-    suite('Update Channels', () => {
-        test('should support stable channel', () => {
+    describe('Update Channels', () => {
+        it('should support stable channel', () => {
             const channel = 'stable';
             const versions = ['1.0.0', '1.1.0', '2.0.0'];
 
             const stableVersions = versions.filter(v => !v.includes('-'));
 
-            assert.strictEqual(stableVersions.length, 3);
+            expect(stableVersions.length).toBe(3);
         });
 
-        test('should support beta channel', () => {
+        it('should support beta channel', () => {
             const channel = 'beta';
             const versions = ['1.0.0-beta.1', '1.0.0-beta.2', '1.0.0'];
 
             const betaVersions = versions.filter(v => v.includes('-beta'));
 
-            assert.strictEqual(betaVersions.length, 2);
+            expect(betaVersions.length).toBe(2);
         });
 
-        test('should filter versions by channel', () => {
+        it('should filter versions by channel', () => {
             const allVersions = [
                 '1.0.0',
                 '1.0.1-beta.1',
@@ -382,7 +381,7 @@ suite('UpdateManager', () => {
             const channel = 'stable';
             const filtered = allVersions.filter(v => !v.includes('-'));
 
-            assert.strictEqual(filtered.length, 3);
+            expect(filtered.length).toBe(3);
         });
     });
 });

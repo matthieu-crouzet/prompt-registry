@@ -13,13 +13,13 @@ import { UpdateScheduler, UpdateCheckFrequency } from '../../src/services/Update
 import { UpdateChecker } from '../../src/services/UpdateChecker';
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 
-suite('UpdateScheduler Property Tests', () => {
+describe('UpdateScheduler Property Tests', () => {
     let mockContext: vscode.ExtensionContext;
     let mockMemento: vscode.Memento;
 
     const originalAllowTimersEnv = process.env.UPDATE_SCHEDULER_ALLOW_TIMERS_IN_TESTS;
 
-    setup(() => {
+    beforeEach(() => {
         // Property-based tests rely on real timer scheduling semantics.
         // Opt-in to scheduler timers in tests to validate timing behavior
         // while other tests keep timers disabled to avoid hangs.
@@ -49,7 +49,7 @@ suite('UpdateScheduler Property Tests', () => {
         } as any;
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (originalAllowTimersEnv === undefined) {
             delete process.env.UPDATE_SCHEDULER_ALLOW_TIMERS_IN_TESTS;
         } else {
@@ -66,7 +66,7 @@ suite('UpdateScheduler Property Tests', () => {
      * 
      * Validates: Requirements 1.1
      */
-    test('Property 1: Update check triggers within 5 seconds of startup', async () => {
+    it('Property 1: Update check triggers within 5 seconds of startup', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -170,7 +170,7 @@ suite('UpdateScheduler Property Tests', () => {
      * 
      * Validates: Requirements 1.2, 6.4
      */
-    test('Property 2: Scheduled checks respect configured frequency', async () => {
+    it('Property 2: Scheduled checks respect configured frequency', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -268,7 +268,7 @@ suite('UpdateScheduler Property Tests', () => {
      * 
      * Validates: Requirements 6.4
      */
-    test('Property 28: Frequency change immediate application', async () => {
+    it('Property 28: Frequency change immediate application', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -345,7 +345,7 @@ suite('UpdateScheduler Property Tests', () => {
     /**
      * Additional test: Manual frequency disables scheduled checks
      */
-    test('Property: Manual frequency disables scheduled checks', async () => {
+    it('Property: Manual frequency disables scheduled checks', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.integer({ min: 1, max: 7 }), // Days to wait

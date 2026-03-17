@@ -1,10 +1,9 @@
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { AwesomeCopilotAdapter } from '../../../src/adapters/AwesomeCopilotAdapter';
 import { RegistrySource } from '../../../src/types/registry';
 
-suite('AwesomeCopilotAdapter', () => {
+describe('AwesomeCopilotAdapter', () => {
     let sandbox: sinon.SinonSandbox;
     let adapter: AwesomeCopilotAdapter;
     let getSessionStub: sinon.SinonStub;
@@ -18,7 +17,7 @@ suite('AwesomeCopilotAdapter', () => {
         priority: 0
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Stub vscode.authentication.getSession
@@ -29,11 +28,11 @@ suite('AwesomeCopilotAdapter', () => {
         adapter = new AwesomeCopilotAdapter(mockSource);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('forceAuthentication should clear cache and force new session', async () => {
+    it('forceAuthentication should clear cache and force new session', async () => {
         // Setup successful session return
         const mockSession = {
             id: 'id',
@@ -46,19 +45,16 @@ suite('AwesomeCopilotAdapter', () => {
         await adapter.forceAuthentication();
 
         // Verify call args
-        assert.ok(getSessionStub.calledOnce, 'getSession should be called');
-        assert.strictEqual(getSessionStub.firstCall.args[0], 'github');
-        assert.deepStrictEqual(getSessionStub.firstCall.args[2], { 
+        expect(getSessionStub.calledOnce, 'getSession should be called').toBeTruthy();
+        expect(getSessionStub.firstCall.args[0]).toBe('github');
+        expect(getSessionStub.firstCall.args[2]).toEqual({ 
             forceNewSession: true 
         });
     });
 
-    test('forceAuthentication should throw if session creation fails', async () => {
+    it('forceAuthentication should throw if session creation fails', async () => {
         getSessionStub.rejects(new Error('Auth failed'));
 
-        await assert.rejects(
-            adapter.forceAuthentication(),
-            /Auth failed/
-        );
+        await expect(adapter.forceAuthentication()).rejects.toThrow(/Auth failed/);
     });
 });

@@ -4,266 +4,255 @@
  * Following TDD: Tests written first, implementation to follow
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import { CollectionValidator, ValidationResult, ValidationError, ValidationWarning } from '../../src/utils/collectionValidator';
 
-suite('CollectionValidator', () => {
+describe('CollectionValidator', () => {
     let validator: CollectionValidator;
     // Fixtures are in source tree, not copied to test-dist
     // __dirname in compiled code: test-dist/test/utils
     // Need to go to project root, then to test/fixtures
-    const fixturesDir = path.join(__dirname, '../../../test/fixtures/collections-validator');
+    const fixturesDir = path.join(__dirname, '../fixtures/collections-validator');
 
-    setup(() => {
+    beforeEach(() => {
         validator = new CollectionValidator();
     });
 
-    suite('validateCollection', () => {
-        suite('Valid Collections', () => {
-            test('should pass a valid collection', () => {
+    describe('validateCollection', () => {
+        describe('Valid Collections', () => {
+            it('should pass a valid collection', () => {
                 const collectionPath = path.join(fixturesDir, 'valid/good.collection.yml');
                 const result = validator.validateCollection(collectionPath, path.join(fixturesDir, 'valid'));
 
-                assert.strictEqual(result.valid, true, 'Collection should be valid');
-                assert.strictEqual(result.errors.length, 0, 'Should have no errors');
-                assert.strictEqual(result.warnings.length, 0, 'Should have no warnings');
+                expect(result.valid, 'Collection should be valid').toBe(true);
+                expect(result.errors.length, 'Should have no errors').toBe(0);
+                expect(result.warnings.length, 'Should have no warnings').toBe(0);
             });
         });
 
-        suite('Required Fields', () => {
-            test('should fail if id is missing', () => {
+        describe('Required Fields', () => {
+            it('should fail if id is missing', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-id.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.includes('id')), 'Should have error about missing id');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.includes('id')), 'Should have error about missing id').toBeTruthy();
             });
 
-            test('should fail if name is missing', () => {
+            it('should fail if name is missing', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-name.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.includes('name')), 'Should have error about missing name');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.includes('name')), 'Should have error about missing name').toBeTruthy();
             });
 
-            test('should fail if description is missing', () => {
+            it('should fail if description is missing', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-description.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.includes('description')), 'Should have error about missing description');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.includes('description')), 'Should have error about missing description').toBeTruthy();
             });
 
-            test('should fail if items is missing', () => {
+            it('should fail if items is missing', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-items.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.includes('items')), 'Should have error about missing items');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.includes('items')), 'Should have error about missing items').toBeTruthy();
             });
         });
 
-        suite('ID Validation', () => {
-            test('should fail if id has uppercase letters', () => {
+        describe('ID Validation', () => {
+            it('should fail if id has uppercase letters', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/invalid-id-uppercase.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('id') && e.message.toLowerCase().includes('lowercase')), 
-                    'Should have error about ID format');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('id') && e.message.toLowerCase().includes('lowercase')), 'Should have error about ID format').toBeTruthy();
             });
 
-            test('should fail if id has spaces', () => {
+            it('should fail if id has spaces', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/invalid-id-spaces.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('id')), 
-                    'Should have error about ID format');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('id')), 'Should have error about ID format').toBeTruthy();
             });
 
-            test('should accept valid id with lowercase, numbers, and hyphens', () => {
+            it('should accept valid id with lowercase, numbers, and hyphens', () => {
                 const collectionPath = path.join(fixturesDir, 'valid/good.collection.yml');
                 const result = validator.validateCollection(collectionPath, path.join(fixturesDir, 'valid'));
 
-                assert.strictEqual(result.valid, true, 'Collection should be valid');
+                expect(result.valid, 'Collection should be valid').toBe(true);
                 const idErrors = result.errors.filter((e: ValidationError) => e.message.toLowerCase().includes('id'));
-                assert.strictEqual(idErrors.length, 0, 'Should have no ID format errors');
+                expect(idErrors.length, 'Should have no ID format errors').toBe(0);
             });
         });
 
-        suite('Description Validation', () => {
-            test('should warn if description exceeds 500 characters', () => {
+        describe('Description Validation', () => {
+            it('should warn if description exceeds 500 characters', () => {
                 const collectionPath = path.join(fixturesDir, 'warnings/long-description.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.ok(result.warnings.some((w: ValidationWarning) => w.message.toLowerCase().includes('description') && w.message.includes('500')), 
-                    'Should have warning about long description');
+                expect(result.warnings.some((w: ValidationWarning) => w.message.toLowerCase().includes('description') && w.message.includes('500')), 'Should have warning about long description').toBeTruthy();
             });
         });
 
-        suite('Items Validation', () => {
-            test('should fail if item is missing path field', () => {
+        describe('Items Validation', () => {
+            it('should fail if item is missing path field', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/item-missing-path.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('path')), 
-                    'Should have error about missing path');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('path')), 'Should have error about missing path').toBeTruthy();
             });
 
-            test('should fail if item is missing kind field', () => {
+            it('should fail if item is missing kind field', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/item-missing-kind.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('kind')), 
-                    'Should have error about missing kind');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('kind')), 'Should have error about missing kind').toBeTruthy();
             });
 
-            test('should fail if kind is invalid', () => {
+            it('should fail if kind is invalid', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/invalid-kind.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some(e => e.message.toLowerCase().includes('kind')), 
-                    'Should have error about invalid kind');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some(e => e.message.toLowerCase().includes('kind')), 'Should have error about invalid kind').toBeTruthy();
             });
 
-            test('should accept valid kinds: prompt, instruction, chat-mode, agent', () => {
+            it('should accept valid kinds: prompt, instruction, chat-mode, agent', () => {
                 const collectionPath = path.join(fixturesDir, 'valid/good.collection.yml');
                 const result = validator.validateCollection(collectionPath, path.join(fixturesDir, 'valid'));
 
-                assert.strictEqual(result.valid, true, 'Collection should be valid');
+                expect(result.valid, 'Collection should be valid').toBe(true);
                 const kindErrors = result.errors.filter((e: ValidationError) => e.message.toLowerCase().includes('kind'));
-                assert.strictEqual(kindErrors.length, 0, 'Should have no kind errors');
+                expect(kindErrors.length, 'Should have no kind errors').toBe(0);
             });
         });
 
-        suite('File Reference Validation', () => {
-            test('should fail if referenced file does not exist', () => {
+        describe('File Reference Validation', () => {
+            it('should fail if referenced file does not exist', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-file-ref.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('not exist') || e.message.toLowerCase().includes('missing')), 
-                    'Should have error about missing file');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('not exist') || e.message.toLowerCase().includes('missing')), 'Should have error about missing file').toBeTruthy();
             });
 
-            test('should pass if all referenced files exist', () => {
+            it('should pass if all referenced files exist', () => {
                 const collectionPath = path.join(fixturesDir, 'valid/good.collection.yml');
                 const result = validator.validateCollection(collectionPath, path.join(fixturesDir, 'valid'));
 
-                assert.strictEqual(result.valid, true, 'Collection should be valid');
+                expect(result.valid, 'Collection should be valid').toBe(true);
                 const fileErrors = result.errors.filter((e: ValidationError) => e.message.toLowerCase().includes('not exist') || e.message.toLowerCase().includes('missing'));
-                assert.strictEqual(fileErrors.length, 0, 'Should have no file reference errors');
+                expect(fileErrors.length, 'Should have no file reference errors').toBe(0);
             });
         });
 
-        suite('Tags Validation', () => {
-            test('should warn if more than 10 tags', () => {
+        describe('Tags Validation', () => {
+            it('should warn if more than 10 tags', () => {
                 const collectionPath = path.join(fixturesDir, 'warnings/many-tags.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.ok(result.warnings.some((w: ValidationWarning) => w.message.includes('tag') && w.message.includes('10')), 
-                    'Should have warning about too many tags');
+                expect(result.warnings.some((w: ValidationWarning) => w.message.includes('tag') && w.message.includes('10')), 'Should have warning about too many tags').toBeTruthy();
             });
 
-            test('should accept collections with valid tags', () => {
+            it('should accept collections with valid tags', () => {
                 const collectionPath = path.join(fixturesDir, 'valid/good.collection.yml');
                 const result = validator.validateCollection(collectionPath, path.join(fixturesDir, 'valid'));
 
-                assert.strictEqual(result.valid, true, 'Collection should be valid');
+                expect(result.valid, 'Collection should be valid').toBe(true);
                 const tagErrors = result.errors.filter((e: ValidationError) => e.message.toLowerCase().includes('tag'));
-                assert.strictEqual(tagErrors.length, 0, 'Should have no tag errors');
+                expect(tagErrors.length, 'Should have no tag errors').toBe(0);
             });
         });
 
-        suite('YAML Parsing', () => {
-            test('should fail gracefully with YAML syntax errors', () => {
+        describe('YAML Parsing', () => {
+            it('should fail gracefully with YAML syntax errors', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/yaml-syntax-error.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.strictEqual(result.valid, false, 'Collection should be invalid');
-                assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('yaml') || e.message.toLowerCase().includes('parse')), 
-                    'Should have error about YAML parsing');
+                expect(result.valid, 'Collection should be invalid').toBe(false);
+                expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('yaml') || e.message.toLowerCase().includes('parse')), 'Should have error about YAML parsing').toBeTruthy();
             });
         });
 
-        suite('Error Structure', () => {
-            test('should include file name in errors', () => {
+        describe('Error Structure', () => {
+            it('should include file name in errors', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-id.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.ok(result.errors.length > 0, 'Should have errors');
-                assert.ok(result.errors[0].file, 'Error should include file name');
-                assert.ok(result.errors[0].file.includes('missing-id'), 'File name should match');
+                expect(result.errors.length > 0, 'Should have errors').toBeTruthy();
+                expect(result.errors[0].file, 'Error should include file name').toBeTruthy();
+                expect(result.errors[0].file.includes('missing-id'), 'File name should match').toBeTruthy();
             });
 
-            test('should include descriptive messages', () => {
+            it('should include descriptive messages', () => {
                 const collectionPath = path.join(fixturesDir, 'invalid/missing-id.collection.yml');
                 const result = validator.validateCollection(collectionPath, fixturesDir);
 
-                assert.ok(result.errors.length > 0, 'Should have errors');
-                assert.ok(result.errors[0].message, 'Error should have message');
-                assert.ok(result.errors[0].message.length > 10, 'Message should be descriptive');
+                expect(result.errors.length > 0, 'Should have errors').toBeTruthy();
+                expect(result.errors[0].message, 'Error should have message').toBeTruthy();
+                expect(result.errors[0].message.length > 10, 'Message should be descriptive').toBeTruthy();
             });
         });
     });
 
-    suite('validateAllCollections', () => {
-        test('should validate multiple collections in a directory', () => {
+    describe('validateAllCollections', () => {
+        it('should validate multiple collections in a directory', () => {
             const validDir = path.join(fixturesDir, 'valid');
             const result = validator.validateAllCollections(validDir);
 
-            assert.strictEqual(result.valid, true, 'Should be valid');
-            assert.strictEqual(result.errors.length, 0, 'Should have no errors');
+            expect(result.valid, 'Should be valid').toBe(true);
+            expect(result.errors.length, 'Should have no errors').toBe(0);
         });
 
-        test('should aggregate errors from multiple invalid collections', () => {
+        it('should aggregate errors from multiple invalid collections', () => {
             const invalidDir = path.join(fixturesDir, 'invalid');
             const result = validator.validateAllCollections(invalidDir);
 
-            assert.strictEqual(result.valid, false, 'Should be invalid');
-            assert.ok(result.errors.length > 0, 'Should have errors from multiple files');
+            expect(result.valid, 'Should be invalid').toBe(false);
+            expect(result.errors.length > 0, 'Should have errors from multiple files').toBeTruthy();
         });
 
-        test('should return success if directory has no collection files', () => {
+        it('should return success if directory has no collection files', () => {
             const emptyDir = path.join(fixturesDir, 'empty-test-dir');
             const result = validator.validateAllCollections(emptyDir);
 
             // Should not fail, just return empty result
-            assert.strictEqual(result.errors.length, 0, 'Should have no errors');
+            expect(result.errors.length, 'Should have no errors').toBe(0);
         });
 
-        test('should handle non-existent directory gracefully', () => {
+        it('should handle non-existent directory gracefully', () => {
             const nonExistentDir = path.join(fixturesDir, 'does-not-exist');
             const result = validator.validateAllCollections(nonExistentDir);
 
-            assert.strictEqual(result.valid, false, 'Should be invalid');
-            assert.ok(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('not found') || e.message.toLowerCase().includes('not exist')), 
-                'Should have error about missing directory');
+            expect(result.valid, 'Should be invalid').toBe(false);
+            expect(result.errors.some((e: ValidationError) => e.message.toLowerCase().includes('not found') || e.message.toLowerCase().includes('not exist')), 'Should have error about missing directory').toBeTruthy();
         });
     });
 
-    suite('ValidationResult', () => {
-        test('should mark result as valid only if no errors', () => {
+    describe('ValidationResult', () => {
+        it('should mark result as valid only if no errors', () => {
             const collectionPath = path.join(fixturesDir, 'warnings/long-description.collection.yml');
             const result = validator.validateCollection(collectionPath, fixturesDir);
 
             // Has warnings but no errors, so should be valid
-            assert.strictEqual(result.valid, true, 'Should be valid despite warnings');
-            assert.ok(result.warnings.length > 0, 'Should have warnings');
+            expect(result.valid, 'Should be valid despite warnings').toBe(true);
+            expect(result.warnings.length > 0, 'Should have warnings').toBeTruthy();
         });
 
-        test('should mark result as invalid if any errors', () => {
+        it('should mark result as invalid if any errors', () => {
             const collectionPath = path.join(fixturesDir, 'invalid/missing-id.collection.yml');
             const result = validator.validateCollection(collectionPath, fixturesDir);
 
-            assert.strictEqual(result.valid, false, 'Should be invalid');
-            assert.ok(result.errors.length > 0, 'Should have errors');
+            expect(result.valid, 'Should be invalid').toBe(false);
+            expect(result.errors.length > 0, 'Should have errors').toBeTruthy();
         });
     });
 });

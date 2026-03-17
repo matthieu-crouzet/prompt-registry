@@ -3,65 +3,62 @@
  * Tests APM CLI runtime detection and installation management
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { ApmRuntimeManager, ApmRuntimeStatus } from '../../src/services/ApmRuntimeManager';
 
-suite('ApmRuntimeManager', () => {
+describe('ApmRuntimeManager', () => {
     let sandbox: sinon.SinonSandbox;
     let runtime: ApmRuntimeManager;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         // Reset singleton for testing
         ApmRuntimeManager.resetInstance();
         runtime = ApmRuntimeManager.getInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         ApmRuntimeManager.resetInstance();
     });
 
-    suite('getInstance', () => {
-        test('should return singleton instance', () => {
+    describe('getInstance', () => {
+        it('should return singleton instance', () => {
             const instance1 = ApmRuntimeManager.getInstance();
             const instance2 = ApmRuntimeManager.getInstance();
-            assert.strictEqual(instance1, instance2);
+            expect(instance1).toBe(instance2);
         });
     });
 
-    suite('getStatus', function() {
+    describe('getStatus', function() {
         // Increase timeout for this suite as it involves spawning processes
-        this.timeout(10000);
-
-        test('should return status object with installed property', async () => {
+        it('should return status object with installed property', async () => {
             const status = await runtime.getStatus();
             
-            assert.ok(typeof status.installed === 'boolean');
+            expect(typeof status.installed === 'boolean').toBeTruthy();
         });
 
-        test('should return cached status on subsequent calls within TTL', async () => {
+        it('should return cached status on subsequent calls within TTL', async () => {
             // First call
             const status1 = await runtime.getStatus();
             
             // Second call should use cache
             const status2 = await runtime.getStatus();
             
-            assert.deepStrictEqual(status1, status2);
+            expect(status1).toEqual(status2);
         });
 
-        test('should refresh status when forceRefresh is true', async () => {
+        it('should refresh status when forceRefresh is true', async () => {
             // First call
             await runtime.getStatus();
             
             // Force refresh
             const status2 = await runtime.getStatus(true);
             
-            assert.ok(typeof status2.installed === 'boolean');
+            expect(typeof status2.installed === 'boolean').toBeTruthy();
         });
 
-        test('should include version when APM is installed', async () => {
+        it('should include version when APM is installed', async () => {
             // Mock the internal detection
             sandbox.stub(runtime as any, 'detectRuntime').resolves({
                 installed: true,
@@ -72,11 +69,11 @@ suite('ApmRuntimeManager', () => {
             const status = await runtime.getStatus(true);
             
             if (status.installed) {
-                assert.ok(status.version);
+                expect(status.version).toBeTruthy();
             }
         });
 
-        test('should detect install method', async () => {
+        it('should detect install method', async () => {
             sandbox.stub(runtime as any, 'detectRuntime').resolves({
                 installed: true,
                 version: '1.0.0',
@@ -86,13 +83,13 @@ suite('ApmRuntimeManager', () => {
             const status = await runtime.getStatus(true);
             
             if (status.installed) {
-                assert.ok(['pip', 'brew', 'binary', 'unknown'].includes(status.installMethod || 'unknown'));
+                expect(['pip', 'brew', 'binary', 'unknown'].includes(status.installMethod || 'unknown')).toBeTruthy();
             }
         });
     });
 
-    suite('isAvailable', () => {
-        test('should return true when APM is installed', async () => {
+    describe('isAvailable', () => {
+        it('should return true when APM is installed', async () => {
             sandbox.stub(runtime as any, 'detectRuntime').resolves({
                 installed: true,
                 version: '1.0.0',
@@ -100,22 +97,22 @@ suite('ApmRuntimeManager', () => {
             
             const available = await runtime.isAvailable();
             
-            assert.strictEqual(available, true);
+            expect(available).toBe(true);
         });
 
-        test('should return false when APM is not installed', async () => {
+        it('should return false when APM is not installed', async () => {
             sandbox.stub(runtime as any, 'detectRuntime').resolves({
                 installed: false,
             });
             
             const available = await runtime.isAvailable();
             
-            assert.strictEqual(available, false);
+            expect(available).toBe(false);
         });
     });
 
-    suite('clearCache', () => {
-        test('should clear cached status', async () => {
+    describe('clearCache', () => {
+        it('should clear cached status', async () => {
             // Populate cache
             await runtime.getStatus();
             
@@ -126,42 +123,40 @@ suite('ApmRuntimeManager', () => {
             // This is hard to verify without more sophisticated mocking
             // but at least we can verify it doesn't throw
             const status = await runtime.getStatus();
-            assert.ok(typeof status.installed === 'boolean');
+            expect(typeof status.installed === 'boolean').toBeTruthy();
         });
     });
 
-    suite('getInstallInstructions', () => {
-        test('should return platform-appropriate instructions', () => {
+    describe('getInstallInstructions', () => {
+        it('should return platform-appropriate instructions', () => {
             const instructions = runtime.getInstallInstructions();
             
-            assert.ok(typeof instructions === 'string');
-            assert.ok(instructions.length > 0);
+            expect(typeof instructions === 'string').toBeTruthy();
+            expect(instructions.length > 0).toBeTruthy();
             // Should contain some installation command
-            assert.ok(
-                instructions.includes('pip') || 
+            expect(instructions.includes('pip') || 
                 instructions.includes('brew') || 
-                instructions.includes('install')
-            );
+                instructions.includes('install')).toBeTruthy();
         });
 
-        test('should include URL to APM repository', () => {
+        it('should include URL to APM repository', () => {
             const instructions = runtime.getInstallInstructions();
             
-            assert.ok(instructions.includes('github.com') || instructions.includes('apm'));
+            expect(instructions.includes('github.com') || instructions.includes('apm')).toBeTruthy();
         });
     });
 
-    suite('Security', () => {
-        test('should not execute arbitrary commands', async () => {
+    describe('Security', () => {
+        it('should not execute arbitrary commands', async () => {
             // This is a conceptual test - in real implementation
             // the runtime manager should only execute known safe commands
             const status = await runtime.getStatus();
             
             // Should not throw and should return valid status
-            assert.ok(typeof status.installed === 'boolean');
+            expect(typeof status.installed === 'boolean').toBeTruthy();
         });
 
-        test('should sanitize version output', async () => {
+        it('should sanitize version output', async () => {
             sandbox.stub(runtime as any, 'detectRuntime').resolves({
                 installed: true,
                 version: '<script>alert(1)</script>',
@@ -172,22 +167,22 @@ suite('ApmRuntimeManager', () => {
             
             // Version should be sanitized or at least not cause issues
             if (status.version) {
-                assert.ok(typeof status.version === 'string');
+                expect(typeof status.version === 'string').toBeTruthy();
             }
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle detection errors gracefully', async () => {
+    describe('Error Handling', () => {
+        it('should handle detection errors gracefully', async () => {
             sandbox.stub(runtime as any, 'detectRuntime').rejects(new Error('Detection failed'));
             
             const status = await runtime.getStatus(true);
             
             // Should return not installed rather than throwing
-            assert.strictEqual(status.installed, false);
+            expect(status.installed).toBe(false);
         });
 
-        test('should handle timeout during detection', async () => {
+        it('should handle timeout during detection', async () => {
             // Simulate a very slow detection
             sandbox.stub(runtime as any, 'detectRuntime').callsFake(async () => {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -196,7 +191,7 @@ suite('ApmRuntimeManager', () => {
             
             const status = await runtime.getStatus(true);
             
-            assert.ok(typeof status.installed === 'boolean');
+            expect(typeof status.installed === 'boolean').toBeTruthy();
         });
     });
 });

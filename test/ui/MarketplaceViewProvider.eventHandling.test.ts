@@ -5,7 +5,6 @@
  * Requirements: 6.4, 6.5
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { MarketplaceViewProvider } from '../../src/ui/MarketplaceViewProvider';
@@ -37,7 +36,7 @@ function createMockManifest(): DeploymentManifest {
     };
 }
 
-suite('MarketplaceViewProvider - Event Handling', () => {
+describe('MarketplaceViewProvider - Event Handling', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
@@ -47,7 +46,7 @@ suite('MarketplaceViewProvider - Event Handling', () => {
     let onBundleUninstalledCallback: ((bundleId: string) => void) | undefined;
     let onBundleUpdatedCallback: ((installation: InstalledBundle) => void) | undefined;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Create mock context
@@ -96,35 +95,35 @@ suite('MarketplaceViewProvider - Event Handling', () => {
         marketplaceProvider = new MarketplaceViewProvider(mockContext, mockRegistryManager as any, mockSetupStateManager as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Event Listener Registration', () => {
-        test('should register listener for onBundleInstalled event', () => {
+    describe('Event Listener Registration', () => {
+        it('should register listener for onBundleInstalled event', () => {
             // Requirement 6.4: WHEN the marketplace receives an installation event THEN the system SHALL reload bundle data and refresh the UI
             
-            assert.ok(mockRegistryManager.onBundleInstalled.calledOnce, 'Should register onBundleInstalled listener');
-            assert.ok(onBundleInstalledCallback, 'Should have callback for onBundleInstalled');
+            expect(mockRegistryManager.onBundleInstalled.calledOnce, 'Should register onBundleInstalled listener').toBeTruthy();
+            expect(onBundleInstalledCallback, 'Should have callback for onBundleInstalled').toBeTruthy();
         });
 
-        test('should register listener for onBundleUninstalled event', () => {
+        it('should register listener for onBundleUninstalled event', () => {
             // Requirement 6.5: WHEN the marketplace receives an uninstallation event THEN the system SHALL reload bundle data and refresh the UI
             
-            assert.ok(mockRegistryManager.onBundleUninstalled.calledOnce, 'Should register onBundleUninstalled listener');
-            assert.ok(onBundleUninstalledCallback, 'Should have callback for onBundleUninstalled');
+            expect(mockRegistryManager.onBundleUninstalled.calledOnce, 'Should register onBundleUninstalled listener').toBeTruthy();
+            expect(onBundleUninstalledCallback, 'Should have callback for onBundleUninstalled').toBeTruthy();
         });
 
-        test('should register listener for onBundleUpdated event', () => {
+        it('should register listener for onBundleUpdated event', () => {
             // Requirement 6.4: WHEN the marketplace receives an update event THEN the system SHALL reload bundle data and refresh the UI
             
-            assert.ok(mockRegistryManager.onBundleUpdated.calledOnce, 'Should register onBundleUpdated listener');
-            assert.ok(onBundleUpdatedCallback, 'Should have callback for onBundleUpdated');
+            expect(mockRegistryManager.onBundleUpdated.calledOnce, 'Should register onBundleUpdated listener').toBeTruthy();
+            expect(onBundleUpdatedCallback, 'Should have callback for onBundleUpdated').toBeTruthy();
         });
     });
 
-    suite('UI Refresh on Events', () => {
-        test('should refresh UI when onBundleInstalled event fires', async () => {
+    describe('UI Refresh on Events', () => {
+        it('should refresh UI when onBundleInstalled event fires', async () => {
             // Requirement 6.4: WHEN the marketplace receives an installation event THEN the system SHALL reload bundle data and refresh the UI
             
             const mockInstallation: InstalledBundle = {
@@ -150,13 +149,10 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             // Verify searchBundles was called (indicating UI refresh)
-            assert.ok(
-                mockRegistryManager.searchBundles.callCount > searchBundlesCallCount,
-                'Should call searchBundles to refresh UI'
-            );
+            expect(mockRegistryManager.searchBundles.callCount > searchBundlesCallCount, 'Should call searchBundles to refresh UI').toBeTruthy();
         });
 
-        test('should refresh UI when onBundleUninstalled event fires', async () => {
+        it('should refresh UI when onBundleUninstalled event fires', async () => {
             // Requirement 6.5: WHEN the marketplace receives an uninstallation event THEN the system SHALL reload bundle data and refresh the UI
             
             const bundleId = 'test-bundle-v1.0.0';
@@ -173,13 +169,10 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             // Verify searchBundles was called
-            assert.ok(
-                mockRegistryManager.searchBundles.callCount > searchBundlesCallCount,
-                'Should call searchBundles to refresh UI'
-            );
+            expect(mockRegistryManager.searchBundles.callCount > searchBundlesCallCount, 'Should call searchBundles to refresh UI').toBeTruthy();
         });
 
-        test('should refresh UI when onBundleUpdated event fires', async () => {
+        it('should refresh UI when onBundleUpdated event fires', async () => {
             // Requirement 6.4: WHEN the marketplace receives an update event THEN the system SHALL reload bundle data and refresh the UI
             
             const mockInstallation: InstalledBundle = {
@@ -205,15 +198,12 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             // Verify searchBundles was called
-            assert.ok(
-                mockRegistryManager.searchBundles.callCount > searchBundlesCallCount,
-                'Should call searchBundles to refresh UI'
-            );
+            expect(mockRegistryManager.searchBundles.callCount > searchBundlesCallCount, 'Should call searchBundles to refresh UI').toBeTruthy();
         });
     });
 
-    suite('Error Handling in Event Listeners', () => {
-        test('should handle errors in onBundleInstalled listener gracefully', async () => {
+    describe('Error Handling in Event Listeners', () => {
+        it('should handle errors in onBundleInstalled listener gracefully', async () => {
             // Force an error by making searchBundles throw
             mockRegistryManager.searchBundles.rejects(new Error('Mock search error'));
 
@@ -229,34 +219,34 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             };
 
             // Fire the event - should not throw
-            assert.doesNotThrow(() => {
+            expect(() => {
                 if (onBundleInstalledCallback) {
                     onBundleInstalledCallback(mockInstallation);
                 }
-            }, 'Event listener should handle errors gracefully');
+            }).not.toThrow();
 
             // Wait for async operations
             await new Promise(resolve => setTimeout(resolve, 10));
         });
 
-        test('should handle errors in onBundleUninstalled listener gracefully', async () => {
+        it('should handle errors in onBundleUninstalled listener gracefully', async () => {
             // Force an error
             mockRegistryManager.searchBundles.rejects(new Error('Mock search error'));
 
             const bundleId = 'test-bundle';
 
             // Fire the event - should not throw
-            assert.doesNotThrow(() => {
+            expect(() => {
                 if (onBundleUninstalledCallback) {
                     onBundleUninstalledCallback(bundleId);
                 }
-            }, 'Event listener should handle errors gracefully');
+            }).not.toThrow();
 
             // Wait for async operations
             await new Promise(resolve => setTimeout(resolve, 10));
         });
 
-        test('should handle errors in onBundleUpdated listener gracefully', async () => {
+        it('should handle errors in onBundleUpdated listener gracefully', async () => {
             // Force an error
             mockRegistryManager.searchBundles.rejects(new Error('Mock search error'));
 
@@ -272,19 +262,19 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             };
 
             // Fire the event - should not throw
-            assert.doesNotThrow(() => {
+            expect(() => {
                 if (onBundleUpdatedCallback) {
                     onBundleUpdatedCallback(mockInstallation);
                 }
-            }, 'Event listener should handle errors gracefully');
+            }).not.toThrow();
 
             // Wait for async operations
             await new Promise(resolve => setTimeout(resolve, 10));
         });
     });
 
-    suite('Event Data Validation', () => {
-        test('should log installation details when onBundleInstalled fires', async () => {
+    describe('Event Data Validation', () => {
+        it('should log installation details when onBundleInstalled fires', async () => {
             const mockInstallation: InstalledBundle = {
                 bundleId: 'test-bundle-v1.0.0',
                 version: '1.0.0',
@@ -306,10 +296,10 @@ suite('MarketplaceViewProvider - Event Handling', () => {
 
             // The event should have been processed without errors
             // (logging is verified through the try-catch blocks we added)
-            assert.ok(true, 'Event processed successfully');
+            expect(true, 'Event processed successfully').toBeTruthy();
         });
 
-        test('should log bundle ID when onBundleUninstalled fires', async () => {
+        it('should log bundle ID when onBundleUninstalled fires', async () => {
             const bundleId = 'test-bundle-v1.0.0';
 
             // Fire the event
@@ -321,10 +311,10 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             // The event should have been processed without errors
-            assert.ok(true, 'Event processed successfully');
+            expect(true, 'Event processed successfully').toBeTruthy();
         });
 
-        test('should log updated installation details when onBundleUpdated fires', async () => {
+        it('should log updated installation details when onBundleUpdated fires', async () => {
             const mockInstallation: InstalledBundle = {
                 bundleId: 'test-bundle',
                 version: '1.1.0',
@@ -345,7 +335,7 @@ suite('MarketplaceViewProvider - Event Handling', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             // The event should have been processed without errors
-            assert.ok(true, 'Event processed successfully');
+            expect(true, 'Event processed successfully').toBeTruthy();
         });
     });
 });

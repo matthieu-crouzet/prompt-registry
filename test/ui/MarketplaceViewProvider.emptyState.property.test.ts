@@ -9,7 +9,6 @@
  * **Validates: Requirements 4.1, 4.2, 4.3, 4.5**
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -25,7 +24,7 @@ import { BundleBuilder } from '../helpers/bundleTestHelpers';
 // Project root for resolving webview assets in dist/
 const PROJECT_ROOT = process.cwd();
 
-suite('MarketplaceViewProvider Empty State - Property Tests', () => {
+describe('MarketplaceViewProvider Empty State - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
@@ -34,7 +33,7 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
     let mockWebview: any;
     let postedMessages: any[];
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         postedMessages = [];
 
@@ -101,7 +100,7 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
         };
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -113,7 +112,7 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
      * 
      * **Validates: Requirements 4.1, 4.2, 4.3, 4.5**
      */
-    test('Property 8: Empty state UI correctness (Req 4.1, 4.2, 4.3, 4.5)', async () => {
+    it('Property 8: Empty state UI correctness (Req 4.1, 4.2, 4.3, 4.5)', async () => {
         const setupStateArbitrary = fc.constantFrom(
             SetupState.NOT_STARTED,
             SetupState.IN_PROGRESS,
@@ -150,30 +149,14 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
                     const testParams = formatTestParams({ setupState, bundleCount });
 
                     // Verify message was posted
-                    assert.strictEqual(
-                        postedMessages.length,
-                        1,
-                        `Should post exactly one bundlesLoaded message (${testParams})`
-                    );
-                    assert.strictEqual(
-                        postedMessages[0].type,
-                        'bundlesLoaded',
-                        `Message type should be bundlesLoaded (${testParams})`
-                    );
+                    expect(postedMessages.length, `Should post exactly one bundlesLoaded message (${testParams})`).toBe(1);
+                    expect(postedMessages[0].type, `Message type should be bundlesLoaded (${testParams})`).toBe('bundlesLoaded');
 
                     // Verify setup state is included in message
-                    assert.strictEqual(
-                        postedMessages[0].setupState,
-                        setupState,
-                        `Setup state should be included in message (${testParams})`
-                    );
+                    expect(postedMessages[0].setupState, `Setup state should be included in message (${testParams})`).toBe(setupState);
 
                     // Verify bundle count matches
-                    assert.strictEqual(
-                        postedMessages[0].bundles.length,
-                        bundleCount,
-                        `Bundle count should match (${testParams})`
-                    );
+                    expect(postedMessages[0].bundles.length, `Bundle count should match (${testParams})`).toBe(bundleCount);
 
                     // The UI rendering logic is in the webview JavaScript
                     // We verify that the correct data is sent to enable proper rendering
@@ -184,19 +167,13 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
                     if (hasNoBundles && isSetupIncomplete) {
                         // Req 4.1, 4.2, 4.3: Setup prompt should be shown
                         // The webview will use setupState to determine this
-                        assert.ok(
-                            postedMessages[0].setupState === SetupState.INCOMPLETE ||
-                            postedMessages[0].setupState === SetupState.NOT_STARTED,
-                            `Req 4.1: Setup state should indicate incomplete setup (${testParams})`
-                        );
+                        expect(postedMessages[0].setupState === SetupState.INCOMPLETE ||
+                            postedMessages[0].setupState === SetupState.NOT_STARTED, `Req 4.1: Setup state should indicate incomplete setup (${testParams})`).toBeTruthy();
                     } else if (hasNoBundles && !isSetupIncomplete) {
                         // Req 4.5: Syncing message should be shown
                         // The webview will use setupState to determine this
-                        assert.ok(
-                            postedMessages[0].setupState === SetupState.COMPLETE ||
-                            postedMessages[0].setupState === SetupState.IN_PROGRESS,
-                            `Req 4.5: Setup state should indicate complete/in_progress setup (${testParams})`
-                        );
+                        expect(postedMessages[0].setupState === SetupState.COMPLETE ||
+                            postedMessages[0].setupState === SetupState.IN_PROGRESS, `Req 4.5: Setup state should indicate complete/in_progress setup (${testParams})`).toBeTruthy();
                     }
 
                     return true;
@@ -210,7 +187,7 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
      * Additional property: HTML content includes required UI elements
      * Verifies that the generated HTML contains all necessary elements for empty state rendering
      */
-    test('Property 8b: External webview files include required empty state elements', async () => {
+    it('Property 8b: External webview files include required empty state elements', async () => {
         // Read the external CSS and JS files directly to verify content
         const cssPath = path.join(__dirname, '..', '..', 'src', 'ui', 'webview', 'marketplace', 'marketplace.css');
         const jsPath = path.join(__dirname, '..', '..', 'src', 'ui', 'webview', 'marketplace', 'marketplace.js');
@@ -222,38 +199,26 @@ suite('MarketplaceViewProvider Empty State - Property Tests', () => {
                     const html = (marketplaceProvider as any).getHtmlContent(mockWebview);
 
                     // Verify HTML references external CSS and JS
-                    assert.ok(
-                        html.includes('marketplace.css'),
-                        'HTML should reference marketplace.css'
-                    );
-                    assert.ok(
-                        html.includes('marketplace.js'),
-                        'HTML should reference marketplace.js'
-                    );
-                    assert.ok(
-                        html.includes('Content-Security-Policy'),
-                        'HTML should include CSP'
-                    );
+                    expect(html.includes('marketplace.css'), 'HTML should reference marketplace.css').toBeTruthy();
+                    expect(html.includes('marketplace.js'), 'HTML should reference marketplace.js').toBeTruthy();
+                    expect(html.includes('Content-Security-Policy'), 'HTML should include CSP').toBeTruthy();
 
                     // Verify external CSS includes required classes
                     if (fs.existsSync(cssPath)) {
                         const css = fs.readFileSync(cssPath, 'utf8');
-                        assert.ok(css.includes('.primary-button'), 'CSS should include primary-button class');
-                        assert.ok(css.includes('.empty-state'), 'CSS should include empty-state class');
-                        assert.ok(css.includes('.empty-state-icon'), 'CSS should include empty-state-icon class');
-                        assert.ok(css.includes('.empty-state-title'), 'CSS should include empty-state-title class');
+                        expect(css.includes('.primary-button'), 'CSS should include primary-button class').toBeTruthy();
+                        expect(css.includes('.empty-state'), 'CSS should include empty-state class').toBeTruthy();
+                        expect(css.includes('.empty-state-icon'), 'CSS should include empty-state-icon class').toBeTruthy();
+                        expect(css.includes('.empty-state-title'), 'CSS should include empty-state-title class').toBeTruthy();
                     }
 
                     // Verify external JS includes required functions and state
                     if (fs.existsSync(jsPath)) {
                         const js = fs.readFileSync(jsPath, 'utf8');
-                        assert.ok(js.includes('completeSetup'), 'JS should include completeSetup function');
-                        assert.ok(js.includes('setupState'), 'JS should include setupState variable');
-                        assert.ok(
-                            js.includes('Setup Not Complete') || js.includes('No hub is configured'),
-                            'JS should include setup prompt message'
-                        );
-                        assert.ok(js.includes('Syncing sources...'), 'JS should include syncing message');
+                        expect(js.includes('completeSetup'), 'JS should include completeSetup function').toBeTruthy();
+                        expect(js.includes('setupState'), 'JS should include setupState variable').toBeTruthy();
+                        expect(js.includes('Setup Not Complete') || js.includes('No hub is configured'), 'JS should include setup prompt message').toBeTruthy();
+                        expect(js.includes('Syncing sources...'), 'JS should include syncing message').toBeTruthy();
                     }
 
                     return true;

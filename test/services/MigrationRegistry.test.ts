@@ -2,17 +2,16 @@
  * Unit tests for MigrationRegistry
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { MigrationRegistry } from '../../src/services/MigrationRegistry';
 
-suite('MigrationRegistry', () => {
+describe('MigrationRegistry', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let globalStateData: Map<string, any>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         globalStateData = new Map();
 
@@ -35,86 +34,83 @@ suite('MigrationRegistry', () => {
         MigrationRegistry.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         MigrationRegistry.resetInstance();
     });
 
-    suite('getInstance()', () => {
-        test('should return singleton instance', () => {
+    describe('getInstance()', () => {
+        it('should return singleton instance', () => {
             const instance1 = MigrationRegistry.getInstance(mockContext);
             const instance2 = MigrationRegistry.getInstance();
 
-            assert.strictEqual(instance1, instance2);
+            expect(instance1).toBe(instance2);
         });
 
-        test('should throw error when context is missing on first call', () => {
-            assert.throws(
-                () => MigrationRegistry.getInstance(),
-                /MigrationRegistry requires context on first call/
-            );
+        it('should throw error when context is missing on first call', () => {
+            expect(() => MigrationRegistry.getInstance()).toThrow(/MigrationRegistry requires context on first call/);
         });
 
-        test('should create new instance after reset', () => {
+        it('should create new instance after reset', () => {
             const instance1 = MigrationRegistry.getInstance(mockContext);
             MigrationRegistry.resetInstance();
             const instance2 = MigrationRegistry.getInstance(mockContext);
 
-            assert.notStrictEqual(instance1, instance2);
+            expect(instance1).not.toBe(instance2);
         });
     });
 
-    suite('isMigrationComplete()', () => {
-        test('should return false for unknown migration', async () => {
+    describe('isMigrationComplete()', () => {
+        it('should return false for unknown migration', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
-            assert.strictEqual(await registry.isMigrationComplete('unknown'), false);
+            expect(await registry.isMigrationComplete('unknown')).toBe(false);
         });
 
-        test('should return true after markMigrationComplete', async () => {
+        it('should return true after markMigrationComplete', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationComplete('test-migration');
 
-            assert.strictEqual(await registry.isMigrationComplete('test-migration'), true);
+            expect(await registry.isMigrationComplete('test-migration')).toBe(true);
         });
 
-        test('should return false for skipped migration', async () => {
+        it('should return false for skipped migration', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationSkipped('test-migration', 'not needed');
 
-            assert.strictEqual(await registry.isMigrationComplete('test-migration'), false);
+            expect(await registry.isMigrationComplete('test-migration')).toBe(false);
         });
     });
 
-    suite('markMigrationComplete()', () => {
-        test('should persist completion with timestamp', async () => {
+    describe('markMigrationComplete()', () => {
+        it('should persist completion with timestamp', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationComplete('test-migration', 'migrated 5 sources');
 
             const state = await registry.getMigrationState();
-            assert.strictEqual(state['test-migration'].status, 'completed');
-            assert.ok(state['test-migration'].completedAt);
-            assert.strictEqual(state['test-migration'].details, 'migrated 5 sources');
+            expect(state['test-migration'].status).toBe('completed');
+            expect(state['test-migration'].completedAt).toBeTruthy();
+            expect(state['test-migration'].details).toBe('migrated 5 sources');
         });
     });
 
-    suite('markMigrationSkipped()', () => {
-        test('should persist skip with reason', async () => {
+    describe('markMigrationSkipped()', () => {
+        it('should persist skip with reason', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationSkipped('test-migration', 'no sources to migrate');
 
             const state = await registry.getMigrationState();
-            assert.strictEqual(state['test-migration'].status, 'skipped');
-            assert.strictEqual(state['test-migration'].details, 'no sources to migrate');
+            expect(state['test-migration'].status).toBe('skipped');
+            expect(state['test-migration'].details).toBe('no sources to migrate');
         });
     });
 
-    suite('runMigration()', () => {
-        test('should execute migration function on first run', async () => {
+    describe('runMigration()', () => {
+        it('should execute migration function on first run', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
             let executed = false;
 
@@ -122,11 +118,11 @@ suite('MigrationRegistry', () => {
                 executed = true;
             });
 
-            assert.strictEqual(executed, true);
-            assert.strictEqual(await registry.isMigrationComplete('test-migration'), true);
+            expect(executed).toBe(true);
+            expect(await registry.isMigrationComplete('test-migration')).toBe(true);
         });
 
-        test('should not execute migration function if already completed', async () => {
+        it('should not execute migration function if already completed', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationComplete('test-migration');
@@ -136,10 +132,10 @@ suite('MigrationRegistry', () => {
                 executed = true;
             });
 
-            assert.strictEqual(executed, false);
+            expect(executed).toBe(false);
         });
 
-        test('should not execute migration function if already skipped', async () => {
+        it('should not execute migration function if already skipped', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationSkipped('test-migration');
@@ -149,43 +145,40 @@ suite('MigrationRegistry', () => {
                 executed = true;
             });
 
-            assert.strictEqual(executed, false);
+            expect(executed).toBe(false);
         });
 
-        test('should propagate errors from migration function', async () => {
+        it('should propagate errors from migration function', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
-            await assert.rejects(
-                () => registry.runMigration('test-migration', async () => {
+            await expect(() => registry.runMigration('test-migration', async () => {
                     throw new Error('migration failed');
-                }),
-                /migration failed/
-            );
+                })).rejects.toThrow(/migration failed/);
 
             // Migration should not be marked as complete on failure
-            assert.strictEqual(await registry.isMigrationComplete('test-migration'), false);
+            expect(await registry.isMigrationComplete('test-migration')).toBe(false);
         });
     });
 
-    suite('getMigrationState()', () => {
-        test('should return empty object when no migrations exist', async () => {
+    describe('getMigrationState()', () => {
+        it('should return empty object when no migrations exist', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             const state = await registry.getMigrationState();
 
-            assert.deepStrictEqual(state, {});
+            expect(state).toEqual({});
         });
 
-        test('should return all migration records', async () => {
+        it('should return all migration records', async () => {
             const registry = MigrationRegistry.getInstance(mockContext);
 
             await registry.markMigrationComplete('migration-1');
             await registry.markMigrationSkipped('migration-2');
 
             const state = await registry.getMigrationState();
-            assert.strictEqual(Object.keys(state).length, 2);
-            assert.strictEqual(state['migration-1'].status, 'completed');
-            assert.strictEqual(state['migration-2'].status, 'skipped');
+            expect(Object.keys(state).length).toBe(2);
+            expect(state['migration-1'].status).toBe('completed');
+            expect(state['migration-2'].status).toBe('skipped');
         });
     });
 });

@@ -3,7 +3,6 @@
  * Tests universal properties that should hold across all inputs
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fc from 'fast-check';
 import { AutoUpdateService } from '../../src/services/AutoUpdateService';
@@ -16,7 +15,7 @@ import { Logger } from '../../src/utils/logger';
 import { BundleGenerators, PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { createMockInstalledBundle, createUniqueUpdateCheckResult } from '../helpers/bundleTestHelpers';
 
-suite('AutoUpdateService - Property Tests', () => {
+describe('AutoUpdateService - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
     let mockBundleNotifications: sinon.SinonStubbedInstance<BundleUpdateNotifications>;
@@ -121,7 +120,7 @@ suite('AutoUpdateService - Property Tests', () => {
 
     // ===== Test Setup/Teardown =====
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Stub logger to prevent console output during tests
@@ -146,7 +145,7 @@ suite('AutoUpdateService - Property Tests', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -157,8 +156,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * For any bundle with auto-update enabled, the service should automatically
      * install updates without user intervention.
      */
-    suite('Property 12: Auto-update triggers automatic installation', () => {
-        test('should trigger updateBundle for any bundle with auto-update enabled', async () => {
+    describe('Property 12: Auto-update triggers automatic installation', () => {
+        it('should trigger updateBundle for any bundle with auto-update enabled', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -179,11 +178,11 @@ suite('AutoUpdateService - Property Tests', () => {
                             showProgress: false
                         });
 
-                        assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
+                        expect(mockRegistryManager.updateBundle.callCount).toBe(1);
                         const [calledBundleId, calledVersion] = mockRegistryManager.updateBundle.firstCall.args;
-                        assert.strictEqual(calledBundleId, bundleId);
-                        assert.strictEqual(calledVersion, latestVersion);
-                        assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
+                        expect(calledBundleId).toBe(bundleId);
+                        expect(calledVersion).toBe(latestVersion);
+                        expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
 
                         return true;
                     }
@@ -192,7 +191,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should handle update failures gracefully', async () => {
+        it('should handle update failures gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -210,17 +209,15 @@ suite('AutoUpdateService - Property Tests', () => {
                                 targetVersion: version,
                                 showProgress: false
                             });
-                            assert.fail('Should have thrown an error');
+                            expect.fail('Should have thrown an error');
                         } catch (error) {
                             // Expected
                         }
 
-                        assert.strictEqual(mockBundleNotifications.showUpdateFailure.callCount, 1);
+                        expect(mockBundleNotifications.showUpdateFailure.callCount).toBe(1);
                         const [calledBundleId, calledError] = mockBundleNotifications.showUpdateFailure.firstCall.args;
-                        assert.strictEqual(calledBundleId, bundleId);
-                        assert.ok(
-                            calledError.includes('Update failed') || calledError.includes('Rollback failed')
-                        );
+                        expect(calledBundleId).toBe(bundleId);
+                        expect(calledError.includes('Update failed') || calledError.includes('Rollback failed')).toBeTruthy();
 
                         return true;
                     }
@@ -237,8 +234,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * When an auto-update fails, the service should attempt rollback to the
      * previous version and verify the rollback succeeded.
      */
-    suite('Property 41: Auto-update rollback on failure', () => {
-        test('should rollback to previous version when update fails', async () => {
+    describe('Property 41: Auto-update rollback on failure', () => {
+        it('should rollback to previous version when update fails', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -258,17 +255,17 @@ suite('AutoUpdateService - Property Tests', () => {
 
                         try {
                             await service.autoUpdateBundle({ bundleId, targetVersion: newVersion, showProgress: false });
-                            assert.fail('Should have thrown an error');
+                            expect.fail('Should have thrown an error');
                         } catch (error) {
                             // Expected
                         }
 
                         const rollbackCall = mockRegistryManager.updateBundle.getCalls()
                             .find(call => call.args[0] === bundleId && call.args[1] === oldVersion);
-                        assert.ok(rollbackCall, 'Rollback should be attempted');
+                        expect(rollbackCall, 'Rollback should be attempted').toBeTruthy();
 
                         const [, failureMessage] = mockBundleNotifications.showUpdateFailure.firstCall.args;
-                        assert.ok(failureMessage.includes('Rolled back'));
+                        expect(failureMessage.includes('Rolled back')).toBeTruthy();
 
                         return true;
                     }
@@ -277,7 +274,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should handle rollback failure and mark as corrupted', async () => {
+        it('should handle rollback failure and mark as corrupted', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -296,13 +293,13 @@ suite('AutoUpdateService - Property Tests', () => {
 
                         try {
                             await service.autoUpdateBundle({ bundleId, targetVersion: newVersion, showProgress: false });
-                            assert.fail('Should have thrown an error');
+                            expect.fail('Should have thrown an error');
                         } catch (error) {
                             // Expected
                         }
 
                         const [, failureMessage] = mockBundleNotifications.showUpdateFailure.firstCall.args;
-                        assert.ok(failureMessage.includes('reinstall'));
+                        expect(failureMessage.includes('reinstall')).toBeTruthy();
 
                         return true;
                     }
@@ -319,8 +316,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * When an update is in progress, the service should reject concurrent
      * update operations on the same bundle.
      */
-    suite('Property 24: Concurrent update prevention', () => {
-        test('should prevent concurrent updates for the same bundle', async () => {
+    describe('Property 24: Concurrent update prevention', () => {
+        it('should prevent concurrent updates for the same bundle', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -353,11 +350,7 @@ suite('AutoUpdateService - Property Tests', () => {
                         });
 
                         // Verify update is in progress
-                        assert.strictEqual(
-                            service.isUpdateInProgress(bundleId),
-                            true,
-                            'Update should be marked as in progress'
-                        );
+                        expect(service.isUpdateInProgress(bundleId), 'Update should be marked as in progress').toBe(true);
 
                         // Act: Try to start second update while first is in progress
                         let secondUpdateFailed = false;
@@ -369,29 +362,18 @@ suite('AutoUpdateService - Property Tests', () => {
                             });
                         } catch (error) {
                             secondUpdateFailed = true;
-                            assert.ok(
-                                error instanceof Error && error.message.includes('already in progress'),
-                                'Should throw error about update in progress'
-                            );
+                            expect(error instanceof Error && error.message.includes('already in progress'), 'Should throw error about update in progress').toBeTruthy();
                         }
 
                         // Assert: Second update was rejected
-                        assert.strictEqual(
-                            secondUpdateFailed,
-                            true,
-                            'Concurrent update should be rejected'
-                        );
+                        expect(secondUpdateFailed, 'Concurrent update should be rejected').toBe(true);
 
                         // Complete first update
                         updateResolve!();
                         await firstUpdate;
 
                         // Assert: Update is no longer in progress
-                        assert.strictEqual(
-                            service.isUpdateInProgress(bundleId),
-                            false,
-                            'Update should no longer be in progress'
-                        );
+                        expect(service.isUpdateInProgress(bundleId), 'Update should no longer be in progress').toBe(false);
 
                         return true;
                     }
@@ -400,7 +382,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should allow updates for different bundles concurrently', async () => {
+        it('should allow updates for different bundles concurrently', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -461,16 +443,8 @@ suite('AutoUpdateService - Property Tests', () => {
                         });
 
                         // Assert: Both updates should be in progress
-                        assert.strictEqual(
-                            service.isUpdateInProgress(bundleId1),
-                            true,
-                            'First bundle update should be in progress'
-                        );
-                        assert.strictEqual(
-                            service.isUpdateInProgress(bundleId2),
-                            true,
-                            'Second bundle update should be in progress'
-                        );
+                        expect(service.isUpdateInProgress(bundleId1), 'First bundle update should be in progress').toBe(true);
+                        expect(service.isUpdateInProgress(bundleId2), 'Second bundle update should be in progress').toBe(true);
 
                         // Complete both updates
                         update1Resolve!();
@@ -478,11 +452,7 @@ suite('AutoUpdateService - Property Tests', () => {
                         await Promise.all([firstUpdate, secondUpdate]);
 
                         // Assert: Both updates completed successfully
-                        assert.strictEqual(
-                            mockRegistryManager.updateBundle.callCount,
-                            2,
-                            'Both updates should have been called'
-                        );
+                        expect(mockRegistryManager.updateBundle.callCount, 'Both updates should have been called').toBe(2);
 
                         return true;
                     }
@@ -499,8 +469,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * For any batch update operation, the Registry Manager should update bundles
      * using controlled concurrency (batch size 3) and report progress after each batch.
      */
-    suite('Property 22: Batch update controlled concurrency processing', () => {
-        test('should process updates in batches with controlled concurrency', async () => {
+    describe('Property 22: Batch update controlled concurrency processing', () => {
+        it('should process updates in batches with controlled concurrency', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 10 }),
@@ -515,12 +485,12 @@ suite('AutoUpdateService - Property Tests', () => {
 
                         await service.autoUpdateBundles(updates);
 
-                        assert.strictEqual(mockRegistryManager.updateBundle.callCount, updates.length);
-                        assert.strictEqual(mockBundleNotifications.showBatchUpdateSummary.callCount, 1);
+                        expect(mockRegistryManager.updateBundle.callCount).toBe(updates.length);
+                        expect(mockBundleNotifications.showBatchUpdateSummary.callCount).toBe(1);
 
                         const [successful, failed] = mockBundleNotifications.showBatchUpdateSummary.firstCall.args;
-                        assert.strictEqual(successful.length, updates.length);
-                        assert.strictEqual(failed.length, 0);
+                        expect(successful.length).toBe(updates.length);
+                        expect(failed.length).toBe(0);
 
                         return true;
                     }
@@ -537,8 +507,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * For any completed batch update, the Notification System should display a summary
      * showing the count of successful updates and the count of failed updates.
      */
-    suite('Property 23: Batch update summary display', () => {
-        test('should display summary with success and failure counts', async () => {
+    describe('Property 23: Batch update summary display', () => {
+        it('should display summary with success and failure counts', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 10 }),
@@ -555,17 +525,17 @@ suite('AutoUpdateService - Property Tests', () => {
 
                         await service.autoUpdateBundles(updates);
 
-                        assert.strictEqual(mockBundleNotifications.showBatchUpdateSummary.callCount, 1);
+                        expect(mockBundleNotifications.showBatchUpdateSummary.callCount).toBe(1);
 
                         const [successful, failed] = mockBundleNotifications.showBatchUpdateSummary.firstCall.args;
                         const expectedSuccesses = mappedFailureFlags.filter(f => !f).length;
                         const expectedFailures = mappedFailureFlags.filter(f => f).length;
 
-                        assert.strictEqual(successful.length, expectedSuccesses);
-                        assert.strictEqual(failed.length, expectedFailures);
+                        expect(successful.length).toBe(expectedSuccesses);
+                        expect(failed.length).toBe(expectedFailures);
                         failed.forEach(f => {
-                            assert.ok(f.bundleId);
-                            assert.ok(f.error);
+                            expect(f.bundleId).toBeTruthy();
+                            expect(f.error).toBeTruthy();
                         });
 
                         return true;
@@ -575,7 +545,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should show summary even when all updates fail', async () => {
+        it('should show summary even when all updates fail', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 5 }),
@@ -591,8 +561,8 @@ suite('AutoUpdateService - Property Tests', () => {
                         await service.autoUpdateBundles(updates);
 
                         const [successful, failed] = mockBundleNotifications.showBatchUpdateSummary.firstCall.args;
-                        assert.strictEqual(successful.length, 0);
-                        assert.strictEqual(failed.length, updates.length);
+                        expect(successful.length).toBe(0);
+                        expect(failed.length).toBe(updates.length);
 
                         return true;
                     }
@@ -610,8 +580,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * process them in batches of size B (where B = 3) using Promise.allSettled
      * for parallel processing within each batch.
      */
-    suite('Property 42: Batch updates use controlled concurrency', () => {
-        test('should process updates in batches of size 3', async () => {
+    describe('Property 42: Batch updates use controlled concurrency', () => {
+        it('should process updates in batches of size 3', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 4, max: 10 }), // At least 4 to test batching
@@ -661,24 +631,13 @@ suite('AutoUpdateService - Property Tests', () => {
                         await service.autoUpdateBundles(updates);
 
                         // Assert: Maximum concurrency should not exceed batch size (3)
-                        assert.ok(
-                            maxConcurrent <= 3,
-                            `Maximum concurrent updates should be <= 3, but was ${maxConcurrent}`
-                        );
+                        expect(maxConcurrent <= 3, `Maximum concurrent updates should be <= 3, but was ${maxConcurrent}`).toBeTruthy();
 
                         // Assert: All updates were processed
-                        assert.strictEqual(
-                            mockRegistryManager.updateBundle.callCount,
-                            updates.length,
-                            'All bundles should be updated'
-                        );
+                        expect(mockRegistryManager.updateBundle.callCount, 'All bundles should be updated').toBe(updates.length);
 
                         // Assert: Batch summary was shown
-                        assert.strictEqual(
-                            mockBundleNotifications.showBatchUpdateSummary.callCount,
-                            1,
-                            'Batch summary should be shown'
-                        );
+                        expect(mockBundleNotifications.showBatchUpdateSummary.callCount, 'Batch summary should be shown').toBe(1);
 
                         return true;
                     }
@@ -687,7 +646,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should handle partial failures in batches', async () => {
+        it('should handle partial failures in batches', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 4, max: 10 }),
@@ -708,12 +667,12 @@ suite('AutoUpdateService - Property Tests', () => {
                         const expectedFailures = mappedFailureFlags.filter(f => f).length;
                         const expectedUpdateCalls = expectedSuccesses + (expectedFailures * 2); // Failures trigger rollback
                         
-                        assert.strictEqual(mockRegistryManager.updateBundle.callCount, expectedUpdateCalls);
-                        assert.strictEqual(mockBundleNotifications.showBatchUpdateSummary.callCount, 1);
+                        expect(mockRegistryManager.updateBundle.callCount).toBe(expectedUpdateCalls);
+                        expect(mockBundleNotifications.showBatchUpdateSummary.callCount).toBe(1);
 
                         const [successful, failed] = mockBundleNotifications.showBatchUpdateSummary.firstCall.args;
-                        assert.strictEqual(successful.length, expectedSuccesses);
-                        assert.strictEqual(failed.length, expectedFailures);
+                        expect(successful.length).toBe(expectedSuccesses);
+                        expect(failed.length).toBe(expectedFailures);
 
                         return true;
                     }
@@ -731,8 +690,8 @@ suite('AutoUpdateService - Property Tests', () => {
      * ONLY for bundles from 'github' sources. It should NOT sync sources for bundles
      * from 'awesome-copilot', 'local-awesome-copilot', or 'local' sources.
      */
-    suite('Property 47: Auto-update syncs source only for GitHub release bundles', () => {
-        test('should sync source only for GitHub release bundles', async () => {
+    describe('Property 47: Auto-update syncs source only for GitHub release bundles', () => {
+        it('should sync source only for GitHub release bundles', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -796,27 +755,15 @@ suite('AutoUpdateService - Property Tests', () => {
 
                         // Assert: syncSource should be called ONLY for 'github' sources
                         if (sourceType === 'github') {
-                            assert.strictEqual(
-                                mockRegistryManager.syncSource.callCount,
-                                1,
-                                `syncSource should be called for GitHub source type`
-                            );
-                            assert.strictEqual(
-                                mockRegistryManager.syncSource.firstCall.args[0],
-                                mockSource.id,
-                                'syncSource should be called with correct source ID'
-                            );
+                            expect(mockRegistryManager.syncSource.callCount, `syncSource should be called for GitHub source type`).toBe(1);
+                            expect(mockRegistryManager.syncSource.firstCall.args[0], 'syncSource should be called with correct source ID').toBe(mockSource.id);
                         } else {
-                            assert.strictEqual(
-                                mockRegistryManager.syncSource.callCount,
-                                0,
-                                `syncSource should NOT be called for ${sourceType} source type`
-                            );
+                            expect(mockRegistryManager.syncSource.callCount, `syncSource should NOT be called for ${sourceType} source type`).toBe(0);
                         }
 
                         // Assert: Update should always be called regardless of source type
-                        assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-                        assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
+                        expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+                        expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
 
                         return true;
                     }
@@ -825,7 +772,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should handle missing source gracefully', async () => {
+        it('should handle missing source gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -876,15 +823,11 @@ suite('AutoUpdateService - Property Tests', () => {
                         });
 
                         // Assert: syncSource should not be called when source is missing
-                        assert.strictEqual(
-                            mockRegistryManager.syncSource.callCount,
-                            0,
-                            'syncSource should not be called when source is missing'
-                        );
+                        expect(mockRegistryManager.syncSource.callCount, 'syncSource should not be called when source is missing').toBe(0);
 
                         // Assert: Update should still proceed
-                        assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-                        assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
+                        expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+                        expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
 
                         return true;
                     }
@@ -893,7 +836,7 @@ suite('AutoUpdateService - Property Tests', () => {
             );
         });
 
-        test('should continue update even if source sync fails', async () => {
+        it('should continue update even if source sync fails', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -955,15 +898,11 @@ suite('AutoUpdateService - Property Tests', () => {
                         });
 
                         // Assert: syncSource was attempted
-                        assert.strictEqual(
-                            mockRegistryManager.syncSource.callCount,
-                            1,
-                            'syncSource should be attempted for GitHub source'
-                        );
+                        expect(mockRegistryManager.syncSource.callCount, 'syncSource should be attempted for GitHub source').toBe(1);
 
                         // Assert: Update should still proceed despite sync failure
-                        assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-                        assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
+                        expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+                        expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
 
                         return true;
                     }

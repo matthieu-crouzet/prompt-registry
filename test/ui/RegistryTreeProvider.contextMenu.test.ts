@@ -13,22 +13,20 @@
  * - Context values must match package.json 'when' clauses
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { suite, test, setup, teardown } from 'mocha';
 import { RegistryTreeProvider, TreeItemType, RegistryTreeItem } from '../../src/ui/RegistryTreeProvider';
 import { RegistryManager } from '../../src/services/RegistryManager';
 import { HubManager } from '../../src/services/HubManager';
 import { setupTreeProviderMocks, isValidContextValue } from '../helpers/uiTestHelpers';
 
-suite('RegistryTreeProvider - Context Menu Bug', () => {
+describe('RegistryTreeProvider - Context Menu Bug', () => {
     let provider: RegistryTreeProvider;
     let registryManagerStub: sinon.SinonStubbedInstance<RegistryManager>;
     let hubManagerStub: sinon.SinonStubbedInstance<HubManager>;
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         registryManagerStub = sandbox.createStubInstance(RegistryManager);
         hubManagerStub = sandbox.createStubInstance(HubManager);
@@ -39,12 +37,12 @@ suite('RegistryTreeProvider - Context Menu Bug', () => {
         provider = new RegistryTreeProvider(registryManagerStub as any, hubManagerStub as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Right-click menu should appear for installed bundles', () => {
-        test('user scope bundle should have valid context value for menu', async () => {
+    describe('Right-click menu should appear for installed bundles', () => {
+        it('user scope bundle should have valid context value for menu', async () => {
             const userBundle = {
                 bundleId: 'user-bundle',
                 version: '1.0.0',
@@ -80,20 +78,17 @@ suite('RegistryTreeProvider - Context Menu Bug', () => {
             );
 
             const items = await provider.getChildren(installedRoot);
-            assert.strictEqual(items.length, 1);
+            expect(items.length).toBe(1);
             
             const item = items[0];
             
             // THE KEY ASSERTION: Context value must match package.json 'when' clauses
             // Otherwise the right-click menu won't appear
-            assert.ok(
-                isValidContextValue(item.contextValue as string),
-                `Context value '${item.contextValue}' is not recognized by package.json. ` +
-                `Menu items won't appear. Context value must match one of the valid patterns.`
-            );
+            expect(isValidContextValue(item.contextValue as string), `Context value '${item.contextValue}' is not recognized by package.json. ` +
+                `Menu items won't appear. Context value must match one of the valid patterns.`).toBeTruthy();
         });
 
-        test('repository scope bundle should have valid context value for menu', async () => {
+        it('repository scope bundle should have valid context value for menu', async () => {
             const repoBundle = {
                 bundleId: 'repo-bundle',
                 version: '1.0.0',
@@ -130,19 +125,16 @@ suite('RegistryTreeProvider - Context Menu Bug', () => {
             );
 
             const items = await provider.getChildren(installedRoot);
-            assert.strictEqual(items.length, 1);
+            expect(items.length).toBe(1);
             
             const item = items[0];
             
             // THE KEY ASSERTION: Context value must match package.json 'when' clauses
-            assert.ok(
-                isValidContextValue(item.contextValue as string),
-                `Context value '${item.contextValue}' is not recognized by package.json. ` +
-                `Menu items won't appear. Context value must match one of the valid patterns.`
-            );
+            expect(isValidContextValue(item.contextValue as string), `Context value '${item.contextValue}' is not recognized by package.json. ` +
+                `Menu items won't appear. Context value must match one of the valid patterns.`).toBeTruthy();
         });
 
-        test('repository local-only bundle should have valid context value for menu', async () => {
+        it('repository local-only bundle should have valid context value for menu', async () => {
             const repoBundle = {
                 bundleId: 'repo-bundle-local',
                 version: '1.0.0',
@@ -179,21 +171,18 @@ suite('RegistryTreeProvider - Context Menu Bug', () => {
             );
 
             const items = await provider.getChildren(installedRoot);
-            assert.strictEqual(items.length, 1);
+            expect(items.length).toBe(1);
             
             const item = items[0];
             
             // THE KEY ASSERTION: Context value must match package.json 'when' clauses
-            assert.ok(
-                isValidContextValue(item.contextValue as string),
-                `Context value '${item.contextValue}' is not recognized by package.json. ` +
-                `Menu items won't appear. Context value must match one of the valid patterns.`
-            );
+            expect(isValidContextValue(item.contextValue as string), `Context value '${item.contextValue}' is not recognized by package.json. ` +
+                `Menu items won't appear. Context value must match one of the valid patterns.`).toBeTruthy();
         });
     });
 
-    suite('Scope information should still be accessible for commands', () => {
-        test('uninstall command should be able to determine bundle scope', async () => {
+    describe('Scope information should still be accessible for commands', () => {
+        it('uninstall command should be able to determine bundle scope', async () => {
             const userBundle = {
                 bundleId: 'user-bundle',
                 version: '1.0.0',
@@ -232,12 +221,12 @@ suite('RegistryTreeProvider - Context Menu Bug', () => {
             const item = items[0];
             
             // Commands receive the tree item and need to access scope from item.data
-            assert.ok(item.data, 'Item should have data for command handlers');
-            assert.strictEqual(item.data.scope, 'user', 'Scope should be accessible from data');
-            assert.strictEqual(item.data.bundleId, 'user-bundle', 'Bundle ID should be accessible');
+            expect(item.data, 'Item should have data for command handlers').toBeTruthy();
+            expect(item.data.scope, 'Scope should be accessible from data').toBe('user');
+            expect(item.data.bundleId, 'Bundle ID should be accessible').toBe('user-bundle');
         });
 
-        test('repository bundle should expose commitMode for commands', async () => {
+        it('repository bundle should expose commitMode for commands', async () => {
             const repoBundle = {
                 bundleId: 'repo-bundle',
                 version: '1.0.0',
@@ -277,8 +266,8 @@ suite('RegistryTreeProvider - Context Menu Bug', () => {
             const item = items[0];
             
             // Commands need scope and commitMode for repository bundles
-            assert.strictEqual(item.data.scope, 'repository');
-            assert.strictEqual(item.data.commitMode, 'commit');
+            expect(item.data.scope).toBe('repository');
+            expect(item.data.commitMode).toBe('commit');
         });
     });
 });

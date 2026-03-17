@@ -3,12 +3,11 @@
  * Tests the dynamic bundle creation from YAML collections
  */
 
-import * as assert from 'assert';
 import nock from 'nock';
 import { AwesomeCopilotAdapter } from '../../src/adapters/AwesomeCopilotAdapter';
 import { RegistrySource, Bundle } from '../../src/types/registry';
 
-suite('AwesomeCopilotAdapter', () => {
+describe('AwesomeCopilotAdapter', () => {
     const mockSource: RegistrySource = {
         id: 'awesome-test',
         name: 'Awesome Copilot Test',
@@ -18,25 +17,25 @@ suite('AwesomeCopilotAdapter', () => {
         priority: 1,
     };
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
     });
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid awesome-copilot source', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid awesome-copilot source', () => {
             const adapter = new AwesomeCopilotAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'awesome-copilot');
+            expect(adapter.type).toBe('awesome-copilot');
         });
 
-        test('should accept GitHub URL format', () => {
+        it('should accept GitHub URL format', () => {
             const source = { ...mockSource, url: 'https://github.com/microsoft/prompt-bundle-spec' };
             const adapter = new AwesomeCopilotAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should fetch collections from repository', async () => {
+    describe('fetchBundles', () => {
+        it('should fetch collections from repository', async () => {
             // Mock the collections directory listing
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot/contents/collections?ref=main')
@@ -64,14 +63,14 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].id, 'test-collection');
-            assert.strictEqual(bundles[0].name, 'Test Collection');
-            assert.strictEqual(bundles[0].version, '1.0.0');
-            assert.strictEqual(bundles[0].sourceId, 'awesome-test');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].id).toBe('test-collection');
+            expect(bundles[0].name).toBe('Test Collection');
+            expect(bundles[0].version).toBe('1.0.0');
+            expect(bundles[0].sourceId).toBe('awesome-test');
         });
 
-        test('should skip invalid YAML files', async () => {
+        it('should skip invalid YAML files', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot/contents/collections?ref=main')
                 .reply(200, [
@@ -86,10 +85,10 @@ items:
             const bundles = await adapter.fetchBundles();
 
             // Should handle parsing error gracefully
-            assert.ok(Array.isArray(bundles));
+            expect(Array.isArray(bundles)).toBeTruthy();
         });
 
-        test('should handle empty collections directory', async () => {
+        it('should handle empty collections directory', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot/contents/collections?ref=main')
                 .reply(200, []);
@@ -97,12 +96,12 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
     });
 
-    suite('downloadBundle - Dynamic ZIP Creation', () => {
-        test.skip('should create ZIP archive from collection items', async () => {
+    describe('downloadBundle - Dynamic ZIP Creation', () => {
+        it.skip('should create ZIP archive from collection items', async () => {
             const mockBundle: Bundle = {
                 id: 'test-bundle',
                 name: 'Test Bundle',
@@ -139,11 +138,11 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const buffer = await adapter.downloadBundle(mockBundle);
 
-            assert.ok(Buffer.isBuffer(buffer));
-            assert.ok(buffer.length > 0);
+            expect(Buffer.isBuffer(buffer)).toBeTruthy();
+            expect(buffer.length > 0).toBeTruthy();
         });
 
-        test.skip('should include deployment-manifest.yml in ZIP', async () => {
+        it.skip('should include deployment-manifest.yml in ZIP', async () => {
             const mockBundle: Bundle = {
                 id: 'manifest-test',
                 name: 'Manifest Test',
@@ -177,10 +176,10 @@ items: []
             const buffer = await adapter.downloadBundle(mockBundle);
 
             // ZIP should contain deployment-manifest.yml
-            assert.ok(buffer.length > 100); // Reasonable minimum size for ZIP with manifest
+            expect(buffer.length > 100).toBeTruthy(); // Reasonable minimum size for ZIP with manifest
         });
 
-        test.skip('should handle missing prompt files gracefully', async () => {
+        it.skip('should handle missing prompt files gracefully', async () => {
             const mockBundle: Bundle = {
                 id: 'missing-files',
                 name: 'Missing Files Test',
@@ -222,14 +221,14 @@ items:
                 await adapter.downloadBundle(mockBundle);
             } catch (error: any) {
                 errorThrown = true;
-                assert.ok(error.message, 'Error should have a message');
+                expect(error.message, 'Error should have a message').toBeTruthy();
             }
-            assert.ok(errorThrown, 'Should throw error for missing files');
+            expect(errorThrown, 'Should throw error for missing files').toBeTruthy();
         });
     });
 
-    suite('fetchMetadata', () => {
-        test('should fetch repository metadata', async () => {
+    describe('fetchMetadata', () => {
+        it('should fetch repository metadata', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot')
                 .reply(200, {
@@ -246,14 +245,14 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
-            assert.strictEqual(metadata.name, 'test-owner/awesome-copilot');
-            assert.ok(metadata.description.includes('Awesome Copilot collections'));
-            assert.strictEqual(metadata.bundleCount, 2);
+            expect(metadata.name).toBe('test-owner/awesome-copilot');
+            expect(metadata.description.includes('Awesome Copilot collections')).toBeTruthy();
+            expect(metadata.bundleCount).toBe(2);
         });
     });
 
-    suite('validate', () => {
-        test('should validate accessible repository', async () => {
+    describe('validate', () => {
+        it('should validate accessible repository', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot')
                 .reply(200, { name: 'awesome-copilot' })
@@ -266,11 +265,11 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should fail validation for inaccessible repository', async () => {
+        it('should fail validation for inaccessible repository', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot')
                 .reply(404);
@@ -278,13 +277,13 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
     });
 
-    suite('Content Type Mapping', () => {
-        test('should map .prompt.md files to prompt type', async () => {
+    describe('Content Type Mapping', () => {
+        it('should map .prompt.md files to prompt type', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/awesome-copilot/contents/collections?ref=main')
                 .reply(200, [{
@@ -314,14 +313,14 @@ items:
             const adapter = new AwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.ok(bundles.length > 0);
+            expect(bundles.length > 0).toBeTruthy();
             // Content types should be inferred from file extensions
         });
     });
 });
 
-suite('Skill Kind Support', () => {
-    test('should parse collection with skill items', async () => {
+describe('Skill Kind Support', () => {
+    it('should parse collection with skill items', async () => {
         const mockSource: RegistrySource = {
             id: 'awesome-test',
             name: 'Awesome Copilot Test',
@@ -356,12 +355,12 @@ items:
         const adapter = new AwesomeCopilotAdapter(mockSource);
         const bundles = await adapter.fetchBundles();
 
-        assert.strictEqual(bundles.length, 1);
-        assert.strictEqual(bundles[0].id, 'skills-collection');
+        expect(bundles.length).toBe(1);
+        expect(bundles[0].id).toBe('skills-collection');
         // The bundle should contain both skill and prompt items
     });
 
-    test('should map skill kind correctly in type mapping', () => {
+    it('should map skill kind correctly in type mapping', () => {
         // Test the mapKindToType function behavior
         const kindMap: Record<string, string> = {
             'prompt': 'prompt',
@@ -371,12 +370,12 @@ items:
             'skill': 'skill'
         };
         
-        assert.strictEqual(kindMap['skill'], 'skill');
-        assert.strictEqual(kindMap['prompt'], 'prompt');
-        assert.strictEqual(kindMap['instruction'], 'instructions');
+        expect(kindMap['skill']).toBe('skill');
+        expect(kindMap['prompt']).toBe('prompt');
+        expect(kindMap['instruction']).toBe('instructions');
     });
 
-    test('should fetch entire skill directory when downloading bundle with skills', async () => {
+    it('should fetch entire skill directory when downloading bundle with skills', async () => {
         const mockSource: RegistrySource = {
             id: 'awesome-test',
             name: 'Awesome Copilot Test',
@@ -449,16 +448,16 @@ items:
         const buffer = await adapter.downloadBundle(mockBundle);
 
         // Verify the archive was created
-        assert.ok(Buffer.isBuffer(buffer), 'Should return a Buffer');
-        assert.ok(buffer.length > 0, 'Buffer should not be empty');
+        expect(Buffer.isBuffer(buffer), 'Should return a Buffer').toBeTruthy();
+        expect(buffer.length > 0, 'Buffer should not be empty').toBeTruthy();
 
         // Verify the archive contains the expected files by checking its size
         // A proper archive with 3 files + manifest should be reasonably sized
-        assert.ok(buffer.length > 200, 'Archive should contain multiple files');
+        expect(buffer.length > 200, 'Archive should contain multiple files').toBeTruthy();
     });
 });
 
-suite('AwesomeCopilotAdapter HTTP Redirect Handling', () => {
+describe('AwesomeCopilotAdapter HTTP Redirect Handling', () => {
     const mockSource: RegistrySource = {
         id: 'awesome-test',
         name: 'Awesome Copilot Test',
@@ -468,11 +467,11 @@ suite('AwesomeCopilotAdapter HTTP Redirect Handling', () => {
         priority: 1,
     };
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
     });
 
-    test('should follow HTTP 301 redirects when fetching collections', async () => {
+    it('should follow HTTP 301 redirects when fetching collections', async () => {
         // Mock the collections directory listing with a redirect
         nock('https://api.github.com')
             .get('/repos/test-owner/awesome-copilot/contents/collections?ref=main')
@@ -508,11 +507,11 @@ items:
         const adapter = new AwesomeCopilotAdapter(mockSource);
         const bundles = await adapter.fetchBundles();
 
-        assert.strictEqual(bundles.length, 1);
-        assert.strictEqual(bundles[0].id, 'redirect-test');
+        expect(bundles.length).toBe(1);
+        expect(bundles[0].id).toBe('redirect-test');
     });
 
-    test('should follow HTTP 302 redirects when validating repository', async () => {
+    it('should follow HTTP 302 redirects when validating repository', async () => {
         // Mock the collections directory with a temporary redirect
         nock('https://api.github.com')
             .get('/repos/test-owner/awesome-copilot/contents/collections?ref=main')
@@ -527,7 +526,7 @@ items:
         const adapter = new AwesomeCopilotAdapter(mockSource);
         const result = await adapter.validate();
 
-        assert.strictEqual(result.valid, true);
-        assert.strictEqual(result.bundlesFound, 1);
+        expect(result.valid).toBe(true);
+        expect(result.bundlesFound).toBe(1);
     });
 });

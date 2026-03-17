@@ -3,14 +3,13 @@
  * Reproduces bug where updating a bundle with versioned ID fails after consolidation
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { BundleCommands } from '../../src/commands/BundleCommands';
 import { RegistryManager } from '../../src/services/RegistryManager';
 import { Bundle } from '../../src/types/registry';
 
-suite('BundleCommands - updateBundle() Integration', () => {
+describe('BundleCommands - updateBundle() Integration', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let registryManager: RegistryManager;
@@ -18,7 +17,7 @@ suite('BundleCommands - updateBundle() Integration', () => {
     let showInformationMessageStub: sinon.SinonStub;
     let showErrorMessageStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create mock context with in-memory storage
@@ -70,12 +69,12 @@ suite('BundleCommands - updateBundle() Integration', () => {
         showErrorMessageStub = sandbox.stub(vscode.window, 'showErrorMessage');
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Bug: Versioned Bundle ID After Consolidation', () => {
-        test('should update bundle when installed with versioned ID but consolidated list only has identity', async () => {
+    describe('Bug: Versioned Bundle ID After Consolidation', () => {
+        it('should update bundle when installed with versioned ID but consolidated list only has identity', async () => {
             // SETUP: Simulate the real scenario
             const installedBundleId = 'amadeus-airlines-solutions-workflow-instructions-1.0.18';
             const bundleIdentity = 'amadeus-airlines-solutions-workflow-instructions';
@@ -99,24 +98,16 @@ suite('BundleCommands - updateBundle() Integration', () => {
             // VERIFY: Should succeed without throwing error
             if (showErrorMessageStub.called) {
                 const errorCall = showErrorMessageStub.getCall(0);
-                assert.fail(`Unexpected error message: ${errorCall.args[0]}`);
+                expect.fail(`Unexpected error message: ${errorCall.args[0]}`);
             }
 
-            assert.strictEqual(
-                showInformationMessageStub.called,
-                true,
-                'Should show success message'
-            );
+            expect(showInformationMessageStub.called, 'Should show success message').toBe(true);
 
             // Verify updateBundle was called
-            assert.strictEqual(
-                updateBundleStub.calledWith(installedBundleId),
-                true,
-                'Should call updateBundle with the versioned ID'
-            );
+            expect(updateBundleStub.calledWith(installedBundleId), 'Should call updateBundle with the versioned ID').toBe(true);
         });
 
-        test('should handle updateBundle failure and show error', async () => {
+        it('should handle updateBundle failure and show error', async () => {
             // SETUP: Bundle that fails to update
             const bundleId = 'failing-bundle-1.0.0';
 
@@ -128,17 +119,10 @@ suite('BundleCommands - updateBundle() Integration', () => {
             await bundleCommands.updateBundle(bundleId);
 
             // VERIFY: Should show error message
-            assert.strictEqual(
-                showErrorMessageStub.called,
-                true,
-                'Should show error message'
-            );
+            expect(showErrorMessageStub.called, 'Should show error message').toBe(true);
 
             const errorCall = showErrorMessageStub.getCall(0);
-            assert.ok(
-                errorCall.args[0].includes('Update failed'),
-                'Error message should indicate update failure'
-            );
+            expect(errorCall.args[0].includes('Update failed'), 'Error message should indicate update failure').toBeTruthy();
         });
     });
 });

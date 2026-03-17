@@ -21,14 +21,14 @@ const MAX_VERSIONS_PER_BUNDLE = 10;
 const MIN_BUNDLES = 1;
 const MAX_BUNDLES = 10;
 
-suite('VersionConsolidator Property Tests', () => {
+describe('VersionConsolidator Property Tests', () => {
     let consolidator: VersionConsolidator;
     
-    setup(() => {
+    beforeEach(() => {
         consolidator = new VersionConsolidator();
     });
     
-    teardown(() => {
+    afterEach(() => {
         consolidator.clearCache();
     });
     
@@ -41,7 +41,7 @@ suite('VersionConsolidator Property Tests', () => {
      * 
      * Validates: Requirements 4.1, 4.2
      */
-    test('Property 1: All releases from same GitHub repo map to same identity', () => {
+    it('Property 1: All releases from same GitHub repo map to same identity', () => {
         fc.assert(
             fc.property(
                 fc.record({
@@ -90,7 +90,7 @@ suite('VersionConsolidator Property Tests', () => {
      * 
      * Validates: Requirements 2.1, 2.2
      */
-    test('Property 2: Consolidator selects highest semantic version', () => {
+    it('Property 2: Consolidator selects highest semantic version', () => {
         fc.assert(
             fc.property(
                 fc.record({
@@ -159,7 +159,7 @@ suite('VersionConsolidator Property Tests', () => {
      * 
      * Validates: Requirements 7.1, 7.2, 7.3
      */
-    test('Property 5: Non-GitHub bundles are not consolidated', () => {
+    it('Property 5: Non-GitHub bundles are not consolidated', () => {
         fc.assert(
             fc.property(
                 fc.array(
@@ -206,7 +206,7 @@ suite('VersionConsolidator Property Tests', () => {
      * 
      * Validates: Requirements 1.2, 1.3
      */
-    test('Property 6: Exactly one entry per GitHub repository', () => {
+    it('Property 6: Exactly one entry per GitHub repository', () => {
         fc.assert(
             fc.property(
                 fc.array(

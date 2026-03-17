@@ -8,7 +8,6 @@
  * Validates: Requirements 13.1-13.7
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -28,23 +27,23 @@ const TEST_WORKSPACE_ROOT = '/test/workspace';
  * For any workspace opened with a valid lockfile (not previously declined),
  * a notification SHALL be displayed offering to enable repository bundles.
  */
-suite('RepositoryActivationService - Property Tests', () => {
+describe('RepositoryActivationService - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let showInformationMessageStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
         // Reset all instances before each test
         RepositoryActivationService.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
 
-    test('Property 11: Repository Activation - lockfile presence triggers source detection (no activation prompt per Requirement 1.6)', () => {
+    it('Property 11: Repository Activation - lockfile presence triggers source detection (no activation prompt per Requirement 1.6)', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 10 }),
@@ -94,15 +93,14 @@ suite('RepositoryActivationService - Property Tests', () => {
 
                     // Assert - lockfile should be read (source detection happens)
                     // No activation prompt is shown per Requirement 1.6
-                    assert.ok(mockLockfileManager.read.calledOnce,
-                        'Should read lockfile for source detection');
+                    expect(mockLockfileManager.read.calledOnce, 'Should read lockfile for source detection').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 11: Repository Activation - declined repositories never trigger detection', () => {
+    it('Property 11: Repository Activation - declined repositories never trigger detection', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 10 }),
@@ -139,15 +137,14 @@ suite('RepositoryActivationService - Property Tests', () => {
                     await service.checkAndPromptActivation();
 
                     // Assert - should never prompt for declined repositories
-                    assert.ok(!showInformationMessageStub.called,
-                        'Should never prompt for previously declined repositories');
+                    expect(!showInformationMessageStub.called, 'Should never prompt for previously declined repositories').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 11: Repository Activation - checks for missing sources when lockfile exists', () => {
+    it('Property 11: Repository Activation - checks for missing sources when lockfile exists', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 20 }),
@@ -186,15 +183,14 @@ suite('RepositoryActivationService - Property Tests', () => {
                     await service.checkAndPromptActivation();
 
                     // Assert - should check for missing sources (no activation prompt per Requirement 1.6)
-                    assert.ok(mockLockfileManager.read.calledOnce,
-                        'Should read lockfile to check for missing sources');
+                    expect(mockLockfileManager.read.calledOnce, 'Should read lockfile to check for missing sources').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 11: Repository Activation - no activation prompt shown (Requirement 1.6)', () => {
+    it('Property 11: Repository Activation - no activation prompt shown (Requirement 1.6)', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -248,8 +244,7 @@ suite('RepositoryActivationService - Property Tests', () => {
                     // Files are already in repository, no need to ask user to "enable"
                     if (showInformationMessageStub.called) {
                         const message = showInformationMessageStub.firstCall.args[0] as string;
-                        assert.ok(!message.toLowerCase().includes('enable'),
-                            'Should not show activation prompt - files already in repository');
+                        expect(!message.toLowerCase().includes('enable'), 'Should not show activation prompt - files already in repository').toBeTruthy();
                     }
                 }
             ),
@@ -257,7 +252,7 @@ suite('RepositoryActivationService - Property Tests', () => {
         );
     });
 
-    test('Property 11: Repository Activation - does not call enableRepositoryBundles automatically', () => {
+    it('Property 11: Repository Activation - does not call enableRepositoryBundles automatically', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -308,15 +303,14 @@ suite('RepositoryActivationService - Property Tests', () => {
 
                     // Assert - should NOT call getInstalledBundles (no automatic enablement)
                     // Files are already in repository per Requirement 1.6
-                    assert.ok(!mockStorage.getInstalledBundles.called,
-                        'Should not call getInstalledBundles - files already in repository');
+                    expect(!mockStorage.getInstalledBundles.called, 'Should not call getInstalledBundles - files already in repository').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 11: Repository Activation Prompt Behavior - no lockfile means no prompt', () => {
+    it('Property 11: Repository Activation Prompt Behavior - no lockfile means no prompt', () => {
         return fc.assert(
             fc.asyncProperty(
                 fc.constant(null), // No lockfile
@@ -343,15 +337,14 @@ suite('RepositoryActivationService - Property Tests', () => {
                     await service.checkAndPromptActivation();
 
                     // Assert - should never prompt without lockfile
-                    assert.ok(!showInformationMessageStub.called,
-                        'Should never prompt when no lockfile exists');
+                    expect(!showInformationMessageStub.called, 'Should never prompt when no lockfile exists').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 11: Repository Activation - declined repositories skip source detection', () => {
+    it('Property 11: Repository Activation - declined repositories skip source detection', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -400,8 +393,7 @@ suite('RepositoryActivationService - Property Tests', () => {
                     await service.checkAndPromptActivation();
 
                     // Assert - should not show any prompt for declined repositories
-                    assert.ok(!showInformationMessageStub.called,
-                        'Should not show any prompt for declined repositories');
+                    expect(!showInformationMessageStub.called, 'Should not show any prompt for declined repositories').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
@@ -416,22 +408,22 @@ suite('RepositoryActivationService - Property Tests', () => {
  * For any workspace opened with a lockfile containing unconfigured sources/hubs,
  * the extension SHALL detect and offer to add them.
  */
-suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () => {
+describe('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () => {
     let sandbox: sinon.SinonSandbox;
     let showInformationMessageStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
         RepositoryActivationService.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
 
-    test('Property 14: Missing Source/Hub Detection - detects all missing sources', () => {
+    it('Property 14: Missing Source/Hub Detection - detects all missing sources', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -459,12 +451,10 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
 
                     // Assert - should detect all sources in lockfile
                     const lockfileSourceIds = Object.keys(lockfile.sources);
-                    assert.strictEqual(result.missingSources.length, lockfileSourceIds.length,
-                        'Should detect all missing sources');
+                    expect(result.missingSources.length, 'Should detect all missing sources').toBe(lockfileSourceIds.length);
                     
                     for (const sourceId of lockfileSourceIds) {
-                        assert.ok(result.missingSources.includes(sourceId),
-                            `Should detect missing source: ${sourceId}`);
+                        expect(result.missingSources.includes(sourceId), `Should detect missing source: ${sourceId}`).toBeTruthy();
                     }
                 }
             ),
@@ -472,7 +462,7 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - detects all missing hubs', () => {
+    it('Property 14: Missing Source/Hub Detection - detects all missing hubs', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5, includeHubs: true }),
@@ -501,12 +491,10 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
                     // Assert - should detect all hubs in lockfile
                     if (lockfile.hubs) {
                         const lockfileHubIds = Object.keys(lockfile.hubs);
-                        assert.strictEqual(result.missingHubs.length, lockfileHubIds.length,
-                            'Should detect all missing hubs');
+                        expect(result.missingHubs.length, 'Should detect all missing hubs').toBe(lockfileHubIds.length);
                         
                         for (const hubId of lockfileHubIds) {
-                            assert.ok(result.missingHubs.includes(hubId),
-                                `Should detect missing hub: ${hubId}`);
+                            expect(result.missingHubs.includes(hubId), `Should detect missing hub: ${hubId}`).toBeTruthy();
                         }
                     }
                 }
@@ -515,7 +503,7 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - does not report configured sources', () => {
+    it('Property 14: Missing Source/Hub Detection - does not report configured sources', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 5 }),
@@ -548,15 +536,14 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
                     const result = await service.checkAndOfferMissingSources(lockfile);
 
                     // Assert - should not report any missing sources
-                    assert.strictEqual(result.missingSources.length, 0,
-                        'Should not report configured sources as missing');
+                    expect(result.missingSources.length, 'Should not report configured sources as missing').toBe(0);
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - does not report configured hubs', () => {
+    it('Property 14: Missing Source/Hub Detection - does not report configured hubs', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5, includeHubs: true }),
@@ -594,15 +581,14 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
                     const result = await service.checkAndOfferMissingSources(lockfile);
 
                     // Assert - should not report any missing hubs
-                    assert.strictEqual(result.missingHubs.length, 0,
-                        'Should not report configured hubs as missing');
+                    expect(result.missingHubs.length, 'Should not report configured hubs as missing').toBe(0);
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - offers to add when sources missing', () => {
+    it('Property 14: Missing Source/Hub Detection - offers to add when sources missing', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -634,10 +620,8 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
 
                     // Assert - should offer to add missing sources
                     if (result.missingSources.length > 0) {
-                        assert.ok(showInformationMessageStub.called,
-                            'Should show prompt when sources are missing');
-                        assert.ok(result.offeredToAdd,
-                            'Should indicate that offer was made');
+                        expect(showInformationMessageStub.called, 'Should show prompt when sources are missing').toBeTruthy();
+                        expect(result.offeredToAdd, 'Should indicate that offer was made').toBeTruthy();
                     }
                 }
             ),
@@ -645,7 +629,7 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - partial configuration detected correctly', () => {
+    it('Property 14: Missing Source/Hub Detection - partial configuration detected correctly', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 2, maxBundles: 5 }),
@@ -689,15 +673,14 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
                     const configuredCount = sourceIds.length > 1 ? 1 : 0;
                     const expectedMissing = totalSources - configuredCount;
                     
-                    assert.strictEqual(result.missingSources.length, expectedMissing,
-                        `Should detect ${expectedMissing} missing sources (${totalSources} total - ${configuredCount} configured)`);
+                    expect(result.missingSources.length, `Should detect ${expectedMissing} missing sources (${totalSources} total - ${configuredCount} configured)`).toBe(expectedMissing);
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - empty lockfile returns empty results', () => {
+    it('Property 14: Missing Source/Hub Detection - empty lockfile returns empty results', () => {
         return fc.assert(
             fc.asyncProperty(
                 fc.constant(null), // Just run once with a manually created empty lockfile
@@ -733,19 +716,16 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
                     const result = await service.checkAndOfferMissingSources(lockfile);
 
                     // Assert - empty lockfile should have no missing sources/hubs
-                    assert.strictEqual(result.missingSources.length, 0,
-                        'Empty lockfile should have no missing sources');
-                    assert.strictEqual(result.missingHubs.length, 0,
-                        'Empty lockfile should have no missing hubs');
-                    assert.ok(!result.offeredToAdd,
-                        'Should not offer to add when nothing is missing');
+                    expect(result.missingSources.length, 'Empty lockfile should have no missing sources').toBe(0);
+                    expect(result.missingHubs.length, 'Empty lockfile should have no missing hubs').toBe(0);
+                    expect(!result.offeredToAdd, 'Should not offer to add when nothing is missing').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
         );
     });
 
-    test('Property 14: Missing Source/Hub Detection - detection is deterministic', () => {
+    it('Property 14: Missing Source/Hub Detection - detection is deterministic', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -772,10 +752,8 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
                     const result2 = await service.checkAndOfferMissingSources(lockfile);
 
                     // Assert - results should be identical
-                    assert.deepStrictEqual(result1.missingSources.sort(), result2.missingSources.sort(),
-                        'Missing sources detection should be deterministic');
-                    assert.deepStrictEqual(result1.missingHubs.sort(), result2.missingHubs.sort(),
-                        'Missing hubs detection should be deterministic');
+                    expect(result1.missingSources.sort(), 'Missing sources detection should be deterministic').toEqual(result2.missingSources.sort());
+                    expect(result1.missingHubs.sort(), 'Missing hubs detection should be deterministic').toEqual(result2.missingHubs.sort());
                 }
             ),
             { numRuns: 100 }
@@ -795,17 +773,17 @@ suite('RepositoryActivationService - Property Tests (Missing Sources/Hubs)', () 
  * 
  * **Validates: Requirements 1.1, 1.2, 1.4, 6.4**
  */
-suite('RepositoryActivationService - Setup Timing Properties', () => {
+describe('RepositoryActivationService - Setup Timing Properties', () => {
     let sandbox: sinon.SinonSandbox;
     let showInformationMessageStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
         RepositoryActivationService.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
@@ -822,7 +800,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
      *   THEN RepositoryActivationService.checkAndPromptActivation() returns early
      *   AND no user prompts are shown
      */
-    test('Property 1: Setup Timing Invariant - detection never occurs when setup incomplete', () => {
+    it('Property 1: Setup Timing Invariant - detection never occurs when setup incomplete', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 10 }),
@@ -870,12 +848,10 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
                     await service.checkAndPromptActivation();
 
                     // Assert - no prompts should be shown when setup is incomplete
-                    assert.ok(!showInformationMessageStub.called,
-                        `Should NOT show any prompts when setup state is '${setupState}' (not complete)`);
+                    expect(!showInformationMessageStub.called, `Should NOT show any prompts when setup state is '${setupState}' (not complete)`).toBeTruthy();
                     
                     // Verify that storage.getSources was NOT called (early return before source check)
-                    assert.ok(!mockStorage.getSources.called,
-                        'Should NOT check for missing sources when setup is incomplete');
+                    expect(!mockStorage.getSources.called, 'Should NOT check for missing sources when setup is incomplete').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
@@ -890,7 +866,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
      * Statement: When setup IS complete, detection should proceed normally.
      * This is verified by checking that the service attempts to check for missing sources.
      */
-    test('Property 1: Setup Timing Invariant - detection proceeds when setup is complete', () => {
+    it('Property 1: Setup Timing Invariant - detection proceeds when setup is complete', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 10 }),
@@ -938,8 +914,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
 
                     // Assert - detection should proceed when setup is complete
                     // Verify by checking that storage.getSources was called (source detection proceeded)
-                    assert.ok(mockStorage.getSources.called,
-                        'Should check for missing sources when setup is complete');
+                    expect(mockStorage.getSources.called, 'Should check for missing sources when setup is complete').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
@@ -957,7 +932,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
      * THEN isSetupComplete() = true
      * AND detection proceeds normally
      */
-    test('Property 5: Fail-Open Behavior - detection proceeds when SetupStateManager undefined', () => {
+    it('Property 5: Fail-Open Behavior - detection proceeds when SetupStateManager undefined', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 10 }),
@@ -1003,8 +978,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
                     // Assert - detection should proceed (fail-open behavior)
                     // When SetupStateManager is undefined, the service should assume setup is complete
                     // Verify by checking that storage.getSources was called (source detection proceeded)
-                    assert.ok(mockStorage.getSources.called,
-                        'Should proceed with source detection when SetupStateManager is undefined (fail-open)');
+                    expect(mockStorage.getSources.called, 'Should proceed with source detection when SetupStateManager is undefined (fail-open)').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
@@ -1019,7 +993,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
      * This test verifies that when SetupStateManager IS defined and returns incomplete,
      * detection is blocked - contrasting with the fail-open behavior when undefined.
      */
-    test('Property 5: Fail-Open Behavior - contrast: defined SetupStateManager blocks when incomplete', () => {
+    it('Property 5: Fail-Open Behavior - contrast: defined SetupStateManager blocks when incomplete', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 10 }),
@@ -1066,8 +1040,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
                     await service.checkAndPromptActivation();
 
                     // Assert - detection should be blocked when SetupStateManager is defined and incomplete
-                    assert.ok(!mockStorage.getSources.called,
-                        'Should NOT check for missing sources when SetupStateManager is defined and returns incomplete');
+                    expect(!mockStorage.getSources.called, 'Should NOT check for missing sources when SetupStateManager is defined and returns incomplete').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
@@ -1084,7 +1057,7 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
      * - defined SetupStateManager with isComplete=true -> always proceeds
      * - defined SetupStateManager with isComplete=false -> always blocks
      */
-    test('Property 1 & 5: Deterministic behavior across setup states', () => {
+    it('Property 1 & 5: Deterministic behavior across setup states', () => {
         return fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 5 }),
@@ -1137,11 +1110,9 @@ suite('RepositoryActivationService - Setup Timing Properties', () => {
                     const shouldProceed = setupManagerState === 'undefined' || setupManagerState === 'complete';
                     
                     if (shouldProceed) {
-                        assert.ok(mockStorage.getSources.called,
-                            `Should proceed with source detection when setupManagerState='${setupManagerState}'`);
+                        expect(mockStorage.getSources.called, `Should proceed with source detection when setupManagerState='${setupManagerState}'`).toBeTruthy();
                     } else {
-                        assert.ok(!mockStorage.getSources.called,
-                            `Should block source detection when setupManagerState='${setupManagerState}'`);
+                        expect(!mockStorage.getSources.called, `Should block source detection when setupManagerState='${setupManagerState}'`).toBeTruthy();
                     }
                 }
             ),

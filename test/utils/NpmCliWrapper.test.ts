@@ -1,6 +1,6 @@
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
+import { vi } from 'vitest';
 import { NpmCliWrapper } from '../../src/utils/NpmCliWrapper';
 import {
     createMockProcess,
@@ -9,168 +9,174 @@ import {
     createErrorProcess
 } from '../helpers/processTestHelpers';
 
-suite('NpmCliWrapper', () => {
+// Mock child_process at the module level so ESM imports are intercepted
+const mockSpawn = vi.fn();
+vi.mock('child_process', () => ({
+    spawn: (...args: any[]) => mockSpawn(...args),
+}));
+
+describe('NpmCliWrapper', () => {
     let sandbox: sinon.SinonSandbox;
     let npmWrapper: NpmCliWrapper;
-    // Use require to get a stubbable reference to child_process
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const childProcess = require('child_process');
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
+        // Reset singleton to get fresh instance
+        (NpmCliWrapper as any).instance = undefined;
         npmWrapper = NpmCliWrapper.getInstance();
+        mockSpawn.mockReset();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
+        (NpmCliWrapper as any).instance = undefined;
     });
 
-    suite('getInstance()', () => {
-        test('should return singleton instance', () => {
+    describe('getInstance()', () => {
+        it('should return singleton instance', () => {
             const instance1 = NpmCliWrapper.getInstance();
             const instance2 = NpmCliWrapper.getInstance();
-            assert.strictEqual(instance1, instance2);
+            expect(instance1).toBe(instance2);
         });
     });
 
-    suite('isAvailable()', () => {
-        test('should return true when npm is available', async () => {
+    describe('isAvailable()', () => {
+        it('should return true when npm is available', async () => {
             const { process, emitEvents } = createSuccessProcess();
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.isAvailable();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, true);
+            expect(result).toBe(true);
         });
 
-        test('should return false when npm is not available', async () => {
+        it('should return false when npm is not available', async () => {
             const { process, emitEvents } = createFailureProcess(1);
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.isAvailable();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, false);
+            expect(result).toBe(false);
         });
 
-        test('should return false when spawn errors', async () => {
+        it('should return false when spawn errors', async () => {
             const { process, emitEvents } = createErrorProcess(new Error('ENOENT'));
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.isAvailable();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, false);
+            expect(result).toBe(false);
         });
     });
 
-    suite('getVersion()', () => {
-        test('should return version string when npm is available', async () => {
+    describe('getVersion()', () => {
+        it('should return version string when npm is available', async () => {
             const { process, emitEvents } = createSuccessProcess('10.2.3\n');
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.getVersion();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, '10.2.3');
+            expect(result).toBe('10.2.3');
         });
 
-        test('should return undefined when npm fails', async () => {
+        it('should return undefined when npm fails', async () => {
             const { process, emitEvents } = createFailureProcess(1);
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.getVersion();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, undefined);
+            expect(result).toBe(undefined);
         });
 
-        test('should return undefined when spawn errors', async () => {
+        it('should return undefined when spawn errors', async () => {
             const { process, emitEvents } = createErrorProcess(new Error('ENOENT'));
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.getVersion();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, undefined);
+            expect(result).toBe(undefined);
         });
     });
 
-    suite('promptAndInstall()', () => {
-        test('should show prompt and handle user decline', async () => {
+    describe('promptAndInstall()', () => {
+        it('should show prompt and handle user decline', async () => {
             const showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
             showInformationMessageStub.onFirstCall().resolves(undefined); // User declines
             showInformationMessageStub.onSecondCall().resolves(undefined); // User dismisses manual instruction
 
             const result = await npmWrapper.promptAndInstall('/test/path');
 
-            assert.strictEqual(result.success, true);
-            assert.ok(showInformationMessageStub.calledTwice);
-            assert.ok(showInformationMessageStub.secondCall.args[0].includes('npm install'));
+            expect(result.success).toBe(true);
+            expect(showInformationMessageStub.calledTwice).toBeTruthy();
+            expect(showInformationMessageStub.secondCall.args[0].includes('npm install')).toBeTruthy();
         });
 
-        test('should return success when user chooses "No, I\'ll do it later"', async () => {
+        it('should return success when user chooses "No, I\'ll do it later"', async () => {
             const showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
             showInformationMessageStub.onFirstCall().resolves('No, I\'ll do it later' as any);
             showInformationMessageStub.onSecondCall().resolves(undefined);
 
             const result = await npmWrapper.promptAndInstall('/test/path');
 
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
         });
     });
 
-    suite('spawn shell option', () => {
-        test('should pass shell option to spawn', async () => {
-            const spawnStub = sandbox.stub(childProcess, 'spawn');
+    describe('spawn shell option', () => {
+        it('should pass shell option to spawn', async () => {
             const { process, emitEvents } = createSuccessProcess();
-            spawnStub.returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.isAvailable();
             emitEvents();
             await resultPromise;
 
-            assert.ok(spawnStub.calledOnce);
-            const spawnOptions = spawnStub.firstCall.args[2];
+            expect(mockSpawn.mock.calls.length === 1).toBeTruthy();
+            const spawnOptions = mockSpawn.mock.calls[0][2];
             // Verify shell option is set (value depends on platform)
-            assert.ok('shell' in spawnOptions);
+            expect('shell' in spawnOptions).toBeTruthy();
         });
     });
 
-    suite('event sequencing', () => {
-        test('should handle stdout data before close', async () => {
+    describe('event sequencing', () => {
+        it('should handle stdout data before close', async () => {
             const { process, emitEvents } = createMockProcess({
                 exitCode: 0,
                 stdoutData: '9.8.1\n'
             });
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.getVersion();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, '9.8.1');
+            expect(result).toBe('9.8.1');
         });
 
-        test('should handle stderr data on failure', async () => {
+        it('should handle stderr data on failure', async () => {
             const { process, emitEvents } = createMockProcess({
                 exitCode: 1,
                 stderrData: 'npm ERR! code ENOENT'
             });
-            sandbox.stub(childProcess, 'spawn').returns(process as any);
+            mockSpawn.mockReturnValue(process);
 
             const resultPromise = npmWrapper.getVersion();
             emitEvents();
 
             const result = await resultPromise;
-            assert.strictEqual(result, undefined);
+            expect(result).toBe(undefined);
         });
     });
 });

@@ -5,7 +5,6 @@
  * Requirements: 11.2, 11.3, 11.4
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { SourceSyncedEvent } from '../../src/types/registry';
 
@@ -31,19 +30,19 @@ function simulateDebouncedRefresh(
     }
 }
 
-suite('UI Source Sync Refresh', () => {
+describe('UI Source Sync Refresh', () => {
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Debouncing Logic', () => {
-        test('should debounce single event correctly', (done) => {
+    describe('Debouncing Logic', () => {
+        it('should debounce single event correctly', (done) => {
             // Requirement 11.2: WHEN a source synced event is emitted THEN the TreeView SHALL automatically refresh
             // Requirement 11.3: WHEN a source synced event is emitted THEN the MarketplaceView SHALL automatically refresh
             
@@ -56,12 +55,12 @@ suite('UI Source Sync Refresh', () => {
             
             // Wait for debounce
             setTimeout(() => {
-                assert.strictEqual(refreshCallback.callCount, 1, 'Should call refresh once after debounce');
+                expect(refreshCallback.callCount, 'Should call refresh once after debounce').toBe(1);
                 done();
             }, 600);
         });
 
-        test('should debounce multiple rapid events to single refresh', (done) => {
+        it('should debounce multiple rapid events to single refresh', (done) => {
             // Requirement 11.4: WHEN the update check triggers source syncs THEN the UI SHALL reflect the latest bundle metadata without user intervention
             
             const refreshCallback = sandbox.spy();
@@ -75,21 +74,21 @@ suite('UI Source Sync Refresh', () => {
             
             // Wait for debounce
             setTimeout(() => {
-                assert.strictEqual(refreshCallback.callCount, 1, 'Should call refresh only once after debounce');
+                expect(refreshCallback.callCount, 'Should call refresh only once after debounce').toBe(1);
                 done();
             }, 600);
         });
 
-        test('should use 500ms debounce delay', () => {
+        it('should use 500ms debounce delay', () => {
             // Verify the debounce delay is set to 500ms as specified in requirements
             const EXPECTED_DEBOUNCE_MS = 500;
             
-            assert.strictEqual(EXPECTED_DEBOUNCE_MS, 500, 'Debounce delay should be 500ms');
+            expect(EXPECTED_DEBOUNCE_MS, 'Debounce delay should be 500ms').toBe(500);
         });
     });
 
-    suite('Event Data Structure', () => {
-        test('should include sourceId in event', () => {
+    describe('Event Data Structure', () => {
+        it('should include sourceId in event', () => {
             // Requirement 1.6: WHEN a source is synced THEN the Registry Manager SHALL emit an event to notify listeners
             
             const event: SourceSyncedEvent = {
@@ -97,11 +96,11 @@ suite('UI Source Sync Refresh', () => {
                 bundleCount: 5
             };
             
-            assert.ok(event.sourceId, 'Event should include sourceId');
-            assert.strictEqual(event.sourceId, 'test-source', 'sourceId should match');
+            expect(event.sourceId, 'Event should include sourceId').toBeTruthy();
+            expect(event.sourceId, 'sourceId should match').toBe('test-source');
         });
 
-        test('should include bundleCount in event', () => {
+        it('should include bundleCount in event', () => {
             // Requirement 1.6: WHEN a source is synced THEN the Registry Manager SHALL emit an event to notify listeners
             
             const event: SourceSyncedEvent = {
@@ -109,11 +108,11 @@ suite('UI Source Sync Refresh', () => {
                 bundleCount: 5
             };
             
-            assert.ok(typeof event.bundleCount === 'number', 'Event should include bundleCount as number');
-            assert.strictEqual(event.bundleCount, 5, 'bundleCount should match');
+            expect(typeof event.bundleCount === 'number', 'Event should include bundleCount as number').toBeTruthy();
+            expect(event.bundleCount, 'bundleCount should match').toBe(5);
         });
 
-        test('should handle zero bundle count', () => {
+        it('should handle zero bundle count', () => {
             // Edge case: source with no bundles
             
             const event: SourceSyncedEvent = {
@@ -121,7 +120,7 @@ suite('UI Source Sync Refresh', () => {
                 bundleCount: 0
             };
             
-            assert.strictEqual(event.bundleCount, 0, 'Should handle zero bundle count');
+            expect(event.bundleCount, 'Should handle zero bundle count').toBe(0);
         });
     });
 });

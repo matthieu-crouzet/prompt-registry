@@ -6,7 +6,6 @@
  * **Validates: Requirements 3.5**
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fc from 'fast-check';
 import { AutoUpdateService } from '../../src/services/AutoUpdateService';
@@ -15,7 +14,7 @@ import { Logger } from '../../src/utils/logger';
 import { BundleGenerators, PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { AutoUpdateTestHelpers } from '../helpers/autoUpdateTestHelpers';
 
-suite('Auto-Update Toggle - Property Tests', () => {
+describe('Auto-Update Toggle - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let mockAutoUpdateService: AutoUpdateService;
@@ -31,7 +30,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
 
     // ===== Test Setup/Teardown =====
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Stub logger to prevent console output during tests
@@ -54,7 +53,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -65,8 +64,8 @@ suite('Auto-Update Toggle - Property Tests', () => {
      * For any installed bundle, users should be able to toggle auto-update
      * on/off through the UI, and the change should persist.
      */
-    suite('Property 15: Auto-update toggle for existing bundles', () => {
-        test('should toggle auto-update state for any installed bundle', async () => {
+    describe('Property 15: Auto-update toggle for existing bundles', () => {
+        it('should toggle auto-update state for any installed bundle', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -90,7 +89,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
             );
         });
 
-        test('should handle toggle errors gracefully', async () => {
+        it('should handle toggle errors gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -104,14 +103,14 @@ suite('Auto-Update Toggle - Property Tests', () => {
                         // Test error handling in AutoUpdateService
                         try {
                             await mockAutoUpdateService.setAutoUpdate(bundleId, enabled);
-                            assert.fail('Should have thrown an error');
+                            expect.fail('Should have thrown an error');
                         } catch (error) {
-                            assert.ok(error instanceof Error);
-                            assert.strictEqual(error.message, errorMessage);
+                            expect(error instanceof Error).toBeTruthy();
+                            expect(error.message).toBe(errorMessage);
                         }
 
                         // Verify storage was called
-                        assert.strictEqual(mockStorage.setUpdatePreference.callCount, 1);
+                        expect(mockStorage.setUpdatePreference.callCount).toBe(1);
 
                         return true;
                     }
@@ -120,7 +119,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
             );
         });
 
-        test('should retrieve auto-update status correctly', async () => {
+        it('should retrieve auto-update status correctly', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -134,7 +133,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
                         const result = await mockAutoUpdateService.isAutoUpdateEnabled(bundleId);
 
                         // Verify correct status was returned
-                        assert.strictEqual(result, enabled);
+                        expect(result).toBe(enabled);
                         AutoUpdateTestHelpers.assertPreferenceRetrieved(mockStorage, bundleId);
 
                         return true;
@@ -144,7 +143,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
             );
         });
 
-        test('should handle state transitions correctly', async () => {
+        it('should handle state transitions correctly', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -157,18 +156,18 @@ suite('Auto-Update Toggle - Property Tests', () => {
 
                         // Test initial state
                         const initialResult = await mockAutoUpdateService.isAutoUpdateEnabled(bundleId);
-                        assert.strictEqual(initialResult, initialState);
+                        expect(initialResult).toBe(initialState);
 
                         // Test state change
                         await mockAutoUpdateService.setAutoUpdate(bundleId, finalState);
 
                         // Test final state
                         const finalResult = await mockAutoUpdateService.isAutoUpdateEnabled(bundleId);
-                        assert.strictEqual(finalResult, finalState);
+                        expect(finalResult).toBe(finalState);
 
                         // Verify storage interactions
-                        assert.strictEqual(mockStorage.getUpdatePreference.callCount, 2);
-                        assert.strictEqual(mockStorage.setUpdatePreference.callCount, 1);
+                        expect(mockStorage.getUpdatePreference.callCount).toBe(2);
+                        expect(mockStorage.setUpdatePreference.callCount).toBe(1);
 
                         return true;
                     }
@@ -177,7 +176,7 @@ suite('Auto-Update Toggle - Property Tests', () => {
             );
         });
 
-        test('should persist auto-update preference changes', async () => {
+        it('should persist auto-update preference changes', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,

@@ -2,12 +2,11 @@
  * LocalAdapter Unit Tests
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import { LocalAdapter } from '../../src/adapters/LocalAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('LocalAdapter', () => {
+describe('LocalAdapter', () => {
     const fixturesPath = path.join(__dirname, '../fixtures/local-library');
     
     const mockSource: RegistrySource = {
@@ -19,66 +18,63 @@ suite('LocalAdapter', () => {
         priority: 1,
     };
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid local path', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid local path', () => {
             const adapter = new LocalAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'local');
+            expect(adapter.type).toBe('local');
         });
 
-        test('should accept file:// URL', () => {
+        it('should accept file:// URL', () => {
             const source = { ...mockSource, url: `file://${fixturesPath}` };
             const adapter = new LocalAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should throw error for invalid path format', () => {
+        it('should throw error for invalid path format', () => {
             const source = { ...mockSource, url: 'http://invalid.com/path' };
-            assert.throws(() => new LocalAdapter(source), /Invalid local path/);
+            expect(() => new LocalAdapter(source)).toThrow(/Invalid local path/);
         });
     });
 
-    suite('fetchMetadata', () => {
-        test('should fetch local registry metadata', async () => {
+    describe('fetchMetadata', () => {
+        it('should fetch local registry metadata', async () => {
             const adapter = new LocalAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
-            assert.ok(metadata);
-            assert.strictEqual(typeof metadata.name, 'string');
-            assert.strictEqual(typeof metadata.description, 'string');
-            assert.strictEqual(typeof metadata.bundleCount, 'number');
-            assert.ok(metadata.bundleCount >= 0);
+            expect(metadata).toBeTruthy();
+            expect(typeof metadata.name).toBe('string');
+            expect(typeof metadata.description).toBe('string');
+            expect(typeof metadata.bundleCount).toBe('number');
+            expect(metadata.bundleCount >= 0).toBeTruthy();
         });
 
-        test('should report correct bundle count', async () => {
+        it('should report correct bundle count', async () => {
             const adapter = new LocalAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
             // We have 9 bundles in fixtures
-            assert.strictEqual(metadata.bundleCount, 9);
+            expect(metadata.bundleCount).toBe(9);
         });
 
-        test('should throw error for non-existent directory', async () => {
+        it('should throw error for non-existent directory', async () => {
             const source = { ...mockSource, url: '/non/existent/path' };
             const adapter = new LocalAdapter(source);
 
-            await assert.rejects(
-                () => adapter.fetchMetadata(),
-                /Directory does not exist/
-            );
+            await expect(() => adapter.fetchMetadata()).rejects.toThrow(/Directory does not exist/);
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should discover all bundles with manifests', async () => {
+    describe('fetchBundles', () => {
+        it('should discover all bundles with manifests', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.ok(Array.isArray(bundles));
-            assert.strictEqual(bundles.length, 9);
+            expect(Array.isArray(bundles)).toBeTruthy();
+            expect(bundles.length).toBe(9);
 
             // Check bundle IDs
             const bundleIds = bundles.map(b => b.id).sort();
-            assert.deepStrictEqual(bundleIds, [
+            expect(bundleIds).toEqual([
                 'accessibility-bundle',
                 'backend-bundle',
                 'devops-bundle',
@@ -91,101 +87,101 @@ suite('LocalAdapter', () => {
             ]);
         });
 
-        test('should parse YAML manifests correctly', async () => {
+        it('should parse YAML manifests correctly', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             const exampleBundle = bundles.find(b => b.id === 'example-bundle');
-            assert.ok(exampleBundle);
-            assert.strictEqual(exampleBundle.name, 'Example Prompt Bundle');
-            assert.strictEqual(exampleBundle.version, '1.0.0');
-            assert.strictEqual(exampleBundle.author, 'Prompt Registry Team');
-            assert.ok(Array.isArray(exampleBundle.tags));
-            assert.ok(exampleBundle.tags.includes('example'));
+            expect(exampleBundle).toBeTruthy();
+            expect(exampleBundle.name).toBe('Example Prompt Bundle');
+            expect(exampleBundle.version).toBe('1.0.0');
+            expect(exampleBundle.author).toBe('Prompt Registry Team');
+            expect(Array.isArray(exampleBundle.tags)).toBeTruthy();
+            expect(exampleBundle.tags.includes('example')).toBeTruthy();
         });
 
-        test('should include all bundle metadata', async () => {
+        it('should include all bundle metadata', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             for (const bundle of bundles) {
-                assert.ok(bundle.id);
-                assert.ok(bundle.name);
-                assert.ok(bundle.version);
-                assert.ok(bundle.description);
-                assert.ok(bundle.author);
-                assert.strictEqual(bundle.sourceId, 'test-local');
-                assert.ok(Array.isArray(bundle.environments));
-                assert.ok(Array.isArray(bundle.tags));
-                assert.ok(bundle.lastUpdated);
-                assert.ok(bundle.downloadUrl);
-                assert.ok(bundle.manifestUrl);
+                expect(bundle.id).toBeTruthy();
+                expect(bundle.name).toBeTruthy();
+                expect(bundle.version).toBeTruthy();
+                expect(bundle.description).toBeTruthy();
+                expect(bundle.author).toBeTruthy();
+                expect(bundle.sourceId).toBe('test-local');
+                expect(Array.isArray(bundle.environments)).toBeTruthy();
+                expect(Array.isArray(bundle.tags)).toBeTruthy();
+                expect(bundle.lastUpdated).toBeTruthy();
+                expect(bundle.downloadUrl).toBeTruthy();
+                expect(bundle.manifestUrl).toBeTruthy();
             }
         });
 
-        test('should handle file:// URLs in download/manifest URLs', async () => {
+        it('should handle file:// URLs in download/manifest URLs', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             for (const bundle of bundles) {
-                assert.ok(bundle.downloadUrl.startsWith('file://'));
-                assert.ok(bundle.manifestUrl.startsWith('file://'));
+                expect(bundle.downloadUrl.startsWith('file://')).toBeTruthy();
+                expect(bundle.manifestUrl.startsWith('file://')).toBeTruthy();
             }
         });
 
-        test('should skip directories without manifests', async () => {
+        it('should skip directories without manifests', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             // Only bundles with deployment-manifest.yml should be included
             // README.md and other files should be ignored
-            assert.ok(bundles.every(b => b.id));
+            expect(bundles.every(b => b.id)).toBeTruthy();
         });
     });
 
-    suite('validate', () => {
-        test('should validate accessible local directory', async () => {
+    describe('validate', () => {
+        it('should validate accessible local directory', async () => {
             const adapter = new LocalAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.ok(Array.isArray(result.warnings));
+            expect(result.valid).toBe(true);
+            expect(Array.isArray(result.warnings)).toBeTruthy();
         });
 
-        test('should fail validation for non-existent directory', async () => {
+        it('should fail validation for non-existent directory', async () => {
             const source = { ...mockSource, url: '/non/existent/path' };
             const adapter = new LocalAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(Array.isArray(result.errors));
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(Array.isArray(result.errors)).toBeTruthy();
+            expect(result.errors.length > 0).toBeTruthy();
         });
     });
 
-    suite('getDownloadUrl', () => {
-        test('should generate correct file:// URL for bundle', () => {
+    describe('getDownloadUrl', () => {
+        it('should generate correct file:// URL for bundle', () => {
             const adapter = new LocalAdapter(mockSource);
             const url = adapter.getDownloadUrl('example-bundle', '1.0.0');
 
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('example-bundle'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('example-bundle')).toBeTruthy();
         });
     });
 
-    suite('getManifestUrl', () => {
-        test('should generate correct manifest URL', () => {
+    describe('getManifestUrl', () => {
+        it('should generate correct manifest URL', () => {
             const adapter = new LocalAdapter(mockSource);
             const url = adapter.getManifestUrl('example-bundle', '1.0.0');
 
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('example-bundle'));
-            assert.ok(url.includes('deployment-manifest.yml'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('example-bundle')).toBeTruthy();
+            expect(url.includes('deployment-manifest.yml')).toBeTruthy();
         });
     });
 
-    suite('Diagnostics', () => {
-        test('should log directory scanning details', async () => {
+    describe('Diagnostics', () => {
+        it('should log directory scanning details', async () => {
             const adapter = new LocalAdapter(mockSource);
             
             // Capture console output
@@ -200,37 +196,37 @@ suite('LocalAdapter', () => {
                 await adapter.fetchBundles();
                 
                 // Check diagnostic logs were generated
-                assert.ok(logs.some(log => log.includes('[LocalAdapter] Scanning directory')));
-                assert.ok(logs.some(log => log.includes('[LocalAdapter] Found') && log.includes('entries')));
-                assert.ok(logs.some(log => log.includes('[LocalAdapter] Discovered') && log.includes('valid bundles')));
+                expect(logs.some(log => log.includes('[LocalAdapter] Scanning directory'))).toBeTruthy();
+                expect(logs.some(log => log.includes('[LocalAdapter] Found') && log.includes('entries'))).toBeTruthy();
+                expect(logs.some(log => log.includes('[LocalAdapter] Discovered') && log.includes('valid bundles'))).toBeTruthy();
             } finally {
                 console.log = originalLog;
             }
         });
     });
 
-    suite('downloadBundle', () => {
-        test('should read a valid local file and return correct Buffer', async () => {
+    describe('downloadBundle', () => {
+        it('should read a valid local file and return correct Buffer', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             
             // Get the first bundle
             const bundle = bundles[0];
-            assert.ok(bundle, 'Should have at least one bundle');
+            expect(bundle, 'Should have at least one bundle').toBeTruthy();
             
             // Download the bundle
             const buffer = await adapter.downloadBundle(bundle);
             
             // Verify buffer is not empty
-            assert.ok(buffer.length > 0, 'Buffer should not be empty');
+            expect(buffer.length > 0, 'Buffer should not be empty').toBeTruthy();
             
             // Verify it's a valid ZIP file by checking magic number
             // ZIP files start with 'PK' (0x50 0x4B)
-            assert.strictEqual(buffer[0], 0x50, 'First byte should be 0x50 (P)');
-            assert.strictEqual(buffer[1], 0x4B, 'Second byte should be 0x4B (K)');
+            expect(buffer[0], 'First byte should be 0x50 (P)').toBe(0x50);
+            expect(buffer[1], 'Second byte should be 0x4B (K)').toBe(0x4B);
         });
 
-        test('should throw error for file not found', async () => {
+        it('should throw error for file not found', async () => {
             const adapter = new LocalAdapter(mockSource);
             
             // Create a bundle with non-existent path
@@ -251,17 +247,13 @@ suite('LocalAdapter', () => {
                 manifestUrl: 'file:///non/existent/path/deployment-manifest.yml',
             };
             
-            await assert.rejects(
-                () => adapter.downloadBundle(nonExistentBundle),
-                /Bundle directory not found/,
-                'Should throw error for non-existent directory'
-            );
+            await expect(() => adapter.downloadBundle(nonExistentBundle)).rejects.toThrow(/Bundle directory not found/, 'Should throw error for non-existent directory');
         });
 
-        test('should throw error for permission denied', async function() {
+        it('should throw error for permission denied', async ({ skip }: any) => {
             // Skip this test on Windows as permission handling is different
             if (process.platform === 'win32') {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -286,28 +278,24 @@ suite('LocalAdapter', () => {
                 manifestUrl: 'file:///root/restricted/deployment-manifest.yml',
             };
             
-            await assert.rejects(
-                () => adapter.downloadBundle(restrictedBundle),
-                /Permission denied|Bundle directory not found/,
-                'Should throw error for permission denied'
-            );
+            await expect(() => adapter.downloadBundle(restrictedBundle)).rejects.toThrow(/Permission denied|Bundle directory not found/, 'Should throw error for permission denied');
         });
 
-        test('should handle binary file handling (ZIP files)', async () => {
+        it('should handle binary file handling (ZIP files)', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             
             // Get a bundle
             const bundle = bundles.find(b => b.id === 'example-bundle');
-            assert.ok(bundle, 'Should find example-bundle');
+            expect(bundle, 'Should find example-bundle').toBeTruthy();
             
             // Download the bundle
             const buffer = await adapter.downloadBundle(bundle);
             
             // Verify it's a valid ZIP file
-            assert.ok(buffer.length > 0, 'Buffer should not be empty');
-            assert.strictEqual(buffer[0], 0x50, 'Should start with ZIP magic number (P)');
-            assert.strictEqual(buffer[1], 0x4B, 'Should start with ZIP magic number (K)');
+            expect(buffer.length > 0, 'Buffer should not be empty').toBeTruthy();
+            expect(buffer[0], 'Should start with ZIP magic number (P)').toBe(0x50);
+            expect(buffer[1], 'Should start with ZIP magic number (K)').toBe(0x4B);
             
             // Verify we can extract it using adm-zip
             const AdmZip = require('adm-zip');
@@ -315,27 +303,27 @@ suite('LocalAdapter', () => {
             const entries = zip.getEntries();
             
             // Should have at least the deployment-manifest.yml
-            assert.ok(entries.length > 0, 'ZIP should contain files');
+            expect(entries.length > 0, 'ZIP should contain files').toBeTruthy();
             
             // Check for deployment-manifest.yml
             const manifestEntry = entries.find((e: any) => e.entryName === 'deployment-manifest.yml');
-            assert.ok(manifestEntry, 'ZIP should contain deployment-manifest.yml');
+            expect(manifestEntry, 'ZIP should contain deployment-manifest.yml').toBeTruthy();
         });
 
-        test('should handle file:// URL format', async () => {
+        it('should handle file:// URL format', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             
             // Get a bundle (should have file:// URL)
             const bundle = bundles[0];
-            assert.ok(bundle.downloadUrl.startsWith('file://'), 'Bundle URL should start with file://');
+            expect(bundle.downloadUrl.startsWith('file://'), 'Bundle URL should start with file://').toBeTruthy();
             
             // Download should work with file:// URL
             const buffer = await adapter.downloadBundle(bundle);
-            assert.ok(buffer.length > 0, 'Should successfully download from file:// URL');
+            expect(buffer.length > 0, 'Should successfully download from file:// URL').toBeTruthy();
         });
 
-        test('should preserve binary data integrity', async () => {
+        it('should preserve binary data integrity', async () => {
             const adapter = new LocalAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             
@@ -346,8 +334,8 @@ suite('LocalAdapter', () => {
             const buffer2 = await adapter.downloadBundle(bundle);
             
             // Both downloads should produce identical buffers
-            assert.strictEqual(buffer1.length, buffer2.length, 'Buffer lengths should match');
-            assert.ok(buffer1.equals(buffer2), 'Buffers should be byte-for-byte identical');
+            expect(buffer1.length, 'Buffer lengths should match').toBe(buffer2.length);
+            expect(buffer1.equals(buffer2), 'Buffers should be byte-for-byte identical').toBeTruthy();
         });
     });
 });

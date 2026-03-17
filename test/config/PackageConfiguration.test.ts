@@ -4,112 +4,107 @@
  * Tests for validating configuration settings in package.json
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 
-suite('Package Configuration - Update Check Settings', () => {
+describe('Package Configuration - Update Check Settings', () => {
     let packageJson: any;
 
-    setup(() => {
+    beforeEach(() => {
         // Load package.json
         const packagePath = path.join(process.cwd(), 'package.json');
         const packageContent = fs.readFileSync(packagePath, 'utf-8');
         packageJson = JSON.parse(packageContent);
     });
 
-    suite('Configuration Schema Structure', () => {
-        test('should prefer workspace extension host for remote environments', () => {
-            assert.ok(Array.isArray(packageJson.extensionKind), 'package.json should define extensionKind array');
-            assert.ok(packageJson.extensionKind.includes('workspace'), 'extensionKind should include workspace');
-            assert.ok(packageJson.extensionKind.includes('ui'), 'extensionKind should include ui fallback');
-            assert.strictEqual(
-                packageJson.extensionKind[0],
-                'workspace',
-                'workspace should be first so WSL/remote sessions run repository file operations in the remote host'
-            );
+    describe('Configuration Schema Structure', () => {
+        it('should prefer workspace extension host for remote environments', () => {
+            expect(Array.isArray(packageJson.extensionKind), 'package.json should define extensionKind array').toBeTruthy();
+            expect(packageJson.extensionKind.includes('workspace'), 'extensionKind should include workspace').toBeTruthy();
+            expect(packageJson.extensionKind.includes('ui'), 'extensionKind should include ui fallback').toBeTruthy();
+            expect(packageJson.extensionKind[0], 'workspace should be first so WSL/remote sessions run repository file operations in the remote host').toBe('workspace');
         });
 
-        test('should have configuration section', () => {
-            assert.ok(packageJson.contributes, 'package.json should have contributes section');
-            assert.ok(packageJson.contributes.configuration, 'contributes should have configuration section');
-            assert.ok(packageJson.contributes.configuration.properties, 'configuration should have properties');
+        it('should have configuration section', () => {
+            expect(packageJson.contributes, 'package.json should have contributes section').toBeTruthy();
+            expect(packageJson.contributes.configuration, 'contributes should have configuration section').toBeTruthy();
+            expect(packageJson.contributes.configuration.properties, 'configuration should have properties').toBeTruthy();
         });
 
-        test('should have updateCheck.enabled setting', () => {
+        it('should have updateCheck.enabled setting', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.enabled'];
             
-            assert.ok(setting, 'updateCheck.enabled setting should exist');
-            assert.strictEqual(setting.type, 'boolean', 'updateCheck.enabled should be boolean type');
-            assert.ok(setting.description, 'updateCheck.enabled should have description');
+            expect(setting, 'updateCheck.enabled setting should exist').toBeTruthy();
+            expect(setting.type, 'updateCheck.enabled should be boolean type').toBe('boolean');
+            expect(setting.description, 'updateCheck.enabled should have description').toBeTruthy();
         });
 
-        test('should have updateCheck.frequency setting', () => {
+        it('should have updateCheck.frequency setting', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.frequency'];
             
-            assert.ok(setting, 'updateCheck.frequency setting should exist');
-            assert.strictEqual(setting.type, 'string', 'updateCheck.frequency should be string type');
-            assert.ok(setting.description, 'updateCheck.frequency should have description');
+            expect(setting, 'updateCheck.frequency setting should exist').toBeTruthy();
+            expect(setting.type, 'updateCheck.frequency should be string type').toBe('string');
+            expect(setting.description, 'updateCheck.frequency should have description').toBeTruthy();
         });
 
-        test('should have updateCheck.notificationPreference setting', () => {
+        it('should have updateCheck.notificationPreference setting', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.notificationPreference'];
             
-            assert.ok(setting, 'updateCheck.notificationPreference setting should exist');
-            assert.strictEqual(setting.type, 'string', 'updateCheck.notificationPreference should be string type');
-            assert.ok(setting.description, 'updateCheck.notificationPreference should have description');
+            expect(setting, 'updateCheck.notificationPreference setting should exist').toBeTruthy();
+            expect(setting.type, 'updateCheck.notificationPreference should be string type').toBe('string');
+            expect(setting.description, 'updateCheck.notificationPreference should have description').toBeTruthy();
         });
 
-        test('should have updateCheck.autoUpdate setting', () => {
+        it('should have updateCheck.autoUpdate setting', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.autoUpdate'];
             
-            assert.ok(setting, 'updateCheck.autoUpdate setting should exist');
-            assert.strictEqual(setting.type, 'boolean', 'updateCheck.autoUpdate should be boolean type');
-            assert.ok(setting.description, 'updateCheck.autoUpdate should have description');
+            expect(setting, 'updateCheck.autoUpdate setting should exist').toBeTruthy();
+            expect(setting.type, 'updateCheck.autoUpdate should be boolean type').toBe('boolean');
+            expect(setting.description, 'updateCheck.autoUpdate should have description').toBeTruthy();
         });
     });
 
-    suite('Default Values', () => {
-        test('updateCheck.enabled should default to true', () => {
+    describe('Default Values', () => {
+        it('updateCheck.enabled should default to true', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.enabled'];
-            assert.strictEqual(setting.default, true, 'updateCheck.enabled should default to true');
+            expect(setting.default, 'updateCheck.enabled should default to true').toBe(true);
         });
 
-        test('updateCheck.frequency should default to "daily"', () => {
+        it('updateCheck.frequency should default to "daily"', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.frequency'];
-            assert.strictEqual(setting.default, 'daily', 'updateCheck.frequency should default to "daily"');
+            expect(setting.default, 'updateCheck.frequency should default to "daily"').toBe('daily');
         });
 
-        test('updateCheck.notificationPreference should default to "all"', () => {
+        it('updateCheck.notificationPreference should default to "all"', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.notificationPreference'];
-            assert.strictEqual(setting.default, 'all', 'updateCheck.notificationPreference should default to "all"');
+            expect(setting.default, 'updateCheck.notificationPreference should default to "all"').toBe('all');
         });
 
-        test('updateCheck.autoUpdate should default to false', () => {
+        it('updateCheck.autoUpdate should default to false', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.autoUpdate'];
-            assert.strictEqual(setting.default, false, 'updateCheck.autoUpdate should default to false');
+            expect(setting.default, 'updateCheck.autoUpdate should default to false').toBe(false);
         });
     });
 
-    suite('Enum Options', () => {
-        test('updateCheck.frequency should have correct enum values', () => {
+    describe('Enum Options', () => {
+        it('updateCheck.frequency should have correct enum values', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.frequency'];
             
-            assert.ok(Array.isArray(setting.enum), 'updateCheck.frequency should have enum array');
-            assert.strictEqual(setting.enum.length, 3, 'updateCheck.frequency should have 3 enum values');
-            assert.ok(setting.enum.includes('daily'), 'enum should include "daily"');
-            assert.ok(setting.enum.includes('weekly'), 'enum should include "weekly"');
-            assert.ok(setting.enum.includes('manual'), 'enum should include "manual"');
+            expect(Array.isArray(setting.enum), 'updateCheck.frequency should have enum array').toBeTruthy();
+            expect(setting.enum.length, 'updateCheck.frequency should have 3 enum values').toBe(3);
+            expect(setting.enum.includes('daily'), 'enum should include "daily"').toBeTruthy();
+            expect(setting.enum.includes('weekly'), 'enum should include "weekly"').toBeTruthy();
+            expect(setting.enum.includes('manual'), 'enum should include "manual"').toBeTruthy();
         });
 
-        test('updateCheck.notificationPreference should have correct enum values', () => {
+        it('updateCheck.notificationPreference should have correct enum values', () => {
             const setting = packageJson.contributes.configuration.properties['promptregistry.updateCheck.notificationPreference'];
             
-            assert.ok(Array.isArray(setting.enum), 'updateCheck.notificationPreference should have enum array');
-            assert.strictEqual(setting.enum.length, 3, 'updateCheck.notificationPreference should have 3 enum values');
-            assert.ok(setting.enum.includes('all'), 'enum should include "all"');
-            assert.ok(setting.enum.includes('critical'), 'enum should include "critical"');
-            assert.ok(setting.enum.includes('none'), 'enum should include "none"');
+            expect(Array.isArray(setting.enum), 'updateCheck.notificationPreference should have enum array').toBeTruthy();
+            expect(setting.enum.length, 'updateCheck.notificationPreference should have 3 enum values').toBe(3);
+            expect(setting.enum.includes('all'), 'enum should include "all"').toBeTruthy();
+            expect(setting.enum.includes('critical'), 'enum should include "critical"').toBeTruthy();
+            expect(setting.enum.includes('none'), 'enum should include "none"').toBeTruthy();
         });
     });
 });

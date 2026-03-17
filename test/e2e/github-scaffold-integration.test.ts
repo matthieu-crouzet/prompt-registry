@@ -9,37 +9,34 @@
  * Requirements: 5.3, 5.4, 5.5
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { execSync } from 'child_process';
 import { ScaffoldCommand, ScaffoldType } from '../../src/commands/ScaffoldCommand';
 
-suite('E2E: GitHub Scaffold Integration Tests', () => {
+describe('E2E: GitHub Scaffold Integration Tests', () => {
     const templateRoot = path.join(process.cwd(), 'templates/scaffolds/github');
     let testDir: string;
 
-    setup(() => {
+    beforeEach(() => {
         // Create unique temp directory for each test
         testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-e2e-'));
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Clean up test directory
         if (fs.existsSync(testDir)) {
             fs.rmSync(testDir, { recursive: true, force: true });
         }
     });
 
-    suite('Complete Scaffolding Flow', () => {
+    describe('Complete Scaffolding Flow', () => {
         /**
          * Test: Complete scaffolding with default options
          * Requirements: 5.3 - Test complete scaffolding flow with all options
          */
-        test('E2E: Scaffold with default options creates complete project structure', async function() {
-            this.timeout(30000);
-
+        it('E2E: Scaffold with default options creates complete project structure', async function() {
             const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
             await scaffoldCommand.execute(testDir, {
@@ -70,10 +67,7 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
 
             for (const dir of requiredDirs) {
                 const dirPath = path.join(testDir, dir);
-                assert.ok(
-                    fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory(),
-                    `Directory should exist: ${dir}`
-                );
+                expect(fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory(), `Directory should exist: ${dir}`).toBeTruthy();
             }
 
             // Verify core files exist
@@ -110,10 +104,7 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
 
             for (const file of requiredFiles) {
                 const filePath = path.join(testDir, file);
-                assert.ok(
-                    fs.existsSync(filePath) && fs.statSync(filePath).isFile(),
-                    `File should exist: ${file}`
-                );
+                expect(fs.existsSync(filePath) && fs.statSync(filePath).isFile(), `File should exist: ${file}`).toBeTruthy();
             }
         });
 
@@ -121,9 +112,7 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
          * Test: Scaffold with custom project name
          * Requirements: 5.3 - Test complete scaffolding flow with all options
          */
-        test('E2E: Scaffold with custom project name substitutes variables correctly', async function() {
-            this.timeout(30000);
-
+        it('E2E: Scaffold with custom project name substitutes variables correctly', async function() {
             const projectName = 'my-awesome-prompts';
             const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
@@ -133,36 +122,28 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
             const packageJson = JSON.parse(
                 fs.readFileSync(path.join(testDir, 'package.json'), 'utf8')
             );
-            assert.strictEqual(packageJson.name, projectName);
+            expect(packageJson.name).toBe(projectName);
 
             // Verify collection has correct ID
             const collectionContent = fs.readFileSync(
                 path.join(testDir, 'collections/example.collection.yml'),
                 'utf8'
             );
-            assert.ok(
-                collectionContent.includes(`id: ${projectName}`),
-                'Collection should have project name as ID'
-            );
+            expect(collectionContent.includes(`id: ${projectName}`), 'Collection should have project name as ID').toBeTruthy();
 
             // Verify README mentions project name
             const readmeContent = fs.readFileSync(
                 path.join(testDir, 'README.md'),
                 'utf8'
             );
-            assert.ok(
-                readmeContent.includes(projectName),
-                'README should mention project name'
-            );
+            expect(readmeContent.includes(projectName), 'README should mention project name').toBeTruthy();
         });
 
         /**
          * Test: Scaffold with custom GitHub runner
          * Requirements: 5.3 - Test complete scaffolding flow with all options
          */
-        test('E2E: Scaffold with custom GitHub runner substitutes runner value', async function() {
-            this.timeout(30000);
-
+        it('E2E: Scaffold with custom GitHub runner substitutes runner value', async function() {
             const customRunner = 'macos-latest';
             const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
@@ -176,21 +157,16 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
                 path.join(testDir, '.github/workflows/publish.yml'),
                 'utf8'
             );
-            assert.ok(
-                publishContent.includes(`runs-on: ${customRunner}`),
-                `publish.yml should use runner: ${customRunner}`
-            );
+            expect(publishContent.includes(`runs-on: ${customRunner}`), `publish.yml should use runner: ${customRunner}`).toBeTruthy();
         });
     });
 
-    suite('Generated Project Structure Validation', () => {
+    describe('Generated Project Structure Validation', () => {
         /**
          * Test: Verify generated project matches design document structure
          * Requirements: 5.4 - Verify generated project structure matches design
          */
-        test('E2E: Generated project structure matches design document', async function() {
-            this.timeout(30000);
-
+        it('E2E: Generated project structure matches design document', async function() {
             const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
             await scaffoldCommand.execute(testDir, {
@@ -251,19 +227,13 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
             // Verify all directories exist
             for (const dir of designStructure.directories) {
                 const dirPath = path.join(testDir, dir);
-                assert.ok(
-                    fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory(),
-                    `Design-specified directory should exist: ${dir}`
-                );
+                expect(fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory(), `Design-specified directory should exist: ${dir}`).toBeTruthy();
             }
 
             // Verify all files exist
             for (const file of Object.keys(designStructure.files)) {
                 const filePath = path.join(testDir, file);
-                assert.ok(
-                    fs.existsSync(filePath) && fs.statSync(filePath).isFile(),
-                    `Design-specified file should exist: ${file}`
-                );
+                expect(fs.existsSync(filePath) && fs.statSync(filePath).isFile(), `Design-specified file should exist: ${file}`).toBeTruthy();
             }
         });
 
@@ -271,9 +241,7 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
          * Test: Verify collection file uses agent kind (not chatmode)
          * Requirements: 5.4 - Verify generated project structure matches design
          */
-        test('E2E: Generated collection uses agent kind, not chatmode', async function() {
-            this.timeout(30000);
-
+        it('E2E: Generated collection uses agent kind, not chatmode', async function() {
             const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
             await scaffoldCommand.execute(testDir, {
@@ -287,35 +255,21 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
             );
 
             // Verify agent kind is used
-            assert.ok(
-                collectionContent.includes('kind: agent'),
-                'Collection should use kind: agent'
-            );
+            expect(collectionContent.includes('kind: agent'), 'Collection should use kind: agent').toBeTruthy();
 
             // Verify chatmode is NOT used
-            assert.ok(
-                !collectionContent.includes('kind: chatmode'),
-                'Collection should NOT use kind: chatmode'
-            );
+            expect(!collectionContent.includes('kind: chatmode'), 'Collection should NOT use kind: chatmode').toBeTruthy();
 
             // Verify agent file exists (not chatmode file)
-            assert.ok(
-                fs.existsSync(path.join(testDir, 'agents/example.agent.md')),
-                'Agent file should exist'
-            );
-            assert.ok(
-                !fs.existsSync(path.join(testDir, 'chatmodes')),
-                'Chatmodes directory should NOT exist'
-            );
+            expect(fs.existsSync(path.join(testDir, 'agents/example.agent.md')), 'Agent file should exist').toBeTruthy();
+            expect(!fs.existsSync(path.join(testDir, 'chatmodes')), 'Chatmodes directory should NOT exist').toBeTruthy();
         });
 
         /**
          * Test: Verify package.json has required scripts
          * Requirements: 5.4 - Verify generated project structure matches design
          */
-        test('E2E: Generated package.json has required npm scripts', async function() {
-            this.timeout(30000);
-
+        it('E2E: Generated package.json has required npm scripts', async function() {
             const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
             await scaffoldCommand.execute(testDir, {
@@ -335,26 +289,23 @@ suite('E2E: GitHub Scaffold Integration Tests', () => {
                 'compute-collection-version'
             ];
             for (const script of requiredScripts) {
-                assert.ok(
-                    packageJson.scripts && packageJson.scripts[script],
-                    `package.json should have ${script} script`
-                );
+                expect(packageJson.scripts && packageJson.scripts[script], `package.json should have ${script} script`).toBeTruthy();
             }
         });
     });
 });
 
 
-suite('E2E: Script Execution Tests', () => {
+describe('E2E: Script Execution Tests', () => {
     const templateRoot = path.join(process.cwd(), 'templates/scaffolds/github');
     let testDir: string;
 
-    setup(() => {
+    beforeEach(() => {
         // Create unique temp directory for each test
         testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-script-e2e-'));
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Clean up test directory
         if (fs.existsSync(testDir)) {
             fs.rmSync(testDir, { recursive: true, force: true });
@@ -365,9 +316,7 @@ suite('E2E: Script Execution Tests', () => {
      * Test: Validation scripts work in generated projects via npm package
      * Requirements: 5.5 - Test validation scripts in generated projects
      */
-    test('E2E: Validation script validates example collection successfully', async function() {
-        this.timeout(60000);
-
+    it('E2E: Validation script validates example collection successfully', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -383,7 +332,7 @@ suite('E2E: Script Execution Tests', () => {
             });
         } catch (error) {
             // npm install may fail in test environment, skip if so
-            this.skip();
+            skip();
             return;
         }
 
@@ -397,19 +346,16 @@ suite('E2E: Script Execution Tests', () => {
 
             // Validation should succeed for the example collection
             const output = result.toString();
-            assert.ok(
-                !output.toLowerCase().includes('error') || output.toLowerCase().includes('0 error'),
-                'Validation should pass for example collection'
-            );
+            expect(!output.toLowerCase().includes('error') || output.toLowerCase().includes('0 error'), 'Validation should pass for example collection').toBeTruthy();
         } catch (error: any) {
             const stderr = error.stderr?.toString() || '';
             const stdout = error.stdout?.toString() || '';
 
             // Allow failure due to missing dependencies
             if (stderr.includes('Cannot find module') || stdout.includes('Cannot find module')) {
-                this.skip();
+                skip();
             } else {
-                assert.fail(`Validation script failed: ${stderr || stdout}`);
+                expect.fail(`Validation script failed: ${stderr || stdout}`);
             }
         }
     });
@@ -418,9 +364,7 @@ suite('E2E: Script Execution Tests', () => {
      * Test: List collections script works in generated projects via npm package
      * Requirements: 5.5 - Test validation scripts in generated projects
      */
-    test('E2E: List collections script finds example collection', async function() {
-        this.timeout(60000);
-
+    it('E2E: List collections script finds example collection', async ({ skip }: any) => {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -435,7 +379,7 @@ suite('E2E: Script Execution Tests', () => {
                 timeout: 30000
             });
         } catch {
-            this.skip();
+            skip();
             return;
         }
 
@@ -449,19 +393,16 @@ suite('E2E: Script Execution Tests', () => {
 
             const output = result.toString();
             // Should list the example collection
-            assert.ok(
-                output.includes('example') || output.includes('collection'),
-                'List script should find example collection'
-            );
+            expect(output.includes('example') || output.includes('collection'), 'List script should find example collection').toBeTruthy();
         } catch (error: any) {
             const stderr = error.stderr?.toString() || '';
             const stdout = error.stdout?.toString() || '';
 
             // Allow failure due to missing dependencies
             if (stderr.includes('Cannot find module') || stdout.includes('Cannot find module')) {
-                this.skip();
+                skip();
             } else {
-                assert.fail(`List collections script failed: ${stderr || stdout}`);
+                expect.fail(`List collections script failed: ${stderr || stdout}`);
             }
         }
     });
@@ -470,9 +411,7 @@ suite('E2E: Script Execution Tests', () => {
      * Test: Build script produces correct output structure via npm package
      * Requirements: 5.5 - Test build scripts produce correct output
      */
-    test('E2E: Build script creates bundle with correct structure', async function() {
-        this.timeout(60000);
-
+    it('E2E: Build script creates bundle with correct structure', async ({ skip }: any) => {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
         const projectName = 'build-test-project';
 
@@ -486,7 +425,7 @@ suite('E2E: Script Execution Tests', () => {
                 timeout: 30000
             });
         } catch {
-            this.skip();
+            skip();
             return;
         }
 
@@ -511,17 +450,11 @@ suite('E2E: Script Execution Tests', () => {
                 const hasManifest = outputFiles.some(f => f.includes('manifest') || f.endsWith('.yml'));
                 const hasZip = outputFiles.some(f => f.endsWith('.zip'));
 
-                assert.ok(
-                    hasManifest || hasZip,
-                    'Build script should produce manifest and/or zip files'
-                );
+                expect(hasManifest || hasZip, 'Build script should produce manifest and/or zip files').toBeTruthy();
             } else {
                 // Check if any output was created
                 const distFiles = fs.readdirSync(outputDir);
-                assert.ok(
-                    distFiles.length > 0,
-                    'Build script should produce output files'
-                );
+                expect(distFiles.length > 0, 'Build script should produce output files').toBeTruthy();
             }
         } catch (error: any) {
             const stderr = error.stderr?.toString() || '';
@@ -529,9 +462,9 @@ suite('E2E: Script Execution Tests', () => {
 
             // Allow failure due to missing dependencies
             if (stderr.includes('Cannot find module') || stdout.includes('Cannot find module')) {
-                this.skip();
+                skip();
             } else {
-                assert.fail(`Build script failed: ${stderr || stdout}`);
+                expect.fail(`Build script failed: ${stderr || stdout}`);
             }
         }
     });
@@ -540,9 +473,7 @@ suite('E2E: Script Execution Tests', () => {
      * Test: Compute version script works correctly via npm package
      * Requirements: 5.5 - Test build scripts produce correct output
      */
-    test('E2E: Compute version script returns valid version', async function() {
-        this.timeout(60000);
-
+    it('E2E: Compute version script returns valid version', async ({ skip }: any) => {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -557,7 +488,7 @@ suite('E2E: Script Execution Tests', () => {
                 timeout: 30000
             });
         } catch {
-            this.skip();
+            skip();
             return;
         }
 
@@ -579,22 +510,19 @@ suite('E2E: Script Execution Tests', () => {
             const output = result.toString().trim();
             // Should return a valid semver version
             const semverPattern = /\d+\.\d+\.\d+/;
-            assert.ok(
-                semverPattern.test(output),
-                `Version script should return semver version, got: ${output}`
-            );
+            expect(semverPattern.test(output), `Version script should return semver version, got: ${output}`).toBeTruthy();
         } catch (error: any) {
             const stderr = error.stderr?.toString() || '';
             const stdout = error.stdout?.toString() || '';
 
             // Allow failure due to missing dependencies
             if (stderr.includes('Cannot find module') || stdout.includes('Cannot find module')) {
-                this.skip();
+                skip();
             } else if (stderr.includes('Usage:') || stdout.includes('Usage:')) {
                 // Script ran but needs different arguments - that's OK
-                assert.ok(true, 'Compute version script is executable');
+                expect(true, 'Compute version script is executable').toBeTruthy();
             } else {
-                assert.fail(`Compute version script failed: ${stderr || stdout}`);
+                expect.fail(`Compute version script failed: ${stderr || stdout}`);
             }
         }
     });
@@ -603,9 +531,7 @@ suite('E2E: Script Execution Tests', () => {
      * Test: Package.json references @prompt-registry/collection-scripts
      * Requirements: 5.5 - Test validation scripts in generated projects
      */
-    test('E2E: Package.json references collection-scripts npm package', async function() {
-        this.timeout(30000);
-
+    it('E2E: Package.json references collection-scripts npm package', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -619,10 +545,7 @@ suite('E2E: Script Execution Tests', () => {
         // Verify @prompt-registry/collection-scripts is a dependency
         const hasDep = (packageJson.dependencies && packageJson.dependencies['@prompt-registry/collection-scripts']) ||
                        (packageJson.devDependencies && packageJson.devDependencies['@prompt-registry/collection-scripts']);
-        assert.ok(
-            hasDep,
-            'package.json should depend on @prompt-registry/collection-scripts'
-        );
+        expect(hasDep, 'package.json should depend on @prompt-registry/collection-scripts').toBeTruthy();
 
         // Verify npm scripts reference the package commands
         const expectedScriptCommands: Record<string, string> = {
@@ -634,10 +557,7 @@ suite('E2E: Script Execution Tests', () => {
         };
 
         for (const [scriptName, command] of Object.entries(expectedScriptCommands)) {
-            assert.ok(
-                packageJson.scripts && packageJson.scripts[scriptName]?.includes(command),
-                `npm script "${scriptName}" should invoke "${command}"`
-            );
+            expect(packageJson.scripts && packageJson.scripts[scriptName]?.includes(command), `npm script "${scriptName}" should invoke "${command}"`).toBeTruthy();
         }
     });
 
@@ -645,9 +565,7 @@ suite('E2E: Script Execution Tests', () => {
      * Test: Pre-commit hook is executable
      * Requirements: 5.5 - Test validation scripts in generated projects
      */
-    test('E2E: Pre-commit hook is properly configured', async function() {
-        this.timeout(30000);
-
+    it('E2E: Pre-commit hook is properly configured', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -655,33 +573,22 @@ suite('E2E: Script Execution Tests', () => {
         });
 
         const hookPath = path.join(testDir, '.githooks/pre-commit');
-        assert.ok(
-            fs.existsSync(hookPath),
-            'Pre-commit hook should exist'
-        );
+        expect(fs.existsSync(hookPath), 'Pre-commit hook should exist').toBeTruthy();
 
         const hookContent = fs.readFileSync(hookPath, 'utf8');
 
         // Hook should have shebang
-        assert.ok(
-            hookContent.startsWith('#!/'),
-            'Pre-commit hook should have shebang'
-        );
+        expect(hookContent.startsWith('#!/'), 'Pre-commit hook should have shebang').toBeTruthy();
 
         // Hook should reference validation
-        assert.ok(
-            hookContent.includes('validate') || hookContent.includes('npm'),
-            'Pre-commit hook should run validation'
-        );
+        expect(hookContent.includes('validate') || hookContent.includes('npm'), 'Pre-commit hook should run validation').toBeTruthy();
     });
 
     /**
      * Test: Skill helper script is valid
      * Requirements: 5.5 - Test validation scripts in generated projects
      */
-    test('E2E: Skill helper script is properly configured', async function() {
-        this.timeout(30000);
-
+    it('E2E: Skill helper script is properly configured', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -689,33 +596,22 @@ suite('E2E: Script Execution Tests', () => {
         });
 
         const skillScript = path.join(testDir, 'skills/example-skill/scripts/review-helper.sh');
-        assert.ok(
-            fs.existsSync(skillScript),
-            'Skill helper script should exist'
-        );
+        expect(fs.existsSync(skillScript), 'Skill helper script should exist').toBeTruthy();
 
         const content = fs.readFileSync(skillScript, 'utf8');
 
         // Script should have shebang
-        assert.ok(
-            content.startsWith('#!/'),
-            'Skill helper script should have shebang'
-        );
+        expect(content.startsWith('#!/'), 'Skill helper script should have shebang').toBeTruthy();
 
         // Script should be a valid shell script
-        assert.ok(
-            content.includes('function') || content.includes('echo') || content.includes('if'),
-            'Skill helper script should contain shell commands'
-        );
+        expect(content.includes('function') || content.includes('echo') || content.includes('if'), 'Skill helper script should contain shell commands').toBeTruthy();
     });
 
     /**
      * Test: Scripts README documents available commands
      * Requirements: 5.5 - Test validation scripts in generated projects
      */
-    test('E2E: Scripts README documents available npm commands', async function() {
-        this.timeout(30000);
-
+    it('E2E: Scripts README documents available npm commands', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -723,39 +619,22 @@ suite('E2E: Script Execution Tests', () => {
         });
 
         const readmePath = path.join(testDir, 'scripts/README.md');
-        assert.ok(
-            fs.existsSync(readmePath),
-            'Scripts README should exist'
-        );
+        expect(fs.existsSync(readmePath), 'Scripts README should exist').toBeTruthy();
 
         const content = fs.readFileSync(readmePath, 'utf8');
 
         // Verify README documents the available commands
-        assert.ok(
-            content.includes('validate-collections'),
-            'Scripts README should document validate-collections command'
-        );
-        assert.ok(
-            content.includes('build-collection-bundle'),
-            'Scripts README should document build-collection-bundle command'
-        );
-        assert.ok(
-            content.includes('publish-collections'),
-            'Scripts README should document publish-collections command'
-        );
-        assert.ok(
-            content.includes('@prompt-registry/collection-scripts'),
-            'Scripts README should reference the npm package'
-        );
+        expect(content.includes('validate-collections'), 'Scripts README should document validate-collections command').toBeTruthy();
+        expect(content.includes('build-collection-bundle'), 'Scripts README should document build-collection-bundle command').toBeTruthy();
+        expect(content.includes('publish-collections'), 'Scripts README should document publish-collections command').toBeTruthy();
+        expect(content.includes('@prompt-registry/collection-scripts'), 'Scripts README should reference the npm package').toBeTruthy();
     });
 
     /**
      * Test: Skill structure is complete and valid
      * Requirements: 5.5 - Test build scripts produce correct output
      */
-    test('E2E: Example skill has complete structure', async function() {
-        this.timeout(30000);
-
+    it('E2E: Example skill has complete structure', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -773,10 +652,7 @@ suite('E2E: Script Execution Tests', () => {
 
         for (const file of skillFiles) {
             const filePath = path.join(testDir, file);
-            assert.ok(
-                fs.existsSync(filePath) && fs.statSync(filePath).isFile(),
-                `Skill file should exist: ${file}`
-            );
+            expect(fs.existsSync(filePath) && fs.statSync(filePath).isFile(), `Skill file should exist: ${file}`).toBeTruthy();
         }
 
         // Verify SKILL.md has required sections
@@ -784,19 +660,14 @@ suite('E2E: Script Execution Tests', () => {
             path.join(testDir, 'skills/example-skill/SKILL.md'),
             'utf8'
         );
-        assert.ok(
-            skillMd.includes('# ') || skillMd.includes('## '),
-            'SKILL.md should have markdown headings'
-        );
+        expect(skillMd.includes('# ') || skillMd.includes('## '), 'SKILL.md should have markdown headings').toBeTruthy();
     });
 
     /**
      * Test: Community docs are scaffolded correctly
      * Requirements: 5.5 - Test build scripts produce correct output
      */
-    test('E2E: Community documentation files are properly configured', async function() {
-        this.timeout(30000);
-
+    it('E2E: Community documentation files are properly configured', async function() {
         const scaffoldCommand = new ScaffoldCommand(templateRoot, ScaffoldType.GitHub);
 
         await scaffoldCommand.execute(testDir, {
@@ -814,16 +685,10 @@ suite('E2E: Script Execution Tests', () => {
 
         for (const file of communityFiles) {
             const filePath = path.join(testDir, file);
-            assert.ok(
-                fs.existsSync(filePath) && fs.statSync(filePath).isFile(),
-                `Community doc should exist: ${file}`
-            );
+            expect(fs.existsSync(filePath) && fs.statSync(filePath).isFile(), `Community doc should exist: ${file}`).toBeTruthy();
 
             const content = fs.readFileSync(filePath, 'utf8');
-            assert.ok(
-                content.length > 0,
-                `Community doc should not be empty: ${file}`
-            );
+            expect(content.length > 0, `Community doc should not be empty: ${file}`).toBeTruthy();
         }
 
         // Verify GitHub issue templates exist
@@ -836,10 +701,7 @@ suite('E2E: Script Execution Tests', () => {
 
         for (const file of issueTemplates) {
             const filePath = path.join(testDir, file);
-            assert.ok(
-                fs.existsSync(filePath) && fs.statSync(filePath).isFile(),
-                `GitHub template should exist: ${file}`
-            );
+            expect(fs.existsSync(filePath) && fs.statSync(filePath).isFile(), `GitHub template should exist: ${file}`).toBeTruthy();
         }
     });
 });

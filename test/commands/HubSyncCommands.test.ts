@@ -5,7 +5,6 @@
  * Covers checkForUpdates, viewChanges, syncProfile commands.
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubSyncCommands } from '../../src/commands/HubSyncCommands';
@@ -13,7 +12,7 @@ import { HubManager } from '../../src/services/HubManager';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubConfig } from '../../src/types/hub';
 
-suite('Hub Sync Commands', () => {
+describe('Hub Sync Commands', () => {
     let storage: HubStorage;
     let hubManager: HubManager;
     let commands: HubSyncCommands;
@@ -61,7 +60,7 @@ suite('Hub Sync Commands', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-hub-sync-commands');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -71,14 +70,14 @@ suite('Hub Sync Commands', () => {
         commands = new HubSyncCommands(hubManager);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Check For Updates', () => {
-        test('should check for updates on active profile', async () => {
+    describe('Check For Updates', () => {
+        it('should check for updates on active profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
@@ -96,31 +95,31 @@ suite('Hub Sync Commands', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const result = await commands.checkForUpdates('test-hub', 'test-profile');
-            assert.ok(result.hasUpdates);
-            assert.ok(result.changes);
+            expect(result.hasUpdates).toBeTruthy();
+            expect(result.changes).toBeTruthy();
         });
 
-        test('should return no updates when profile unchanged', async () => {
+        it('should return no updates when profile unchanged', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
 
             const result = await commands.checkForUpdates('test-hub', 'test-profile');
-            assert.strictEqual(result.hasUpdates, false);
+            expect(result.hasUpdates).toBe(false);
         });
 
-        test('should handle non-active profile', async () => {
+        it('should handle non-active profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             const result = await commands.checkForUpdates('test-hub', 'test-profile');
-            assert.strictEqual(result.hasUpdates, false);
-            assert.strictEqual(result.message, 'Profile is not active');
+            expect(result.hasUpdates).toBe(false);
+            expect(result.message).toBe('Profile is not active');
         });
     });
 
-    suite('View Changes', () => {
-        test('should display changes for active profile', async () => {
+    describe('View Changes', () => {
+        it('should display changes for active profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
@@ -138,24 +137,24 @@ suite('Hub Sync Commands', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const result = await commands.viewChanges('test-hub', 'test-profile');
-            assert.ok(result);
-            assert.ok(result.summary);
-            assert.ok(result.summary.includes('bundle-2'));
-            assert.ok(result.summary.includes('Added'));
+            expect(result).toBeTruthy();
+            expect(result.summary).toBeTruthy();
+            expect(result.summary.includes('bundle-2')).toBeTruthy();
+            expect(result.summary.includes('Added')).toBeTruthy();
         });
 
-        test('should return null for profile with no changes', async () => {
+        it('should return null for profile with no changes', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
 
             const result = await commands.viewChanges('test-hub', 'test-profile');
-            assert.strictEqual(result, null);
+            expect(result).toBe(null);
         });
     });
 
-    suite('Sync Profile', () => {
-        test('should sync profile and update activation state', async () => {
+    describe('Sync Profile', () => {
+        it('should sync profile and update activation state', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
@@ -174,29 +173,26 @@ suite('Hub Sync Commands', () => {
 
             // Verify changes exist before sync
             const changesBefore = await hubManager.hasProfileChanges('test-hub', 'test-profile');
-            assert.ok(changesBefore);
+            expect(changesBefore).toBeTruthy();
 
             // Sync
             await commands.syncProfile('test-hub', 'test-profile');
 
             // Verify changes are gone after sync
             const changesAfter = await hubManager.hasProfileChanges('test-hub', 'test-profile');
-            assert.strictEqual(changesAfter, false);
+            expect(changesAfter).toBe(false);
         });
 
-        test('should handle sync for non-active profile', async () => {
+        it('should handle sync for non-active profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
-            await assert.rejects(
-                async () => await commands.syncProfile('test-hub', 'test-profile'),
-                /not active|not activated/i
-            );
+            await expect(async () => await commands.syncProfile('test-hub', 'test-profile')).rejects.toThrow(/not active|not activated/i);
         });
     });
 
-    suite('Review And Sync', () => {
-        test('should provide review dialog for changes', async () => {
+    describe('Review And Sync', () => {
+        it('should provide review dialog for changes', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
@@ -214,25 +210,25 @@ suite('Hub Sync Commands', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const result = await commands.reviewAndSync('test-hub', 'test-profile');
-            assert.ok(result);
-            assert.ok(result.dialog);
-            assert.ok(result.dialog.title);
-            assert.ok(result.dialog.options);
-            assert.strictEqual(result.dialog.options.length, 3); // Sync, Review, Cancel
+            expect(result).toBeTruthy();
+            expect(result.dialog).toBeTruthy();
+            expect(result.dialog.title).toBeTruthy();
+            expect(result.dialog.options).toBeTruthy();
+            expect(result.dialog.options.length).toBe(3); // Sync, Review, Cancel
         });
 
-        test('should return null when no changes to review', async () => {
+        it('should return null when no changes to review', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
 
             const result = await commands.reviewAndSync('test-hub', 'test-profile');
-            assert.strictEqual(result, null);
+            expect(result).toBe(null);
         });
     });
 
-    suite('Check All Hubs For Updates', () => {
-        test('should check all hubs for updates', async () => {
+    describe('Check All Hubs For Updates', () => {
+        it('should check all hubs for updates', async () => {
             const hub1 = createTestHub();
             await storage.saveHub('hub-1', hub1, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('hub-1', 'test-profile', { installBundles: false });
@@ -256,27 +252,27 @@ suite('Hub Sync Commands', () => {
 
             const results = await commands.checkAllHubsForUpdates();
             // Only hub-2 is active (single active profile enforcement deactivated hub-1)
-            assert.strictEqual(results.length, 1);
+            expect(results.length).toBe(1);
             
             const hub2Result = results.find(r => r.hubId === 'hub-2');
-            assert.ok(hub2Result);
-            assert.strictEqual(hub2Result.hasUpdates, false);
+            expect(hub2Result).toBeTruthy();
+            expect(hub2Result.hasUpdates).toBe(false);
         });
 
-        test('should return empty array when no active profiles', async () => {
+        it('should return empty array when no active profiles', async () => {
             const results = await commands.checkAllHubsForUpdates();
-            assert.strictEqual(results.length, 0);
+            expect(results.length).toBe(0);
         });
     });
 
-    suite('Command Registration', () => {
-        test('should register all sync commands', () => {
+    describe('Command Registration', () => {
+        it('should register all sync commands', () => {
             const registeredCommands = commands.getRegisteredCommands();
-            assert.ok(registeredCommands.includes('promptRegistry.hub.checkForUpdates'));
-            assert.ok(registeredCommands.includes('promptRegistry.hub.viewChanges'));
-            assert.ok(registeredCommands.includes('promptRegistry.hub.syncProfile'));
-            assert.ok(registeredCommands.includes('promptRegistry.hub.reviewAndSync'));
-            assert.ok(registeredCommands.includes('promptRegistry.hub.checkAllForUpdates'));
+            expect(registeredCommands.includes('promptRegistry.hub.checkForUpdates')).toBeTruthy();
+            expect(registeredCommands.includes('promptRegistry.hub.viewChanges')).toBeTruthy();
+            expect(registeredCommands.includes('promptRegistry.hub.syncProfile')).toBeTruthy();
+            expect(registeredCommands.includes('promptRegistry.hub.reviewAndSync')).toBeTruthy();
+            expect(registeredCommands.includes('promptRegistry.hub.checkAllForUpdates')).toBeTruthy();
         });
     });
 });

@@ -2,7 +2,6 @@
  * Unit tests for sourceId normalization migration
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,7 +18,7 @@ import {
     normalizeUrlLegacy
 } from '../../src/utils/sourceIdUtils';
 
-suite('sourceIdNormalizationMigration', () => {
+describe('sourceIdNormalizationMigration', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let globalStateData: Map<string, any>;
@@ -29,7 +28,7 @@ suite('sourceIdNormalizationMigration', () => {
     // Temp directory for storage (unique per run to avoid collisions)
     let tmpDir: string;
 
-    setup(async () => {
+    beforeEach(async () => {
         sandbox = sinon.createSandbox();
         globalStateData = new Map();
 
@@ -65,7 +64,7 @@ suite('sourceIdNormalizationMigration', () => {
         await storage.initialize();
     });
 
-    teardown(async () => {
+    afterEach(async () => {
         sandbox.restore();
         MigrationRegistry.resetInstance();
 
@@ -75,33 +74,33 @@ suite('sourceIdNormalizationMigration', () => {
         }
     });
 
-    test('should skip migration if already completed', async () => {
+    it('should skip migration if already completed', async () => {
         await migrationRegistry.markMigrationComplete(MIGRATION_NAME);
 
         // Should not throw even if storage has no sources
         await runSourceIdNormalizationMigration(storage, migrationRegistry);
 
-        assert.strictEqual(await migrationRegistry.isMigrationComplete(MIGRATION_NAME), true);
+        expect(await migrationRegistry.isMigrationComplete(MIGRATION_NAME)).toBe(true);
     });
 
-    test('should complete migration with no sources needing update', async () => {
+    it('should complete migration with no sources needing update', async () => {
         // Config starts with empty sources
         await runSourceIdNormalizationMigration(storage, migrationRegistry);
 
-        assert.strictEqual(await migrationRegistry.isMigrationComplete(MIGRATION_NAME), true);
+        expect(await migrationRegistry.isMigrationComplete(MIGRATION_NAME)).toBe(true);
     });
 
-    test('should migrate a source with legacy ID to new ID', async () => {
+    it('should migrate a source with legacy ID to new ID', async () => {
         // Create a source with a mixed-case URL
         const url = 'https://github.com/Owner/Repo';
         const sourceType = 'github';
 
         // The legacy ID was computed with host-only lowercase normalization
         const legacyId = generateLegacyHubSourceId(sourceType, url);
-        assert.ok(legacyId, 'Legacy ID should differ for mixed-case URL');
+        expect(legacyId, 'Legacy ID should differ for mixed-case URL').toBeTruthy();
 
         const newId = generateHubSourceId(sourceType, url);
-        assert.notStrictEqual(legacyId, newId, 'Legacy and new IDs should differ');
+        expect(legacyId, 'Legacy and new IDs should differ').not.toBe(newId);
 
         // Add a source with the legacy ID to config
         const config = await storage.loadConfig();
@@ -121,11 +120,11 @@ suite('sourceIdNormalizationMigration', () => {
         // Verify the source ID was updated
         const sources = await storage.getSources();
         const migratedSource = sources.find(s => s.name === 'Test Source');
-        assert.ok(migratedSource, 'Source should still exist');
-        assert.strictEqual(migratedSource!.id, newId, 'Source ID should be updated to new format');
+        expect(migratedSource, 'Source should still exist').toBeTruthy();
+        expect(migratedSource!.id, 'Source ID should be updated to new format').toBe(newId);
     });
 
-    test('should not migrate sources that already have new-format IDs', async () => {
+    it('should not migrate sources that already have new-format IDs', async () => {
         const url = 'https://github.com/owner/repo'; // all lowercase
         const sourceType = 'github';
         const currentId = generateHubSourceId(sourceType, url);
@@ -145,10 +144,10 @@ suite('sourceIdNormalizationMigration', () => {
 
         const sources = await storage.getSources();
         const source = sources.find(s => s.name === 'Already Migrated');
-        assert.strictEqual(source!.id, currentId, 'ID should remain unchanged');
+        expect(source!.id, 'ID should remain unchanged').toBe(currentId);
     });
 
-    test('should not migrate non-hub source IDs', async () => {
+    it('should not migrate non-hub source IDs', async () => {
         const config = await storage.loadConfig();
         config.sources.push({
             id: 'my-custom-source', // not hub-generated format
@@ -164,10 +163,10 @@ suite('sourceIdNormalizationMigration', () => {
 
         const sources = await storage.getSources();
         const source = sources.find(s => s.name === 'Custom Source');
-        assert.strictEqual(source!.id, 'my-custom-source', 'Non-hub ID should remain unchanged');
+        expect(source!.id, 'Non-hub ID should remain unchanged').toBe('my-custom-source');
     });
 
-    test('should rename source cache files during migration', async () => {
+    it('should rename source cache files during migration', async () => {
         const url = 'https://github.com/Owner/Repo';
         const sourceType = 'github';
         const legacyId = generateLegacyHubSourceId(sourceType, url)!;
@@ -195,11 +194,11 @@ suite('sourceIdNormalizationMigration', () => {
 
         // Old cache file should be gone, new one should exist
         const newCacheFile = path.join(paths.sourcesCache, `${newId}.json`);
-        assert.strictEqual(fs.existsSync(legacyCacheFile), false, 'Legacy cache file should be removed');
-        assert.strictEqual(fs.existsSync(newCacheFile), true, 'New cache file should exist');
+        expect(fs.existsSync(legacyCacheFile), 'Legacy cache file should be removed').toBe(false);
+        expect(fs.existsSync(newCacheFile), 'New cache file should exist').toBe(true);
     });
 
-    test('should update installation records referencing old sourceId', async () => {
+    it('should update installation records referencing old sourceId', async () => {
         const url = 'https://github.com/Owner/Repo';
         const sourceType = 'github';
         const legacyId = generateLegacyHubSourceId(sourceType, url)!;
@@ -231,10 +230,10 @@ suite('sourceIdNormalizationMigration', () => {
 
         // Installation record should reference the new sourceId
         const updatedRecord = JSON.parse(fs.readFileSync(installFile, 'utf-8'));
-        assert.strictEqual(updatedRecord.sourceId, newId, 'Installation record sourceId should be updated');
+        expect(updatedRecord.sourceId, 'Installation record sourceId should be updated').toBe(newId);
     });
 
-    test('should be idempotent - second run is a no-op', async () => {
+    it('should be idempotent - second run is a no-op', async () => {
         const url = 'https://github.com/Owner/Repo';
         const sourceType = 'github';
         const legacyId = generateLegacyHubSourceId(sourceType, url)!;
@@ -256,15 +255,15 @@ suite('sourceIdNormalizationMigration', () => {
 
         const sourcesAfterFirst = await storage.getSources();
         const migratedFirst = sourcesAfterFirst.find(s => s.name === 'Idempotent Test');
-        assert.ok(migratedFirst, 'Source should exist after first run');
-        assert.strictEqual(migratedFirst!.id, newId);
+        expect(migratedFirst, 'Source should exist after first run').toBeTruthy();
+        expect(migratedFirst!.id).toBe(newId);
 
         // Second run (should be skipped via MigrationRegistry)
         await runSourceIdNormalizationMigration(storage, migrationRegistry);
 
         const sourcesAfterSecond = await storage.getSources();
         const migratedSecond = sourcesAfterSecond.find(s => s.name === 'Idempotent Test');
-        assert.ok(migratedSecond, 'Source should exist after second run');
-        assert.strictEqual(migratedSecond!.id, newId, 'ID should still be new format after second run');
+        expect(migratedSecond, 'Source should exist after second run').toBeTruthy();
+        expect(migratedSecond!.id, 'ID should still be new format after second run').toBe(newId);
     });
 });

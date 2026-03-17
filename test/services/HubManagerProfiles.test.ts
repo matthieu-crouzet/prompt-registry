@@ -3,14 +3,13 @@
  * Tests for hub profile operations
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubManager } from '../../src/services/HubManager';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubConfig } from '../../src/types/hub';
 
-suite('HubManager - Profile Methods', () => {
+describe('HubManager - Profile Methods', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let tempDir: string;
@@ -68,7 +67,7 @@ suite('HubManager - Profile Methods', () => {
         ]
     };
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-profiles');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -77,14 +76,14 @@ suite('HubManager - Profile Methods', () => {
         hubManager = new HubManager(storage, {} as any, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('listProfilesFromHub', () => {
-        test('should return empty array for hub without profiles', async () => {
+    describe('listProfilesFromHub', () => {
+        it('should return empty array for hub without profiles', async () => {
             const hubConfig: HubConfig = {
                 version: '1.0.0',
                 metadata: {
@@ -100,78 +99,60 @@ suite('HubManager - Profile Methods', () => {
             await storage.saveHub('no-profiles', hubConfig, { type: 'github', location: 'test/no-profiles' });
             const profiles = await hubManager.listProfilesFromHub('no-profiles');
 
-            assert.strictEqual(profiles.length, 0);
+            expect(profiles.length).toBe(0);
         });
 
-        test('should return all profiles from hub', async () => {
+        it('should return all profiles from hub', async () => {
             await storage.saveHub('test-hub-profiles', sampleHubConfig, { type: 'github', location: 'test/repo' });
             const profiles = await hubManager.listProfilesFromHub('test-hub-profiles');
 
-            assert.strictEqual(profiles.length, 2);
-            assert.strictEqual(profiles[0].id, 'profile-1');
-            assert.strictEqual(profiles[0].name, 'Profile 1');
-            assert.strictEqual(profiles[1].id, 'profile-2');
-            assert.strictEqual(profiles[1].name, 'Profile 2');
+            expect(profiles.length).toBe(2);
+            expect(profiles[0].id).toBe('profile-1');
+            expect(profiles[0].name).toBe('Profile 1');
+            expect(profiles[1].id).toBe('profile-2');
+            expect(profiles[1].name).toBe('Profile 2');
         });
 
-        test('should throw error for non-existent hub', async () => {
-            await assert.rejects(
-                async () => await hubManager.listProfilesFromHub('non-existent'),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Hub not found'));
-                    return true;
-                }
-            );
+        it('should throw error for non-existent hub', async () => {
+            await expect(hubManager.listProfilesFromHub('non-existent')).rejects.toThrow(/Hub not found/);
         });
     });
 
-    suite('getHubProfile', () => {
-        test('should return specific profile from hub', async () => {
+    describe('getHubProfile', () => {
+        it('should return specific profile from hub', async () => {
             await storage.saveHub('test-hub-profiles', sampleHubConfig, { type: 'github', location: 'test/repo' });
             const profile = await hubManager.getHubProfile('test-hub-profiles', 'profile-2');
 
-            assert.strictEqual(profile.id, 'profile-2');
-            assert.strictEqual(profile.name, 'Profile 2');
-            assert.strictEqual(profile.bundles.length, 2);
+            expect(profile.id).toBe('profile-2');
+            expect(profile.name).toBe('Profile 2');
+            expect(profile.bundles.length).toBe(2);
         });
 
-        test('should throw error for non-existent hub', async () => {
-            await assert.rejects(
-                async () => await hubManager.getHubProfile('non-existent', 'profile-1'),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Hub not found'));
-                    return true;
-                }
-            );
+        it('should throw error for non-existent hub', async () => {
+            await expect(hubManager.getHubProfile('non-existent', 'profile-1')).rejects.toThrow(/Hub not found/);
         });
 
-        test('should throw error for non-existent profile', async () => {
+        it('should throw error for non-existent profile', async () => {
             await storage.saveHub('test-hub-profiles', sampleHubConfig, { type: 'github', location: 'test/repo' });
-            await assert.rejects(
-                async () => await hubManager.getHubProfile('test-hub-profiles', 'non-existent'),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Profile not found'));
-                    return true;
-                }
-            );
+            await expect(hubManager.getHubProfile('test-hub-profiles', 'non-existent')).rejects.toThrow(/Profile not found/);
         });
     });
 
-    suite('listAllHubProfiles', () => {
-        test('should return empty array when no hubs exist', async () => {
+    describe('listAllHubProfiles', () => {
+        it('should return empty array when no hubs exist', async () => {
             const profiles = await hubManager.listAllHubProfiles();
-            assert.strictEqual(profiles.length, 0);
+            expect(profiles.length).toBe(0);
         });
 
-        test('should return profiles from single hub', async () => {
+        it('should return profiles from single hub', async () => {
             await storage.saveHub('test-hub-profiles', sampleHubConfig, { type: 'github', location: 'test/repo' });
             const profiles = await hubManager.listAllHubProfiles();
 
-            assert.strictEqual(profiles.length, 2);
-            assert.ok(profiles.every(p => p.hubId === 'test-hub-profiles'));
+            expect(profiles.length).toBe(2);
+            expect(profiles.every(p => p.hubId === 'test-hub-profiles')).toBeTruthy();
         });
 
-        test('should return profiles from multiple hubs', async () => {
+        it('should return profiles from multiple hubs', async () => {
             await storage.saveHub('test-hub-profiles', sampleHubConfig, { type: 'github', location: 'test/repo' });
 
             const anotherConfig: HubConfig = {
@@ -200,15 +181,15 @@ suite('HubManager - Profile Methods', () => {
             await storage.saveHub('another-hub', anotherConfig, { type: 'github', location: 'test/another' });
             const profiles = await hubManager.listAllHubProfiles();
 
-            assert.strictEqual(profiles.length, 3);
+            expect(profiles.length).toBe(3);
         });
 
-        test('should include hub information with profiles', async () => {
+        it('should include hub information with profiles', async () => {
             await storage.saveHub('test-hub-profiles', sampleHubConfig, { type: 'github', location: 'test/repo' });
             const profiles = await hubManager.listAllHubProfiles();
 
-            assert.ok(profiles[0].hubId);
-            assert.ok(profiles[0].hubName);
+            expect(profiles[0].hubId).toBeTruthy();
+            expect(profiles[0].hubName).toBeTruthy();
         });
     });
 });

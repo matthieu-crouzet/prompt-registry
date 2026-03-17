@@ -3,58 +3,57 @@
  * Tests for skills installation directory resolution and syncing
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as os from 'os';
 
-suite('SkillsService', () => {
-    suite('getSkillsDirectory', () => {
-        test('should return ~/.copilot/skills for user scope', () => {
+describe('SkillsService', () => {
+    describe('getSkillsDirectory', () => {
+        it('should return ~/.copilot/skills for user scope', () => {
             const expectedPath = path.join(os.homedir(), '.copilot', 'skills');
-            assert.strictEqual(expectedPath, path.join(os.homedir(), '.copilot', 'skills'));
+            expect(expectedPath).toBe(path.join(os.homedir(), '.copilot', 'skills'));
         });
 
-        test('should return ~/.claude/skills as fallback location', () => {
+        it('should return ~/.claude/skills as fallback location', () => {
             const expectedPath = path.join(os.homedir(), '.claude', 'skills');
-            assert.strictEqual(expectedPath, path.join(os.homedir(), '.claude', 'skills'));
+            expect(expectedPath).toBe(path.join(os.homedir(), '.claude', 'skills'));
         });
 
-        test('should return .copilot/skills for workspace scope', () => {
+        it('should return .copilot/skills for workspace scope', () => {
             const workspacePath = '/mock/workspace';
             const expectedPath = path.join(workspacePath, '.copilot', 'skills');
-            assert.strictEqual(expectedPath, path.join(workspacePath, '.copilot', 'skills'));
+            expect(expectedPath).toBe(path.join(workspacePath, '.copilot', 'skills'));
         });
     });
 
-    suite('Skill Directory Structure', () => {
-        test('should recognize SKILL.md as the main skill file', () => {
+    describe('Skill Directory Structure', () => {
+        it('should recognize SKILL.md as the main skill file', () => {
             const skillPath = 'skills/my-skill/SKILL.md';
             const isValidSkillPath = skillPath.match(/^skills\/[^\/]+\/SKILL\.md$/);
-            assert.ok(isValidSkillPath, 'Should match skill path pattern');
+            expect(isValidSkillPath, 'Should match skill path pattern').toBeTruthy();
         });
 
-        test('should support scripts subdirectory', () => {
+        it('should support scripts subdirectory', () => {
             const scriptPath = 'skills/my-skill/scripts/helper.py';
             const isInScriptsDir = scriptPath.includes('/scripts/');
-            assert.ok(isInScriptsDir);
+            expect(isInScriptsDir).toBeTruthy();
         });
 
-        test('should support references subdirectory', () => {
+        it('should support references subdirectory', () => {
             const referencePath = 'skills/my-skill/references/docs.md';
             const isInReferencesDir = referencePath.includes('/references/');
-            assert.ok(isInReferencesDir);
+            expect(isInReferencesDir).toBeTruthy();
         });
 
-        test('should support assets subdirectory', () => {
+        it('should support assets subdirectory', () => {
             const assetPath = 'skills/my-skill/assets/template.json';
             const isInAssetsDir = assetPath.includes('/assets/');
-            assert.ok(isInAssetsDir);
+            expect(isInAssetsDir).toBeTruthy();
         });
     });
 });
 
-suite('Skill Kind Mapping', () => {
-    test('should map skill kind to skill type', () => {
+describe('Skill Kind Mapping', () => {
+    it('should map skill kind to skill type', () => {
         const kindMap: Record<string, string> = {
             'prompt': 'prompt',
             'instruction': 'instructions',
@@ -63,26 +62,26 @@ suite('Skill Kind Mapping', () => {
             'skill': 'skill'
         };
         
-        assert.strictEqual(kindMap['skill'], 'skill');
+        expect(kindMap['skill']).toBe('skill');
     });
 
-    test('should recognize skill path pattern in collection', () => {
+    it('should recognize skill path pattern in collection', () => {
         const pattern = /^(?:skills\/[^\/]+\/SKILL\.md|(prompts|instructions|agents)\/[^\/]+\.(prompt|instructions|agent)\.md)$/;
         
-        assert.ok(pattern.test('skills/my-skill/SKILL.md'));
-        assert.ok(pattern.test('skills/another-skill/SKILL.md'));
-        assert.ok(pattern.test('prompts/test.prompt.md'));
-        assert.ok(pattern.test('instructions/test.instructions.md'));
-        assert.ok(pattern.test('agents/test.agent.md'));
+        expect(pattern.test('skills/my-skill/SKILL.md')).toBeTruthy();
+        expect(pattern.test('skills/another-skill/SKILL.md')).toBeTruthy();
+        expect(pattern.test('prompts/test.prompt.md')).toBeTruthy();
+        expect(pattern.test('instructions/test.instructions.md')).toBeTruthy();
+        expect(pattern.test('agents/test.agent.md')).toBeTruthy();
         
-        assert.ok(!pattern.test('skills/SKILL.md'));
-        assert.ok(!pattern.test('skills/my-skill/skill.md'));
-        assert.ok(!pattern.test('prompts/test.md'));
+        expect(!pattern.test('skills/SKILL.md')).toBeTruthy();
+        expect(!pattern.test('skills/my-skill/skill.md')).toBeTruthy();
+        expect(!pattern.test('prompts/test.md')).toBeTruthy();
     });
 });
 
-suite('Skill Content Type', () => {
-    test('should identify skill type from path', () => {
+describe('Skill Content Type', () => {
+    it('should identify skill type from path', () => {
         const detectType = (itemPath: string): string => {
             if (itemPath.includes('/SKILL.md')) {
                 return 'skill';
@@ -91,8 +90,8 @@ suite('Skill Content Type', () => {
             return match ? match[1] : 'prompt';
         };
         
-        assert.strictEqual(detectType('skills/my-skill/SKILL.md'), 'skill');
-        assert.strictEqual(detectType('prompts/test.prompt.md'), 'prompt');
-        assert.strictEqual(detectType('instructions/test.instructions.md'), 'instructions');
+        expect(detectType('skills/my-skill/SKILL.md')).toBe('skill');
+        expect(detectType('prompts/test.prompt.md')).toBe('prompt');
+        expect(detectType('instructions/test.instructions.md')).toBe('instructions');
     });
 });

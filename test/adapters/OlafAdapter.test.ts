@@ -3,7 +3,6 @@
  * Tests bundle packaging and installation functionality
  */
 
-import * as assert from 'assert';
 import nock from 'nock';
 import * as sinon from 'sinon';
 import { OlafAdapter } from '../../src/adapters/OlafAdapter';
@@ -12,7 +11,7 @@ import { RegistrySource } from '../../src/types/registry';
 import { Logger } from '../../src/utils/logger';
 import * as vscode from 'vscode';
 
-suite('OlafAdapter Integration Tests', () => {
+describe('OlafAdapter Integration Tests', () => {
     const mockSource: RegistrySource = {
         id: 'test-olaf-source',
         name: 'Test OLAF Source',
@@ -86,7 +85,7 @@ suite('OlafAdapter Integration Tests', () => {
         }
     }
 
-    setup(() => {
+    beforeEach(() => {
         // Mock OlafRuntimeManager
         runtimeManagerStub = sinon.createStubInstance(OlafRuntimeManager);
         sinon.stub(OlafRuntimeManager, 'getInstance').returns(runtimeManagerStub as any);
@@ -97,13 +96,13 @@ suite('OlafAdapter Integration Tests', () => {
         ]);
     });
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
         sinon.restore();
     });
 
-    suite('Bundle Discovery', () => {
-        test('should discover bundles from bundles/ directory', async () => {
+    describe('Bundle Discovery', () => {
+        it('should discover bundles from bundles/ directory', async () => {
             setupBundleStructureMocks({
                 bundleDefinitions: [{
                     fileName: 'developer',
@@ -139,16 +138,16 @@ suite('OlafAdapter Integration Tests', () => {
             const adapter = new OlafAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].name, 'Developer Bundle');
-            assert.strictEqual(bundles[0].version, '1.0.0');
-            assert.ok(bundles[0].description.includes('Developer skills bundle'));
-            assert.ok(bundles[0].description.includes('1 skill'));
-            assert.strictEqual(bundles[0].id, 'olaf-test-owner-test-olaf-repo-developer');
-            assert.deepStrictEqual(bundles[0].tags, ['olaf', 'skill', 'development', 'coding']);
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].name).toBe('Developer Bundle');
+            expect(bundles[0].version).toBe('1.0.0');
+            expect(bundles[0].description.includes('Developer skills bundle')).toBeTruthy();
+            expect(bundles[0].description.includes('1 skill')).toBeTruthy();
+            expect(bundles[0].id).toBe('olaf-test-owner-test-olaf-repo-developer');
+            expect(bundles[0].tags).toEqual(['olaf', 'skill', 'development', 'coding']);
         });
 
-        test('should discover multiple bundles with multiple skills', async () => {
+        it('should discover multiple bundles with multiple skills', async () => {
             setupBundleStructureMocks({
                 bundleDefinitions: [
                     {
@@ -190,22 +189,22 @@ suite('OlafAdapter Integration Tests', () => {
             const adapter = new OlafAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 2);
+            expect(bundles.length).toBe(2);
             
             const developerBundle = bundles.find(b => b.name === 'Developer Bundle');
             const analystBundle = bundles.find(b => b.name === 'Analyst Bundle');
             
-            assert.ok(developerBundle);
-            assert.ok(analystBundle);
-            assert.ok(developerBundle.description.includes('2 skills'));
-            assert.ok(analystBundle.description.includes('1 skill'));
-            assert.strictEqual(developerBundle.version, '1.0.0');
-            assert.strictEqual(analystBundle.version, '2.0.0');
+            expect(developerBundle).toBeTruthy();
+            expect(analystBundle).toBeTruthy();
+            expect(developerBundle.description.includes('2 skills')).toBeTruthy();
+            expect(analystBundle.description.includes('1 skill')).toBeTruthy();
+            expect(developerBundle.version).toBe('1.0.0');
+            expect(analystBundle.version).toBe('2.0.0');
         });
     });
 
-    suite('Bundle Packaging', () => {
-        test('should generate deployment manifest for bundle', async () => {
+    describe('Bundle Packaging', () => {
+        it('should generate deployment manifest for bundle', async () => {
             setupBundleStructureMocks({
                 bundleDefinitions: [{
                     fileName: 'data-analysis',
@@ -241,16 +240,16 @@ suite('OlafAdapter Integration Tests', () => {
             const adapter = new OlafAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].name, 'Data Analysis Bundle');
-            assert.strictEqual(bundles[0].version, '1.0.0');
-            assert.ok(bundles[0].description.includes('Advanced data analysis capabilities'));
-            assert.deepStrictEqual(bundles[0].tags, ['olaf', 'skill', 'data', 'analysis', 'python']);
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].name).toBe('Data Analysis Bundle');
+            expect(bundles[0].version).toBe('1.0.0');
+            expect(bundles[0].description.includes('Advanced data analysis capabilities')).toBeTruthy();
+            expect(bundles[0].tags).toEqual(['olaf', 'skill', 'data', 'analysis', 'python']);
         });
     });
 
-    suite('Bundle Validation', () => {
-        test('should validate OLAF repository structure', async () => {
+    describe('Bundle Validation', () => {
+        it('should validate OLAF repository structure', async () => {
             // Mock repository validation with bundles/ and skills/ directories
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-olaf-repo')
@@ -374,12 +373,12 @@ suite('OlafAdapter Integration Tests', () => {
             const adapter = new OlafAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
-            assert.strictEqual(result.bundlesFound, 2);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
+            expect(result.bundlesFound).toBe(2);
         });
 
-        test('should report validation failure for missing OLAF structure', async () => {
+        it('should report validation failure for missing OLAF structure', async () => {
             // Mock repository validation - missing bundles/ and skills/ directories
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-olaf-repo')
@@ -394,15 +393,15 @@ suite('OlafAdapter Integration Tests', () => {
             const adapter = new OlafAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
-            assert.ok(result.errors.some(e => e.includes('bundles')));
-            assert.ok(result.errors.some(e => e.includes('skills')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
+            expect(result.errors.some(e => e.includes('bundles'))).toBeTruthy();
+            expect(result.errors.some(e => e.includes('skills'))).toBeTruthy();
         });
     });
 
-    suite('Post-Installation', () => {
-        test('should register skill in competency index after installation', async () => {
+    describe('Post-Installation', () => {
+        it('should register skill in competency index after installation', async () => {
             const fs = require('fs');
             const path = require('path');
             
@@ -477,20 +476,20 @@ suite('OlafAdapter Integration Tests', () => {
             await adapter.postInstall('olaf-test-owner-test-olaf-repo-test-skill', installPath);
             
             // Verify competency index was created
-            assert.ok(mkdirSyncStub.calledWith(sinon.match(/reference$/), { recursive: true }));
+            expect(mkdirSyncStub.calledWith(sinon.match(/reference$/), { recursive: true })).toBeTruthy();
             
             // Verify skill was written to competency index
-            assert.ok(writeFileSyncStub.calledOnce);
+            expect(writeFileSyncStub.calledOnce).toBeTruthy();
             const writtenData = JSON.parse(writeFileSyncStub.firstCall.args[1]);
             
-            assert.ok(Array.isArray(writtenData), 'Competency index should be an array');
-            assert.strictEqual(writtenData.length, 1);
-            assert.deepStrictEqual(writtenData[0].patterns, ['test-pattern', 'test skill']);
-            assert.strictEqual(writtenData[0].file, 'external-skills/Test OLAF Source/test-skill/prompts/test-skill.md');
-            assert.strictEqual(writtenData[0].protocol, 'Propose-Confirm-Act');
+            expect(Array.isArray(writtenData), 'Competency index should be an array').toBeTruthy();
+            expect(writtenData.length).toBe(1);
+            expect(writtenData[0].patterns).toEqual(['test-pattern', 'test skill']);
+            expect(writtenData[0].file).toBe('external-skills/Test OLAF Source/test-skill/prompts/test-skill.md');
+            expect(writtenData[0].protocol).toBe('Propose-Confirm-Act');
         });
 
-        test('should update existing skill entry in competency index', async () => {
+        it('should update existing skill entry in competency index', async () => {
             const fs = require('fs');
             const path = require('path');
             
@@ -573,19 +572,19 @@ suite('OlafAdapter Integration Tests', () => {
             await adapter.postInstall('olaf-test-owner-test-olaf-repo-test-skill', installPath);
             
             // Verify the existing entry was updated
-            assert.ok(writeFileSyncStub.calledOnce);
+            expect(writeFileSyncStub.calledOnce).toBeTruthy();
             const writtenData = JSON.parse(writeFileSyncStub.firstCall.args[1]);
             
-            assert.ok(Array.isArray(writtenData), 'Competency index should be an array');
-            assert.strictEqual(writtenData.length, 1);
-            assert.deepStrictEqual(writtenData[0].patterns, ['new-pattern', 'updated skill']);
-            assert.strictEqual(writtenData[0].file, 'external-skills/Test OLAF Source/test-skill/prompts/test-skill.md');
-            assert.strictEqual(writtenData[0].protocol, 'Propose-Confirm-Act');
+            expect(Array.isArray(writtenData), 'Competency index should be an array').toBeTruthy();
+            expect(writtenData.length).toBe(1);
+            expect(writtenData[0].patterns).toEqual(['new-pattern', 'updated skill']);
+            expect(writtenData[0].file).toBe('external-skills/Test OLAF Source/test-skill/prompts/test-skill.md');
+            expect(writtenData[0].protocol).toBe('Propose-Confirm-Act');
         });
     });
 
-    suite('Post-Uninstallation', () => {
-        test('should remove skill from competency index after uninstallation', async () => {
+    describe('Post-Uninstallation', () => {
+        it('should remove skill from competency index after uninstallation', async () => {
             const fs = require('fs');
             const path = require('path');
             
@@ -620,16 +619,16 @@ suite('OlafAdapter Integration Tests', () => {
             await adapter.postUninstall('olaf-test-owner-test-repo-test-skill', installPath);
             
             // Verify the skill was removed from competency index
-            assert.ok(writeFileSyncStub.calledOnce);
+            expect(writeFileSyncStub.calledOnce).toBeTruthy();
             const writtenData = JSON.parse(writeFileSyncStub.firstCall.args[1]);
             
-            assert.ok(Array.isArray(writtenData), 'Competency index should be an array');
-            assert.strictEqual(writtenData.length, 1, 'Should have one skill remaining');
-            assert.strictEqual(writtenData[0].file, 'external-skills/other-source/other-skill/prompts/other-skill.md');
-            assert.deepStrictEqual(writtenData[0].patterns, ['other-pattern']);
+            expect(Array.isArray(writtenData), 'Competency index should be an array').toBeTruthy();
+            expect(writtenData.length, 'Should have one skill remaining').toBe(1);
+            expect(writtenData[0].file).toBe('external-skills/other-source/other-skill/prompts/other-skill.md');
+            expect(writtenData[0].patterns).toEqual(['other-pattern']);
         });
 
-        test('should handle empty competency index after removing last skill', async () => {
+        it('should handle empty competency index after removing last skill', async () => {
             const fs = require('fs');
             const path = require('path');
             
@@ -659,14 +658,14 @@ suite('OlafAdapter Integration Tests', () => {
             await adapter.postUninstall('olaf-test-owner-test-repo-test-skill', installPath);
             
             // Verify the competency index is now empty
-            assert.ok(writeFileSyncStub.calledOnce);
+            expect(writeFileSyncStub.calledOnce).toBeTruthy();
             const writtenData = JSON.parse(writeFileSyncStub.firstCall.args[1]);
             
-            assert.ok(Array.isArray(writtenData), 'Competency index should be an array');
-            assert.strictEqual(writtenData.length, 0, 'Should be empty after removing the only skill');
+            expect(Array.isArray(writtenData), 'Competency index should be an array').toBeTruthy();
+            expect(writtenData.length, 'Should be empty after removing the only skill').toBe(0);
         });
 
-        test('should handle non-existent competency index gracefully', async () => {
+        it('should handle non-existent competency index gracefully', async () => {
             const fs = require('fs');
             const path = require('path');
             
@@ -683,10 +682,10 @@ suite('OlafAdapter Integration Tests', () => {
             await adapter.postUninstall('olaf-test-owner-test-repo-test-skill', installPath);
             
             // Verify no write operation was attempted
-            assert.ok(writeFileSyncStub.notCalled, 'Should not attempt to write when file does not exist');
+            expect(writeFileSyncStub.notCalled, 'Should not attempt to write when file does not exist').toBeTruthy();
         });
 
-        test('should handle skill not found in competency index', async () => {
+        it('should handle skill not found in competency index', async () => {
             const fs = require('fs');
             const path = require('path');
             
@@ -716,7 +715,7 @@ suite('OlafAdapter Integration Tests', () => {
             await adapter.postUninstall('olaf-test-owner-test-repo-test-skill', installPath);
             
             // Verify no write operation was attempted since skill was not found
-            assert.ok(writeFileSyncStub.notCalled, 'Should not write when skill is not found');
+            expect(writeFileSyncStub.notCalled, 'Should not write when skill is not found').toBeTruthy();
         });
     });
 });

@@ -12,7 +12,6 @@
  * Reference: https://agentskills.io/specification
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -22,7 +21,7 @@ import { createE2ETestContext, E2ETestContext, generateTestId } from '../helpers
 import { RegistrySource } from '../../src/types/registry';
 import { ScaffoldCommand, ScaffoldType } from '../../src/commands/ScaffoldCommand';
 
-suite('E2E: Agent Skills (SKILL.md) Workflow Tests', () => {
+describe('E2E: Agent Skills (SKILL.md) Workflow Tests', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -88,8 +87,7 @@ This is an example prompt for testing.
         }
     });
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('skills');
         
         sandbox = sinon.createSandbox();
@@ -117,18 +115,15 @@ This is an example prompt for testing.
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         await testContext.cleanup();
         sandbox.restore();
         nock.cleanAll();
         nock.enableNetConnect();
     });
 
-    suite('Scaffold with Skills', () => {
-        test('Scaffold awesome-copilot project includes skills directory', async function() {
-            this.timeout(30000);
-            
+    describe('Scaffold with Skills', () => {
+        it('Scaffold awesome-copilot project includes skills directory', async function() {
             const projectDir = path.join(testContext.tempStoragePath, 'scaffold-test');
             fs.mkdirSync(projectDir, { recursive: true });
             
@@ -139,24 +134,22 @@ This is an example prompt for testing.
             
             // Verify skills directory exists
             const skillsDir = path.join(projectDir, 'skills');
-            assert.ok(fs.existsSync(skillsDir), 'Skills directory should exist');
+            expect(fs.existsSync(skillsDir), 'Skills directory should exist').toBeTruthy();
             
             // Verify example skill exists
             const exampleSkillDir = path.join(skillsDir, 'example-skill');
-            assert.ok(fs.existsSync(exampleSkillDir), 'Example skill directory should exist');
+            expect(fs.existsSync(exampleSkillDir), 'Example skill directory should exist').toBeTruthy();
             
             const skillMdPath = path.join(exampleSkillDir, 'SKILL.md');
-            assert.ok(fs.existsSync(skillMdPath), 'SKILL.md should exist in example skill');
+            expect(fs.existsSync(skillMdPath), 'SKILL.md should exist in example skill').toBeTruthy();
             
             // Verify SKILL.md content
             const skillContent = fs.readFileSync(skillMdPath, 'utf8');
-            assert.ok(skillContent.includes('name:'), 'SKILL.md should have name field');
-            assert.ok(skillContent.includes('description:'), 'SKILL.md should have description field');
+            expect(skillContent.includes('name:'), 'SKILL.md should have name field').toBeTruthy();
+            expect(skillContent.includes('description:'), 'SKILL.md should have description field').toBeTruthy();
         });
 
-        test('Scaffold creates skill validation script', async function() {
-            this.timeout(30000);
-            
+        it('Scaffold creates skill validation script', async function() {
             const projectDir = path.join(testContext.tempStoragePath, 'scaffold-validation-test');
             fs.mkdirSync(projectDir, { recursive: true });
             
@@ -167,19 +160,14 @@ This is an example prompt for testing.
             
             // Verify scripts README exists (validation is now via npm package)
             const scriptsReadme = path.join(projectDir, 'scripts', 'README.md');
-            assert.ok(fs.existsSync(scriptsReadme), 'Scripts README should exist');
+            expect(fs.existsSync(scriptsReadme), 'Scripts README should exist').toBeTruthy();
             
             // Verify README references the npm package validation command
             const readmeContent = fs.readFileSync(scriptsReadme, 'utf8');
-            assert.ok(
-                readmeContent.includes('validate-skills') || readmeContent.includes('@prompt-registry/collection-scripts'),
-                'Scripts README should reference validate-skills command or npm package'
-            );
+            expect(readmeContent.includes('validate-skills') || readmeContent.includes('@prompt-registry/collection-scripts'), 'Scripts README should reference validate-skills command or npm package').toBeTruthy();
         });
 
-        test('Scaffold includes npm package for skill creation', async function() {
-            this.timeout(30000);
-            
+        it('Scaffold includes npm package for skill creation', async function() {
             const projectDir = path.join(testContext.tempStoragePath, 'scaffold-wizard-test');
             fs.mkdirSync(projectDir, { recursive: true });
             
@@ -191,16 +179,11 @@ This is an example prompt for testing.
             // Verify package.json includes the npm package for skill creation
             const packageJsonPath = path.join(projectDir, 'package.json');
             const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-            assert.ok(
-                packageJson.devDependencies?.['@prompt-registry/collection-scripts'] ||
-                packageJson.dependencies?.['@prompt-registry/collection-scripts'],
-                'Package should include @prompt-registry/collection-scripts for skill creation'
-            );
+            expect(packageJson.devDependencies?.['@prompt-registry/collection-scripts'] ||
+                packageJson.dependencies?.['@prompt-registry/collection-scripts'], 'Package should include @prompt-registry/collection-scripts for skill creation').toBeTruthy();
         });
 
-        test('Scaffolded package.json includes skill scripts', async function() {
-            this.timeout(30000);
-            
+        it('Scaffolded package.json includes skill scripts', async function() {
             const projectDir = path.join(testContext.tempStoragePath, 'scaffold-package-test');
             fs.mkdirSync(projectDir, { recursive: true });
             
@@ -211,21 +194,16 @@ This is an example prompt for testing.
             
             // Verify package.json exists and has skill scripts
             const packageJsonPath = path.join(projectDir, 'package.json');
-            assert.ok(fs.existsSync(packageJsonPath), 'package.json should exist');
+            expect(fs.existsSync(packageJsonPath), 'package.json should exist').toBeTruthy();
             
             const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-            assert.ok(packageJson.scripts, 'package.json should have scripts');
-            assert.ok(
-                packageJson.scripts['skill:validate'] || packageJson.scripts.validate,
-                'Should have skill validation script'
-            );
+            expect(packageJson.scripts, 'package.json should have scripts').toBeTruthy();
+            expect(packageJson.scripts['skill:validate'] || packageJson.scripts.validate, 'Should have skill validation script').toBeTruthy();
         });
     });
 
-    suite('Standalone Skill Scaffold', () => {
-        test('Skill scaffold creates SKILL.md with correct structure', async function() {
-            this.timeout(30000);
-            
+    describe('Standalone Skill Scaffold', () => {
+        it('Skill scaffold creates SKILL.md with correct structure', async function() {
             const projectDir = path.join(testContext.tempStoragePath, 'skill-scaffold-test');
             fs.mkdirSync(projectDir, { recursive: true });
             
@@ -241,19 +219,17 @@ This is an example prompt for testing.
             const skillDir = path.join(projectDir, 'my-custom-skill');
             const skillMdPath = path.join(skillDir, 'SKILL.md');
             
-            assert.ok(fs.existsSync(skillMdPath), 'SKILL.md should exist');
+            expect(fs.existsSync(skillMdPath), 'SKILL.md should exist').toBeTruthy();
             
             const content = fs.readFileSync(skillMdPath, 'utf8');
             
             // Verify YAML frontmatter
-            assert.ok(content.startsWith('---'), 'Should have YAML frontmatter');
-            assert.ok(content.includes('name:'), 'Should have name field');
-            assert.ok(content.includes('description:'), 'Should have description field');
+            expect(content.startsWith('---'), 'Should have YAML frontmatter').toBeTruthy();
+            expect(content.includes('name:'), 'Should have name field').toBeTruthy();
+            expect(content.includes('description:'), 'Should have description field').toBeTruthy();
         });
 
-        test('Skill scaffold creates supporting files', async function() {
-            this.timeout(30000);
-            
+        it('Skill scaffold creates supporting files', async function() {
             const projectDir = path.join(testContext.tempStoragePath, 'skill-files-test');
             fs.mkdirSync(projectDir, { recursive: true });
             
@@ -266,18 +242,16 @@ This is an example prompt for testing.
             
             // Verify README exists
             const readmePath = path.join(skillDir, 'README.md');
-            assert.ok(fs.existsSync(readmePath), 'README.md should exist');
+            expect(fs.existsSync(readmePath), 'README.md should exist').toBeTruthy();
             
             // Verify scripts directory with example
             const scriptsDir = path.join(skillDir, 'scripts');
-            assert.ok(fs.existsSync(scriptsDir), 'scripts directory should exist');
+            expect(fs.existsSync(scriptsDir), 'scripts directory should exist').toBeTruthy();
         });
     });
 
-    suite('Collection with Skills - Install Workflow', () => {
-        test('Install bundle containing skill copies skill to correct location', async function() {
-            this.timeout(60000);
-            
+    describe('Collection with Skills - Install Workflow', () => {
+        it('Install bundle containing skill copies skill to correct location', async function() {
             const sourceId = `${testId}-skill-source`;
             const source = createMockSourceWithSkills(sourceId);
             const skillName = 'test-skill';
@@ -312,23 +286,21 @@ This is an example prompt for testing.
             
             // Search for bundles
             const bundles = await testContext.registryManager.searchBundles({ sourceId });
-            assert.ok(bundles.length > 0, 'Should find bundles with skills');
+            expect(bundles.length > 0, 'Should find bundles with skills').toBeTruthy();
             
             // Find the skill collection bundle
             const skillBundle = bundles.find(b => b.id.includes('skill-collection'));
-            assert.ok(skillBundle, 'Should find skill-collection bundle');
+            expect(skillBundle, 'Should find skill-collection bundle').toBeTruthy();
             
             // Install the bundle
             await testContext.registryManager.installBundle(skillBundle!.id, { scope: 'user' });
             
             // Verify installation
             const installed = await testContext.registryManager.listInstalledBundles();
-            assert.ok(installed.length > 0, 'Should have installed bundles');
+            expect(installed.length > 0, 'Should have installed bundles').toBeTruthy();
         });
 
-        test('Collection validator accepts skill kind', async function() {
-            this.timeout(30000);
-            
+        it('Collection validator accepts skill kind', async function() {
             // Create a temp collection file with skill item
             const collectionDir = path.join(testContext.tempStoragePath, 'validate-test');
             fs.mkdirSync(collectionDir, { recursive: true });
@@ -349,15 +321,13 @@ items:
             const yaml = require('js-yaml');
             const parsed = yaml.load(collectionContent);
             
-            assert.ok(parsed.items, 'Collection should have items');
-            assert.strictEqual(parsed.items[0].kind, 'skill', 'Item kind should be skill');
+            expect(parsed.items, 'Collection should have items').toBeTruthy();
+            expect(parsed.items[0].kind, 'Item kind should be skill').toBe('skill');
         });
     });
 
-    suite('UserScopeService with Skills', () => {
-        test('Sync recognizes skill files by pattern', async function() {
-            this.timeout(30000);
-            
+    describe('UserScopeService with Skills', () => {
+        it('Sync recognizes skill files by pattern', async function() {
             // Create a mock bundle structure with skills
             const bundleDir = path.join(testContext.tempStoragePath, 'sync-test-bundle');
             const skillsDir = path.join(bundleDir, 'skills', 'test-skill');
@@ -381,61 +351,53 @@ items:
             fs.writeFileSync(manifestPath, yaml.dump(manifest));
             
             // Verify the skill file exists and has correct structure
-            assert.ok(fs.existsSync(skillMdPath), 'Skill file should exist');
+            expect(fs.existsSync(skillMdPath), 'Skill file should exist').toBeTruthy();
             
             const content = fs.readFileSync(skillMdPath, 'utf8');
-            assert.ok(content.includes('name:'), 'Skill should have name');
+            expect(content.includes('name:'), 'Skill should have name').toBeTruthy();
         });
     });
 
-    suite('Skill Content Validation', () => {
-        test('SKILL.md requires name field in frontmatter', async function() {
-            this.timeout(10000);
-            
+    describe('Skill Content Validation', () => {
+        it('SKILL.md requires name field in frontmatter', async function() {
             const validSkill = createSkillMd('Valid Skill', 'A valid skill');
             
             // Parse YAML frontmatter
             const frontmatterMatch = validSkill.match(/^---\n([\s\S]*?)\n---/);
-            assert.ok(frontmatterMatch, 'Should have frontmatter');
+            expect(frontmatterMatch, 'Should have frontmatter').toBeTruthy();
             
             const yaml = require('js-yaml');
             const frontmatter = yaml.load(frontmatterMatch![1]);
             
-            assert.ok(frontmatter.name, 'Should have name field');
-            assert.strictEqual(frontmatter.name, 'Valid Skill', 'Name should match');
+            expect(frontmatter.name, 'Should have name field').toBeTruthy();
+            expect(frontmatter.name, 'Name should match').toBe('Valid Skill');
         });
 
-        test('SKILL.md requires description field in frontmatter', async function() {
-            this.timeout(10000);
-            
+        it('SKILL.md requires description field in frontmatter', async function() {
             const validSkill = createSkillMd('Test Skill', 'Test description');
             
             const frontmatterMatch = validSkill.match(/^---\n([\s\S]*?)\n---/);
             const yaml = require('js-yaml');
             const frontmatter = yaml.load(frontmatterMatch![1]);
             
-            assert.ok(frontmatter.description, 'Should have description field');
-            assert.strictEqual(frontmatter.description, 'Test description', 'Description should match');
+            expect(frontmatter.description, 'Should have description field').toBeTruthy();
+            expect(frontmatter.description, 'Description should match').toBe('Test description');
         });
 
-        test('SKILL.md can include allowed-tools field', async function() {
-            this.timeout(10000);
-            
+        it('SKILL.md can include allowed-tools field', async function() {
             const skillWithTools = createSkillMd('Tool Skill', 'Skill with tools');
             
             const frontmatterMatch = skillWithTools.match(/^---\n([\s\S]*?)\n---/);
             const yaml = require('js-yaml');
             const frontmatter = yaml.load(frontmatterMatch![1]);
             
-            assert.ok(frontmatter['allowed-tools'], 'Should have allowed-tools field');
-            assert.ok(Array.isArray(frontmatter['allowed-tools']), 'allowed-tools should be array');
+            expect(frontmatter['allowed-tools'], 'Should have allowed-tools field').toBeTruthy();
+            expect(Array.isArray(frontmatter['allowed-tools']), 'allowed-tools should be array').toBeTruthy();
         });
     });
 
-    suite('Mixed Content Bundles', () => {
-        test('Bundle with prompts, instructions, agents, AND skills installs correctly', async function() {
-            this.timeout(60000);
-            
+    describe('Mixed Content Bundles', () => {
+        it('Bundle with prompts, instructions, agents, AND skills installs correctly', async function() {
             const sourceId = `${testId}-mixed-source`;
             const source: RegistrySource = {
                 id: sourceId,
@@ -498,10 +460,10 @@ items:
             await testContext.registryManager.syncSource(sourceId);
             
             const bundles = await testContext.registryManager.searchBundles({ sourceId });
-            assert.ok(bundles.length > 0, 'Should find mixed content bundle');
+            expect(bundles.length > 0, 'Should find mixed content bundle').toBeTruthy();
             
             const mixedBundle = bundles.find(b => b.id.includes('mixed'));
-            assert.ok(mixedBundle, 'Should find mixed-collection bundle');
+            expect(mixedBundle, 'Should find mixed-collection bundle').toBeTruthy();
         });
     });
 });

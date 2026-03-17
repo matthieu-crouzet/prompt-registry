@@ -5,8 +5,6 @@
  * are correctly shown based on available updates.
  */
 
-import * as assert from 'assert';
-import { suite, test } from 'mocha';
 import * as fc from 'fast-check';
 
 /**
@@ -59,9 +57,9 @@ function getContextValue(bundleId: string, availableUpdates: Map<string, UpdateC
         : 'installed_bundle';
 }
 
-suite('RegistryTreeProvider - Property Tests', () => {
+describe('RegistryTreeProvider - Property Tests', () => {
 
-    suite('Property 16: TreeView update indicator display', () => {
+    describe('Property 16: TreeView update indicator display', () => {
         /**
          * **Property 16: TreeView update indicator display**
          * **Validates: Requirements 4.1**
@@ -69,7 +67,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
          * For any bundle with an available update, the TreeView should display
          * an update indicator icon (⬆️) adjacent to the bundle name.
          */
-        test('should display update indicator for all bundles with available updates', () => {
+        it('should display update indicator for all bundles with available updates', () => {
             // Generator for bundle IDs
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
@@ -129,7 +127,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should not display update indicator for bundles without updates', () => {
+        it('should not display update indicator for bundles without updates', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -176,7 +174,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
         });
     });
 
-    suite('Property 17: TreeView version display', () => {
+    describe('Property 17: TreeView version display', () => {
         /**
          * **Property 17: TreeView version display**
          * **Validates: Requirements 4.2**
@@ -184,7 +182,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
          * For any bundle displayed in the TreeView, the TreeView should show both
          * the installed version and available version when an update exists.
          */
-        test('should display both versions when update is available', () => {
+        it('should display both versions when update is available', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -229,7 +227,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should display only current version when no update is available', () => {
+        it('should display only current version when no update is available', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -262,7 +260,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should always include version prefix "v"', () => {
+        it('should always include version prefix "v"', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -309,7 +307,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
     });
 
 
-    suite('Property 18: TreeView context menu update option', () => {
+    describe('Property 18: TreeView context menu update option', () => {
         /**
          * **Property 18: TreeView context menu update option**
          * **Validates: Requirements 4.3**
@@ -318,7 +316,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
          * should provide an "Update" option in the context menu. This is controlled by the
          * contextValue property of the tree item.
          */
-        test('should set updatable context value for bundles with updates', () => {
+        it('should set updatable context value for bundles with updates', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -370,7 +368,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should set regular context value for bundles without updates', () => {
+        it('should set regular context value for bundles without updates', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -410,7 +408,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should correctly distinguish updatable vs non-updatable bundles', () => {
+        it('should correctly distinguish updatable vs non-updatable bundles', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -491,7 +489,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
     });
 });
 
-    suite('Property 10: Backward Compatibility Invariant', () => {
+    describe('Property 10: Backward Compatibility Invariant', () => {
         /**
          * **Property 10: Backward Compatibility Invariant**
          * **Validates: Requirements 9.1-9.5**
@@ -504,7 +502,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
          * 2. User-level bundles maintain their own update indicators
          * 3. User-level bundles can be operated on independently
          */
-        test('should display user-level bundles independently of repository bundles', () => {
+        it('should display user-level bundles independently of repository bundles', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -575,7 +573,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should maintain independent update indicators for user-level bundles', () => {
+        it('should maintain independent update indicators for user-level bundles', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 
@@ -655,7 +653,7 @@ suite('RegistryTreeProvider - Property Tests', () => {
             );
         });
 
-        test('should preserve user bundle context values independently', () => {
+        it('should preserve user bundle context values independently', () => {
             const bundleIdArbitrary = fc.string({ minLength: 3, maxLength: 20 })
                 .filter(s => /^[a-z0-9-]+$/.test(s));
 

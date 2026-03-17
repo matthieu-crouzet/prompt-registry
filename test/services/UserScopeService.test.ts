@@ -8,19 +8,18 @@
  * WSL-specific tests are in UserScopeService.wsl.test.ts
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { UserScopeService } from '../../src/services/UserScopeService';
 import { createSimpleMockBundle } from '../helpers/bundleTestHelpers';
 
-suite('UserScopeService', () => {
+describe('UserScopeService', () => {
     let service: UserScopeService;
     let mockContext: any;
     let tempDir: string;
 
-    setup(() => {
-        tempDir = path.join(__dirname, '..', '..', '..', 'test-temp-copilot');
+    beforeEach(() => {
+        tempDir = path.join(__dirname, '..', '..', 'test-temp-copilot');
         
         // Mock VS Code ExtensionContext with realistic path structure
         // Simulate: ~/Library/Application Support/Code/User/globalStorage/publisher.extension
@@ -40,26 +39,26 @@ suite('UserScopeService', () => {
         service = new UserScopeService(mockContext);
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Cleanup temp directories
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Service Initialization', () => {
-        test('should initialize with context', () => {
-            assert.ok(service, 'Service should be initialized');
+    describe('Service Initialization', () => {
+        it('should initialize with context', () => {
+            expect(service, 'Service should be initialized').toBeTruthy();
         });
 
-        test('should have sync methods', () => {
-            assert.ok(typeof service.syncBundle === 'function', 'Should have syncBundle method');
-            assert.ok(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method');
-            assert.ok(typeof service.getStatus === 'function', 'Should have getStatus method');
+        it('should have sync methods', () => {
+            expect(typeof service.syncBundle === 'function', 'Should have syncBundle method').toBeTruthy();
+            expect(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method').toBeTruthy();
+            expect(typeof service.getStatus === 'function', 'Should have getStatus method').toBeTruthy();
         });
     });
 
-    suite('Path Resolution', () => {
+    describe('Path Resolution', () => {
         // Test cases for different OS and IDE combinations
         const pathTestCases = [
             {
@@ -100,7 +99,7 @@ suite('UserScopeService', () => {
         ];
 
         pathTestCases.forEach(({ name, globalStoragePath, expectedPath }) => {
-            test(`should resolve prompts directory - ${name}`, async () => {
+            it(`should resolve prompts directory - ${name}`, async () => {
                 const testContext = {
                     globalStorageUri: { fsPath: globalStoragePath },
                     storageUri: { fsPath: tempDir },
@@ -111,11 +110,11 @@ suite('UserScopeService', () => {
                 const testService = new UserScopeService(testContext);
                 const status = await testService.getStatus();
                 
-                assert.strictEqual(status.copilotDir, expectedPath, `Should resolve correct path for ${name}`);
+                expect(status.copilotDir, `Should resolve correct path for ${name}`).toBe(expectedPath);
             });
         });
 
-        test('should resolve prompts directory - Windows (cross-platform test)', async () => {
+        it('should resolve prompts directory - Windows (cross-platform test)', async () => {
             // Use path.join for cross-platform testing
             const winBasePath = path.join(tempDir, 'WindowsTest', 'Code', 'User');
             const winContext = {
@@ -131,7 +130,7 @@ suite('UserScopeService', () => {
             const status = await winService.getStatus();
             
             const expectedPath = path.join(winBasePath, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath);
+            expect(status.copilotDir).toBe(expectedPath);
         });
 
         // Profile-based path tests
@@ -149,7 +148,7 @@ suite('UserScopeService', () => {
         ];
 
         profileTestCases.forEach(({ name, globalStoragePath, expectedPath }) => {
-            test(`should resolve prompts directory - ${name}`, async () => {
+            it(`should resolve prompts directory - ${name}`, async () => {
                 const testContext = {
                     globalStorageUri: { fsPath: globalStoragePath },
                     storageUri: { fsPath: tempDir },
@@ -160,11 +159,11 @@ suite('UserScopeService', () => {
                 const testService = new UserScopeService(testContext);
                 const status = await testService.getStatus();
                 
-                assert.strictEqual(status.copilotDir, expectedPath);
+                expect(status.copilotDir).toBe(expectedPath);
             });
         });
 
-        test('should resolve prompts directory - Windows with profile (cross-platform test)', async () => {
+        it('should resolve prompts directory - Windows with profile (cross-platform test)', async () => {
             const winProfileBase = path.join(tempDir, 'WindowsProfile', 'Code', 'User', 'profiles', 'abc123');
             const winProfileContext = {
                 globalStorageUri: { 
@@ -179,15 +178,15 @@ suite('UserScopeService', () => {
             const status = await winProfileService.getStatus();
             
             const expectedPath = path.join(winProfileBase, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath);
+            expect(status.copilotDir).toBe(expectedPath);
         });
     });
 
-    suite('Windows Path Regex Handling (Backslash Escaping)', () => {
+    describe('Windows Path Regex Handling (Backslash Escaping)', () => {
         // These tests verify the fix for: "Invalid regular expression: /\profiles\([^\]+)/: Unterminated character class"
         // The issue was that Windows path.sep (\) wasn't properly escaped in regex character classes
         
-        test('should handle Windows-style path with backslashes - standard profile', async () => {
+        it('should handle Windows-style path with backslashes - standard profile', async () => {
             // Use path.join to create platform-appropriate paths
             const userPath = path.join(tempDir, 'WinTest', 'Users', 'Username', 'AppData', 'Roaming', 'Code', 'User');
             const globalStoragePath = path.join(userPath, 'globalStorage', 'amadeusitgroup.prompt-registry');
@@ -205,15 +204,15 @@ suite('UserScopeService', () => {
             const status = await winService.getStatus();
             
             // Should successfully parse without regex errors
-            assert.ok(status.copilotDir, 'Should return a valid path');
-            assert.ok(status.copilotDir.includes('User'), 'Should include User directory');
-            assert.ok(status.copilotDir.endsWith('prompts'), 'Should end with prompts');
+            expect(status.copilotDir, 'Should return a valid path').toBeTruthy();
+            expect(status.copilotDir.includes('User'), 'Should include User directory').toBeTruthy();
+            expect(status.copilotDir.endsWith('prompts'), 'Should end with prompts').toBeTruthy();
             
             const expectedPath = path.join(userPath, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath, 'Should resolve to User/prompts');
+            expect(status.copilotDir, 'Should resolve to User/prompts').toBe(expectedPath);
         });
 
-        test('should handle Windows-style path with backslashes - profile-based', async () => {
+        it('should handle Windows-style path with backslashes - profile-based', async () => {
             // Simulate the exact error case from the screenshot
             const userPath = path.join(tempDir, 'WinProfile', 'Users', 'Username', '.vscode', 'extensions', 'dist', 'User');
             const profileId = 'security-best-practices';
@@ -232,16 +231,16 @@ suite('UserScopeService', () => {
             const status = await winProfileService.getStatus();
             
             // Should successfully parse the profile path without regex errors
-            assert.ok(status.copilotDir, 'Should return a valid path');
-            assert.ok(status.copilotDir.includes('profiles'), 'Should include profiles directory');
-            assert.ok(status.copilotDir.includes(profileId), 'Should include profile ID');
-            assert.ok(status.copilotDir.endsWith('prompts'), 'Should end with prompts');
+            expect(status.copilotDir, 'Should return a valid path').toBeTruthy();
+            expect(status.copilotDir.includes('profiles'), 'Should include profiles directory').toBeTruthy();
+            expect(status.copilotDir.includes(profileId), 'Should include profile ID').toBeTruthy();
+            expect(status.copilotDir.endsWith('prompts'), 'Should end with prompts').toBeTruthy();
             
             const expectedPath = path.join(userPath, 'profiles', profileId, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath, 'Should resolve to profile prompts directory');
+            expect(status.copilotDir, 'Should resolve to profile prompts directory').toBe(expectedPath);
         });
 
-        test('should handle Windows-style path - custom data directory with profile', async () => {
+        it('should handle Windows-style path - custom data directory with profile', async () => {
             // Test custom data directory (no User folder) with profile
             const customDataDir = path.join(tempDir, 'CustomVSCode', 'Data');
             const profileId = 'work-profile';
@@ -260,15 +259,15 @@ suite('UserScopeService', () => {
             const status = await customService.getStatus();
             
             // Should handle custom data directory with profiles
-            assert.ok(status.copilotDir, 'Should return a valid path');
-            assert.ok(status.copilotDir.includes('profiles'), 'Should include profiles directory');
-            assert.ok(status.copilotDir.includes(profileId), 'Should include profile ID');
+            expect(status.copilotDir, 'Should return a valid path').toBeTruthy();
+            expect(status.copilotDir.includes('profiles'), 'Should include profiles directory').toBeTruthy();
+            expect(status.copilotDir.includes(profileId), 'Should include profile ID').toBeTruthy();
             
             const expectedPath = path.join(customDataDir, 'profiles', profileId, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath, 'Should resolve custom data dir with profile');
+            expect(status.copilotDir, 'Should resolve custom data dir with profile').toBe(expectedPath);
         });
 
-        test('should not throw regex errors with any path separator', async () => {
+        it('should not throw regex errors with any path separator', async () => {
             // This is the core regression test for the bug fix
             // The bug was: new RegExp(`[^${path.sep}]`) would create [^\] on Windows
             // which is an unterminated character class
@@ -287,48 +286,38 @@ suite('UserScopeService', () => {
             // Should not throw regex errors regardless of platform
             try {
                 const status = await testService.getStatus();
-                assert.ok(status, 'Should successfully get status');
-                assert.ok(status.copilotDir, 'Should return a path');
+                expect(status, 'Should successfully get status').toBeTruthy();
+                expect(status.copilotDir, 'Should return a path').toBeTruthy();
             } catch (error: any) {
                 // The specific errors we're testing for
-                assert.ok(
-                    !error.message.includes('Invalid regular expression'),
-                    `Should not throw "Invalid regular expression", got: ${error.message}`
-                );
-                assert.ok(
-                    !error.message.includes('Unterminated character class'),
-                    `Should not throw "Unterminated character class", got: ${error.message}`
-                );
-                assert.ok(
-                    !error.message.includes('SyntaxError'),
-                    `Should not throw SyntaxError from regex, got: ${error.message}`
-                );
+                expect(!error.message.includes('Invalid regular expression'), `Should not throw "Invalid regular expression", got: ${error.message}`).toBeTruthy();
+                expect(!error.message.includes('Unterminated character class'), `Should not throw "Unterminated character class", got: ${error.message}`).toBeTruthy();
+                expect(!error.message.includes('SyntaxError'), `Should not throw SyntaxError from regex, got: ${error.message}`).toBeTruthy();
                 // If it's a different error (like file not found), that's acceptable for this test
             }
         });
     });
 
-    suite('getStatus', () => {
-        test('should return status information', async () => {
+    describe('getStatus', () => {
+        it('should return status information', async () => {
             const status = await service.getStatus();
             
-            assert.ok(status, 'Should return status object');
-            assert.ok(typeof status.copilotDir === 'string', 'Should include copilot directory');
-            assert.ok(typeof status.dirExists === 'boolean', 'Should include directory existence flag');
-            assert.ok(typeof status.syncedFiles === 'number', 'Should include synced files count');
+            expect(status, 'Should return status object').toBeTruthy();
+            expect(typeof status.copilotDir === 'string', 'Should include copilot directory').toBeTruthy();
+            expect(typeof status.dirExists === 'boolean', 'Should include directory existence flag').toBeTruthy();
+            expect(typeof status.syncedFiles === 'number', 'Should include synced files count').toBeTruthy();
         });
 
-        test('should report copilot directory path', async () => {
+        it('should report copilot directory path', async () => {
             const status = await service.getStatus();
             
             // Path should include User/prompts
-            assert.ok(status.copilotDir.includes('User') || status.copilotDir.includes('prompts'),
-                'Copilot directory should be meaningful path');
+            expect(status.copilotDir.includes('User') || status.copilotDir.includes('prompts'), 'Copilot directory should be meaningful path').toBeTruthy();
         });
     });
 
-    suite('syncBundle', () => {
-        test('should accept bundle ID and path', async () => {
+    describe('syncBundle', () => {
+        it('should accept bundle ID and path', async () => {
             const bundleId = 'test-bundle';
             const bundlePath = path.join(tempDir, 'bundle');
             
@@ -350,25 +339,25 @@ prompts: []
             try {
                 await service.syncBundle(bundleId, bundlePath);
                 // If it succeeds, great!
-                assert.ok(true, 'syncBundle should complete');
+                expect(true, 'syncBundle should complete').toBeTruthy();
             } catch (error: any) {
                 // Expected in unit test environment
                 // Just verify error is related to file operations, not parameter issues
-                assert.ok(error.message || true, 'Error is expected in unit test environment');
+                expect(error.message || true, 'Error is expected in unit test environment').toBeTruthy();
             }
         });
 
-        test('should reject invalid bundle path', async () => {
+        it('should reject invalid bundle path', async () => {
             try {
                 await service.syncBundle('invalid-bundle', '/nonexistent/path');
                 // Should not reach here
-                assert.fail('Should throw error for invalid path');
+                expect.fail('Should throw error for invalid path');
             } catch (error) {
-                assert.ok(error, 'Should throw error for invalid bundle path');
+                expect(error, 'Should throw error for invalid bundle path').toBeTruthy();
             }
         });
 
-        test('should create files in flat structure (not in bundle subdirectory)', async () => {
+        it('should create files in flat structure (not in bundle subdirectory)', async () => {
             const bundleId = 'flat-test-bundle';
             const bundlePath = path.join(tempDir, 'flat-bundle');
             const promptFile = path.join(bundlePath, 'test-prompt.md');
@@ -396,74 +385,71 @@ prompts:
                 // Files should be directly in prompts dir, not in a subdirectory
                 if (status.files.length > 0) {
                     for (const file of status.files) {
-                        assert.ok(
-                            !file.includes('/'),
-                            `File should be in flat structure, not subdirectory: ${file}`
-                        );
+                        expect(!file.includes('/'), `File should be in flat structure, not subdirectory: ${file}`).toBeTruthy();
                     }
                 }
             } catch (error: any) {
                 // May fail in test environment, that's ok
-                assert.ok(true, 'Test environment limitation');
+                expect(true, 'Test environment limitation').toBeTruthy();
             }
         });
     });
 
-    suite('unsyncBundle', () => {
-        test('should accept bundle ID', async () => {
+    describe('unsyncBundle', () => {
+        it('should accept bundle ID', async () => {
             const bundleId = 'test-bundle';
             
             // This will try to remove sync files
             // In unit test, may not have anything to remove
             try {
                 await service.unsyncBundle(bundleId);
-                assert.ok(true, 'unsyncBundle should complete');
+                expect(true, 'unsyncBundle should complete').toBeTruthy();
             } catch (error: any) {
                 // May fail if Copilot directory doesn't exist
-                assert.ok(error.message || true, 'Error is expected in unit test environment');
+                expect(error.message || true, 'Error is expected in unit test environment').toBeTruthy();
             }
         });
 
-        test('should handle non-existent bundle', async () => {
+        it('should handle non-existent bundle', async () => {
             try {
                 await service.unsyncBundle('non-existent-bundle');
                 // Should complete without error (idempotent)
-                assert.ok(true, 'Should handle non-existent bundle gracefully');
+                expect(true, 'Should handle non-existent bundle gracefully').toBeTruthy();
             } catch (error: any) {
                 // Or throw appropriate error
-                assert.ok(error, 'Error handling is acceptable');
+                expect(error, 'Error handling is acceptable').toBeTruthy();
             }
         });
     });
 
-    suite('Behavior Validation', () => {
-        test('should return valid absolute path', async () => {
+    describe('Behavior Validation', () => {
+        it('should return valid absolute path', async () => {
             const status = await service.getStatus();
             
-            assert.ok(status.copilotDir, 'Should return a path');
-            assert.ok(path.isAbsolute(status.copilotDir), 'Path should be absolute');
-            assert.ok(status.copilotDir.endsWith('prompts'), 'Path should end with prompts directory');
+            expect(status.copilotDir, 'Should return a path').toBeTruthy();
+            expect(path.isAbsolute(status.copilotDir), 'Path should be absolute').toBeTruthy();
+            expect(status.copilotDir.endsWith('prompts'), 'Path should end with prompts directory').toBeTruthy();
         });
 
-        test('should handle path with User directory', async () => {
+        it('should handle path with User directory', async () => {
             const status = await service.getStatus();
             
             // Test environment uses User directory structure
-            assert.ok(status.copilotDir.includes('User'), 'Should include User directory in test setup');
+            expect(status.copilotDir.includes('User'), 'Should include User directory in test setup').toBeTruthy();
         });
 
-        test('should create directory structure when syncing', async () => {
+        it('should create directory structure when syncing', async () => {
             const status = await service.getStatus();
             
             // Directory might not exist initially
-            assert.ok(typeof status.dirExists === 'boolean', 'Should report directory existence');
-            assert.ok(typeof status.syncedFiles === 'number', 'Should report synced file count');
-            assert.ok(Array.isArray(status.files), 'Should return files array');
+            expect(typeof status.dirExists === 'boolean', 'Should report directory existence').toBeTruthy();
+            expect(typeof status.syncedFiles === 'number', 'Should report synced file count').toBeTruthy();
+            expect(Array.isArray(status.files), 'Should return files array').toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle missing deployment manifest', async () => {
+    describe('Error Handling', () => {
+        it('should handle missing deployment manifest', async () => {
             const bundleId = 'no-manifest-bundle';
             const bundlePath = path.join(tempDir, 'no-manifest');
             
@@ -477,24 +463,23 @@ prompts:
                 await service.syncBundle(bundleId, bundlePath);
                 // May succeed or fail depending on implementation
             } catch (error: any) {
-                assert.ok(error.message.includes('manifest') || error.message.includes('ENOENT'),
-                    'Error should mention manifest or file not found');
+                expect(error.message.includes('manifest') || error.message.includes('ENOENT'), 'Error should mention manifest or file not found').toBeTruthy();
             }
         });
 
-        test('should provide meaningful error messages', async () => {
+        it('should provide meaningful error messages', async () => {
             try {
                 await service.syncBundle('', '');
-                assert.fail('Should throw error for empty parameters');
+                expect.fail('Should throw error for empty parameters');
             } catch (error: any) {
-                assert.ok(error.message, 'Should provide error message');
-                assert.ok(error.message.length > 0, 'Error message should not be empty');
+                expect(error.message, 'Should provide error message').toBeTruthy();
+                expect(error.message.length > 0, 'Error message should not be empty').toBeTruthy();
             }
         });
     });
 
-    suite('Custom Data Directory Support', () => {
-        test('should handle profile path with User directory', async () => {
+    describe('Custom Data Directory Support', () => {
+        it('should handle profile path with User directory', async () => {
             const profileId = '3a5f32f8';
             const userPath = path.join(tempDir, 'Library', 'Application Support', 'Code', 'User');
             const globalStoragePath = path.join(userPath, 'profiles', profileId, 'globalStorage', 'publisher.extension');
@@ -510,10 +495,10 @@ prompts:
             const status = await testService.getStatus();
 
             const expectedPath = path.join(userPath, 'profiles', profileId, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath);
+            expect(status.copilotDir).toBe(expectedPath);
         });
 
-        test('should handle custom data directory with profile (no User directory)', async () => {
+        it('should handle custom data directory with profile (no User directory)', async () => {
             const customDataDir = path.join(tempDir, 'custom-data');
             const profileId = 'abc-profile';
             const globalStoragePath = path.join(customDataDir, 'profiles', profileId, 'globalStorage', 'publisher.extension');
@@ -529,10 +514,10 @@ prompts:
             const status = await testService.getStatus();
 
             const expectedPath = path.join(customDataDir, 'profiles', profileId, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath);
+            expect(status.copilotDir).toBe(expectedPath);
         });
 
-        test('should handle custom data directory without profile', async () => {
+        it('should handle custom data directory without profile', async () => {
             const customDataDir = path.join(tempDir, 'custom-data-no-profile');
             const globalStoragePath = path.join(customDataDir, 'globalStorage', 'publisher.extension');
 
@@ -547,12 +532,12 @@ prompts:
             const status = await testService.getStatus();
 
             const expectedPath = path.join(customDataDir, 'prompts');
-            assert.strictEqual(status.copilotDir, expectedPath);
+            expect(status.copilotDir).toBe(expectedPath);
         });
     });
 
-    suite('Profile Detection Workarounds', () => {
-        test('should use filesystem heuristic when storage.json not available', async () => {
+    describe('Profile Detection Workarounds', () => {
+        it('should use filesystem heuristic when storage.json not available', async () => {
             // Simulate extension installed globally (not in profile) but user is in a profile
             const globalExtContext = {
                 globalStorageUri: { 
@@ -577,17 +562,11 @@ prompts:
             const status = await globalService.getStatus();
             
             // Should detect the active profile using filesystem heuristic
-            assert.ok(
-                status.copilotDir.includes(profileId),
-                `Should detect active profile using filesystem heuristic, got: ${status.copilotDir}`
-            );
-            assert.ok(
-                status.copilotDir.endsWith('prompts'),
-                'Should end with prompts directory'
-            );
+            expect(status.copilotDir.includes(profileId), `Should detect active profile using filesystem heuristic, got: ${status.copilotDir}`).toBeTruthy();
+            expect(status.copilotDir.endsWith('prompts'), 'Should end with prompts directory').toBeTruthy();
         });
 
-        test('should prefer storage.json over filesystem heuristic when both available', async () => {
+        it('should prefer storage.json over filesystem heuristic when both available', async () => {
             // This test verifies the priority: storage.json (workaround #1) > filesystem (workaround #2)
             const userPath = path.join(tempDir, 'ProfilePriority', 'Code', 'User');
             const globalExtContext = {
@@ -643,17 +622,14 @@ prompts:
             const status = await testService.getStatus();
             
             // Should use storage.json (new profile) not filesystem heuristic (old profile)
-            assert.ok(
-                status.copilotDir.includes(newProfileId),
-                `Should prefer storage.json over filesystem heuristic, got: ${status.copilotDir}`
-            );
+            expect(status.copilotDir.includes(newProfileId), `Should prefer storage.json over filesystem heuristic, got: ${status.copilotDir}`).toBeTruthy();
         });
     });
 
     // NOTE: WSL-specific tests have been moved to UserScopeService.wsl.test.ts
     // The tests below remain for backward compatibility but should eventually be removed
-    suite('WSL Support', () => {
-        test('should detect WSL remote and return Windows mount path when globalStorage is on /mnt/c', async () => {
+    describe('WSL Support', () => {
+        it('should detect WSL remote and return Windows mount path when globalStorage is on /mnt/c', async () => {
             // Mock WSL scenario where globalStorage is already on Windows mount
             const wslMountContext: any = {
                 globalStorageUri: { 
@@ -675,14 +651,8 @@ prompts:
                 const wslService = new UserScopeService(wslMountContext);
                 const status = await wslService.getStatus();
                 
-                assert.ok(
-                    status.copilotDir.startsWith('/mnt/c/Users/testuser/AppData/Roaming/Code/User'),
-                    `WSL should use Windows mount path, got: ${status.copilotDir}`
-                );
-                assert.ok(
-                    status.copilotDir.includes('/prompts'),
-                    'WSL path should include prompts directory'
-                );
+                expect(status.copilotDir.startsWith('/mnt/c/Users/testuser/AppData/Roaming/Code/User'), `WSL should use Windows mount path, got: ${status.copilotDir}`).toBeTruthy();
+                expect(status.copilotDir.includes('/prompts'), 'WSL path should include prompts directory').toBeTruthy();
             } finally {
                 // Restore original env
                 if (originalEnv) {
@@ -693,7 +663,7 @@ prompts:
             }
         });
 
-        test('should handle WSL with D: drive mount', async () => {
+        it('should handle WSL with D: drive mount', async () => {
             const wslDriveContext: any = {
                 globalStorageUri: { 
                     fsPath: '/mnt/d/Users/testuser/AppData/Roaming/Code/User/globalStorage/publisher.extension' 
@@ -714,10 +684,7 @@ prompts:
                 const wslService = new UserScopeService(wslDriveContext);
                 const status = await wslService.getStatus();
                 
-                assert.ok(
-                    status.copilotDir.startsWith('/mnt/d/Users/testuser'),
-                    `WSL should detect D: drive, got: ${status.copilotDir}`
-                );
+                expect(status.copilotDir.startsWith('/mnt/d/Users/testuser'), `WSL should detect D: drive, got: ${status.copilotDir}`).toBeTruthy();
             } finally {
                 if (originalEnv) {
                     (global as any).vscode.env = originalEnv;
@@ -727,7 +694,7 @@ prompts:
             }
         });
 
-        test('should handle WSL with Code Insiders flavor', async () => {
+        it('should handle WSL with Code Insiders flavor', async () => {
             const wslInsidersContext: any = {
                 globalStorageUri: { 
                     fsPath: '/mnt/c/Users/testuser/AppData/Roaming/Code - Insiders/User/globalStorage/publisher.extension' 
@@ -748,10 +715,7 @@ prompts:
                 const wslService = new UserScopeService(wslInsidersContext);
                 const status = await wslService.getStatus();
                 
-                assert.ok(
-                    status.copilotDir.includes('Code - Insiders'),
-                    `WSL should detect Insiders flavor, got: ${status.copilotDir}`
-                );
+                expect(status.copilotDir.includes('Code - Insiders'), `WSL should detect Insiders flavor, got: ${status.copilotDir}`).toBeTruthy();
             } finally {
                 if (originalEnv) {
                     (global as any).vscode.env = originalEnv;
@@ -761,7 +725,7 @@ prompts:
             }
         });
 
-        test('should handle WSL with profile path', async () => {
+        it('should handle WSL with profile path', async () => {
             const wslProfileContext: any = {
                 globalStorageUri: { 
                     fsPath: '/mnt/c/Users/testuser/AppData/Roaming/Code/User/profiles/abc123/globalStorage/publisher.extension' 
@@ -782,10 +746,7 @@ prompts:
                 const wslService = new UserScopeService(wslProfileContext);
                 const status = await wslService.getStatus();
                 
-                assert.ok(
-                    status.copilotDir.includes('/profiles/abc123/prompts'),
-                    `WSL should handle profile path, got: ${status.copilotDir}`
-                );
+                expect(status.copilotDir.includes('/profiles/abc123/prompts'), `WSL should handle profile path, got: ${status.copilotDir}`).toBeTruthy();
             } finally {
                 if (originalEnv) {
                     (global as any).vscode.env = originalEnv;
@@ -795,7 +756,7 @@ prompts:
             }
         });
 
-        test('should not use WSL path for local context (remoteName undefined)', async () => {
+        it('should not use WSL path for local context (remoteName undefined)', async () => {
             const localContext: any = {
                 globalStorageUri: { 
                     fsPath: path.join(tempDir, 'Code', 'User', 'globalStorage', 'publisher.extension')
@@ -816,10 +777,7 @@ prompts:
                 const localService = new UserScopeService(localContext);
                 const status = await localService.getStatus();
                 
-                assert.ok(
-                    !status.copilotDir.includes('/mnt/'),
-                    `Local context should not use WSL mount, got: ${status.copilotDir}`
-                );
+                expect(!status.copilotDir.includes('/mnt/'), `Local context should not use WSL mount, got: ${status.copilotDir}`).toBeTruthy();
             } finally {
                 if (originalEnv) {
                     (global as any).vscode.env = originalEnv;
@@ -829,7 +787,7 @@ prompts:
             }
         });
 
-        test('should handle SSH remote (not WSL) with existing logic', async () => {
+        it('should handle SSH remote (not WSL) with existing logic', async () => {
             const sshContext: any = {
                 globalStorageUri: { 
                     fsPath: '/home/remoteuser/.vscode-server/data/User/globalStorage/publisher.extension'
@@ -851,10 +809,7 @@ prompts:
                 const status = await sshService.getStatus();
                 
                 // SSH should use existing logic, not WSL-specific handling
-                assert.ok(
-                    !status.copilotDir.includes('/mnt/c/'),
-                    `SSH remote should not use WSL mount path, got: ${status.copilotDir}`
-                );
+                expect(!status.copilotDir.includes('/mnt/c/'), `SSH remote should not use WSL mount path, got: ${status.copilotDir}`).toBeTruthy();
             } finally {
                 if (originalEnv) {
                     (global as any).vscode.env = originalEnv;
@@ -865,8 +820,8 @@ prompts:
         });
     });
 
-    suite('Broken Symlink Handling', () => {
-        test('should detect and remove broken symlinks when creating new symlinks', async () => {
+    describe('Broken Symlink Handling', () => {
+        it('should detect and remove broken symlinks when creating new symlinks', async () => {
             // This test verifies the fix for the issue where fs.existsSync() returns false
             // for broken symlinks, causing reinstallation to fail
             
@@ -891,24 +846,23 @@ prompts:
                 
                 // Verify the sync succeeded
                 const newStatus = await service.getStatus();
-                assert.ok(newStatus.syncedFiles >= initialSyncedFiles, 
-                    'Should have synced files after handling broken symlink');
+                expect(newStatus.syncedFiles >= initialSyncedFiles, 'Should have synced files after handling broken symlink').toBeTruthy();
                 
             } catch (error: any) {
                 // If we get EEXIST error, the broken symlink handling failed
                 if (error.code === 'EEXIST') {
-                    assert.fail('Should handle broken symlinks without EEXIST error');
+                    expect.fail('Should handle broken symlinks without EEXIST error');
                 }
                 // Only accept platform-specific symlink errors
                 if (error.code === 'EPERM' || error.code === 'ENOTSUP') {
-                    assert.ok(true, 'Symlinks not supported on this platform');
+                    expect(true, 'Symlinks not supported on this platform').toBeTruthy();
                 } else {
                     throw error;
                 }
             }
         });
 
-        test('should correctly identify broken vs valid symlinks', async () => {
+        it('should correctly identify broken vs valid symlinks', async () => {
             const validTarget = path.join(tempDir, 'valid-target.txt');
             const validSymlink = path.join(tempDir, 'valid-symlink.txt');
             
@@ -926,26 +880,23 @@ prompts:
                 fs.unlinkSync(brokenTarget);
                 
                 // Verify fs.existsSync behavior (the root cause of the bug)
-                assert.strictEqual(fs.existsSync(validSymlink), true, 
-                    'fs.existsSync should return true for valid symlink');
-                assert.strictEqual(fs.existsSync(brokenSymlink), false, 
-                    'fs.existsSync returns false for broken symlink (this is the bug)');
+                expect(fs.existsSync(validSymlink), 'fs.existsSync should return true for valid symlink').toBe(true);
+                expect(fs.existsSync(brokenSymlink), 'fs.existsSync returns false for broken symlink (this is the bug)').toBe(false);
                 
                 // Verify lstat can still detect broken symlinks
                 const brokenStats = fs.lstatSync(brokenSymlink);
-                assert.strictEqual(brokenStats.isSymbolicLink(), true, 
-                    'lstat should detect broken symlink');
+                expect(brokenStats.isSymbolicLink(), 'lstat should detect broken symlink').toBe(true);
                 
             } catch (error: any) {
                 if (error.code === 'EPERM' || error.code === 'ENOTSUP') {
-                    assert.ok(true, 'Symlinks not supported on this platform');
+                    expect(true, 'Symlinks not supported on this platform').toBeTruthy();
                 } else {
                     throw error;
                 }
             }
         });
 
-        test('should update symlink when pointing to wrong target (old version)', async () => {
+        it('should update symlink when pointing to wrong target (old version)', async () => {
             const bundleId = 'version-update-test-bundle';
             const v1BundlePath = createSimpleMockBundle(tempDir, bundleId, '1.0.0');
             const v2BundlePath = createSimpleMockBundle(tempDir, bundleId, '2.0.0');
@@ -963,24 +914,21 @@ prompts:
                         const symlinkPath = path.join(promptsDir, file);
                         if (fs.existsSync(symlinkPath)) {
                             const target = fs.readlinkSync(symlinkPath);
-                            assert.ok(
-                                target.includes('-v2.0.0'),
-                                `Symlink should point to v2, but points to: ${target}`
-                            );
+                            expect(target.includes('-v2.0.0'), `Symlink should point to v2, but points to: ${target}`).toBeTruthy();
                         }
                     }
                 }
                 
             } catch (error: any) {
                 if (error.code === 'EPERM' || error.code === 'ENOTSUP') {
-                    assert.ok(true, 'Symlinks not supported on this platform');
+                    expect(true, 'Symlinks not supported on this platform').toBeTruthy();
                 } else {
                     throw error;
                 }
             }
         });
 
-        test('should handle repeated syncs gracefully', async () => {
+        it('should handle repeated syncs gracefully', async () => {
             const bundleId = 'repeated-sync-test-bundle';
             const bundlePath = createSimpleMockBundle(tempDir, bundleId, '1.0.0');
             
@@ -991,12 +939,11 @@ prompts:
                 await service.syncBundle(bundleId, bundlePath);
                 const status2 = await service.getStatus();
                 
-                assert.strictEqual(status1.syncedFiles, status2.syncedFiles, 
-                    'Synced file count should remain the same');
+                expect(status1.syncedFiles, 'Synced file count should remain the same').toBe(status2.syncedFiles);
                 
             } catch (error: any) {
                 if (error.code === 'EPERM' || error.code === 'ENOTSUP') {
-                    assert.ok(true, 'Symlinks not supported on this platform');
+                    expect(true, 'Symlinks not supported on this platform').toBeTruthy();
                 } else {
                     throw error;
                 }

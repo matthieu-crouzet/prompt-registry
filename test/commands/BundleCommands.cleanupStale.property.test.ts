@@ -10,7 +10,6 @@
  * **Validates: Requirements 3.4**
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,7 +20,7 @@ import { LockfileBuilder, LockfileGenerators, generateMockChecksum } from '../he
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { Lockfile } from '../../src/types/lockfile';
 
-suite('BundleCommands Cleanup Stale Property Tests', () => {
+describe('BundleCommands Cleanup Stale Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let tempDir: string;
 
@@ -69,13 +68,13 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
         return JSON.parse(fs.readFileSync(lockfilePath, 'utf8'));
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         tempDir = createTempDir();
         LockfileManager.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         LockfileManager.resetInstance();
         cleanupTempDir(tempDir);
@@ -91,8 +90,8 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
      * **Feature: lockfile-source-of-truth, Property 10: Stale Entry Cleanup**
      * **Validates: Requirements 3.4**
      */
-    suite('Property 10: Stale Entry Cleanup', () => {
-        test('stale entries should be identified correctly based on file existence', async () => {
+    describe('Property 10: Stale Entry Cleanup', () => {
+        it('stale entries should be identified correctly based on file existence', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     // Generate 1-3 bundles, some with files that exist, some without
@@ -148,23 +147,15 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
                         // Property: Valid bundles should NOT have filesMissing flag
                         for (const bundleId of validBundleIds) {
                             const bundle = installedBundles.find(b => b.bundleId === bundleId);
-                            assert.ok(bundle, `Valid bundle ${bundleId} should be in installed bundles`);
-                            assert.strictEqual(
-                                bundle.filesMissing,
-                                false,
-                                `Valid bundle ${bundleId} should NOT have filesMissing flag`
-                            );
+                            expect(bundle, `Valid bundle ${bundleId} should be in installed bundles`).toBeTruthy();
+                            expect(bundle.filesMissing, `Valid bundle ${bundleId} should NOT have filesMissing flag`).toBe(false);
                         }
 
                         // Property: Stale bundles SHOULD have filesMissing flag
                         for (const bundleId of staleBundleIds) {
                             const bundle = installedBundles.find(b => b.bundleId === bundleId);
-                            assert.ok(bundle, `Stale bundle ${bundleId} should be in installed bundles`);
-                            assert.strictEqual(
-                                bundle.filesMissing,
-                                true,
-                                `Stale bundle ${bundleId} SHOULD have filesMissing flag`
-                            );
+                            expect(bundle, `Stale bundle ${bundleId} should be in installed bundles`).toBeTruthy();
+                            expect(bundle.filesMissing, `Stale bundle ${bundleId} SHOULD have filesMissing flag`).toBe(true);
                         }
 
                         // Cleanup
@@ -181,7 +172,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
             );
         });
 
-        test('removing stale entries should preserve valid entries', async () => {
+        it('removing stale entries should preserve valid entries', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     // Generate 1-3 valid bundles and 1-3 stale bundles
@@ -233,11 +224,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
                         const staleBundles = installedBundles.filter(b => b.filesMissing);
 
                         // Verify we identified the correct stale bundles
-                        assert.strictEqual(
-                            staleBundles.length,
-                            staleBundleCount,
-                            `Should identify ${staleBundleCount} stale bundles`
-                        );
+                        expect(staleBundles.length, `Should identify ${staleBundleCount} stale bundles`).toBe(staleBundleCount);
 
                         // Remove stale entries (simulating what the cleanup command does)
                         for (const bundle of staleBundles) {
@@ -249,27 +236,17 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
 
                         // Property: Valid bundles should still exist in lockfile
                         for (const bundleId of validBundleIds) {
-                            assert.ok(
-                                updatedLockfile?.bundles[bundleId],
-                                `Valid bundle ${bundleId} should still exist after cleanup`
-                            );
+                            expect(updatedLockfile?.bundles[bundleId], `Valid bundle ${bundleId} should still exist after cleanup`).toBeTruthy();
                         }
 
                         // Property: Stale bundles should be removed from lockfile
                         for (const bundleId of staleBundleIds) {
-                            assert.ok(
-                                !updatedLockfile?.bundles[bundleId],
-                                `Stale bundle ${bundleId} should be removed after cleanup`
-                            );
+                            expect(!updatedLockfile?.bundles[bundleId], `Stale bundle ${bundleId} should be removed after cleanup`).toBeTruthy();
                         }
 
                         // Property: Total bundle count should be reduced by stale count
                         const remainingBundleCount = Object.keys(updatedLockfile?.bundles || {}).length;
-                        assert.strictEqual(
-                            remainingBundleCount,
-                            validBundleCount,
-                            `Should have ${validBundleCount} bundles remaining after cleanup`
-                        );
+                        expect(remainingBundleCount, `Should have ${validBundleCount} bundles remaining after cleanup`).toBe(validBundleCount);
 
                         // Cleanup
                         LockfileManager.resetInstance(workspaceRoot);
@@ -285,7 +262,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
             );
         });
 
-        test('cleanup with no stale entries should not modify lockfile', async () => {
+        it('cleanup with no stale entries should not modify lockfile', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     // Generate 1-3 valid bundles only
@@ -323,30 +300,19 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
                         const staleBundles = installedBundles.filter(b => b.filesMissing);
 
                         // Property: No stale bundles should be identified
-                        assert.strictEqual(
-                            staleBundles.length,
-                            0,
-                            'Should identify 0 stale bundles when all files exist'
-                        );
+                        expect(staleBundles.length, 'Should identify 0 stale bundles when all files exist').toBe(0);
 
                         // Read the lockfile (should be unchanged)
                         const currentLockfile = readLockfile(workspaceRoot);
 
                         // Property: All valid bundles should still exist
                         for (const bundleId of validBundleIds) {
-                            assert.ok(
-                                currentLockfile?.bundles[bundleId],
-                                `Valid bundle ${bundleId} should still exist`
-                            );
+                            expect(currentLockfile?.bundles[bundleId], `Valid bundle ${bundleId} should still exist`).toBeTruthy();
                         }
 
                         // Property: Bundle count should be unchanged
                         const bundleCount = Object.keys(currentLockfile?.bundles || {}).length;
-                        assert.strictEqual(
-                            bundleCount,
-                            validBundleCount,
-                            `Should have ${validBundleCount} bundles (unchanged)`
-                        );
+                        expect(bundleCount, `Should have ${validBundleCount} bundles (unchanged)`).toBe(validBundleCount);
 
                         // Cleanup
                         LockfileManager.resetInstance(workspaceRoot);
@@ -362,7 +328,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
             );
         });
 
-        test('cleanup should delete lockfile when all entries are stale', async () => {
+        it('cleanup should delete lockfile when all entries are stale', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     // Generate 1-3 stale bundles only
@@ -394,7 +360,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
 
                         // Verify lockfile exists
                         const lockfilePath = path.join(workspaceRoot, 'prompt-registry.lock.json');
-                        assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist before cleanup');
+                        expect(fs.existsSync(lockfilePath), 'Lockfile should exist before cleanup').toBeTruthy();
 
                         // Get LockfileManager and identify stale bundles
                         const lockfileManager = LockfileManager.getInstance(workspaceRoot);
@@ -402,11 +368,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
                         const staleBundles = installedBundles.filter(b => b.filesMissing);
 
                         // Verify all bundles are stale
-                        assert.strictEqual(
-                            staleBundles.length,
-                            staleBundleCount,
-                            `All ${staleBundleCount} bundles should be stale`
-                        );
+                        expect(staleBundles.length, `All ${staleBundleCount} bundles should be stale`).toBe(staleBundleCount);
 
                         // Remove all stale entries (simulating what the cleanup command does)
                         for (const bundle of staleBundles) {
@@ -414,10 +376,7 @@ suite('BundleCommands Cleanup Stale Property Tests', () => {
                         }
 
                         // Property: Lockfile should be deleted when all entries are removed
-                        assert.ok(
-                            !fs.existsSync(lockfilePath),
-                            'Lockfile should be deleted when all entries are stale'
-                        );
+                        expect(!fs.existsSync(lockfilePath), 'Lockfile should be deleted when all entries are stale').toBeTruthy();
 
                         // Cleanup
                         LockfileManager.resetInstance(workspaceRoot);

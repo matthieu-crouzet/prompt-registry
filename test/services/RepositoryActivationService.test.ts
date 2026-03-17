@@ -7,7 +7,6 @@
  * Requirements: 13.1-13.7, 12.4-12.5
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { RepositoryActivationService, MissingBundleInstallResult } from '../../src/services/RepositoryActivationService';
@@ -19,7 +18,7 @@ import { SetupStateManager } from '../../src/services/SetupStateManager';
 import { Lockfile } from '../../src/types/lockfile';
 import { createMockLockfile } from '../helpers/lockfileTestHelpers';
 
-suite('RepositoryActivationService', () => {
+describe('RepositoryActivationService', () => {
     let sandbox: sinon.SinonSandbox;
     let mockLockfileManager: sinon.SinonStubbedInstance<LockfileManager>;
     let mockHubManager: sinon.SinonStubbedInstance<HubManager>;
@@ -30,7 +29,7 @@ suite('RepositoryActivationService', () => {
     let showWarningMessageStub: sinon.SinonStub;
     const testWorkspaceRoot = '/test/workspace';
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockLockfileManager = sandbox.createStubInstance(LockfileManager);
         mockHubManager = sandbox.createStubInstance(HubManager);
@@ -62,13 +61,13 @@ suite('RepositoryActivationService', () => {
         showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage');
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
 
-    suite('getInstance()', () => {
-        test('should create new instance for workspace', () => {
+    describe('getInstance()', () => {
+        it('should create new instance for workspace', () => {
             // Arrange & Act
             const instance = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -78,11 +77,11 @@ suite('RepositoryActivationService', () => {
             );
 
             // Assert
-            assert.ok(instance, 'Should create instance');
-            assert.strictEqual(instance.getWorkspaceRoot(), testWorkspaceRoot);
+            expect(instance, 'Should create instance').toBeTruthy();
+            expect(instance.getWorkspaceRoot()).toBe(testWorkspaceRoot);
         });
 
-        test('should return same instance for same workspace', () => {
+        it('should return same instance for same workspace', () => {
             // Arrange & Act
             const instance1 = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -93,10 +92,10 @@ suite('RepositoryActivationService', () => {
             const instance2 = RepositoryActivationService.getInstance(testWorkspaceRoot);
 
             // Assert
-            assert.strictEqual(instance1, instance2, 'Should return same instance');
+            expect(instance1, 'Should return same instance').toBe(instance2);
         });
 
-        test('should create different instances for different workspaces', () => {
+        it('should create different instances for different workspaces', () => {
             // Arrange
             const workspace1 = '/workspace/one';
             const workspace2 = '/workspace/two';
@@ -116,30 +115,24 @@ suite('RepositoryActivationService', () => {
             );
 
             // Assert
-            assert.notStrictEqual(instance1, instance2, 'Should create different instances');
-            assert.strictEqual(instance1.getWorkspaceRoot(), workspace1);
-            assert.strictEqual(instance2.getWorkspaceRoot(), workspace2);
+            expect(instance1, 'Should create different instances').not.toBe(instance2);
+            expect(instance1.getWorkspaceRoot()).toBe(workspace1);
+            expect(instance2.getWorkspaceRoot()).toBe(workspace2);
         });
 
-        test('should throw error when workspace root not provided', () => {
+        it('should throw error when workspace root not provided', () => {
             // Act & Assert
-            assert.throws(
-                () => RepositoryActivationService.getInstance(),
-                /Workspace root path required/
-            );
+            expect(() => RepositoryActivationService.getInstance()).toThrow(/Workspace root path required/);
         });
 
-        test('should throw error when dependencies not provided on first call', () => {
+        it('should throw error when dependencies not provided on first call', () => {
             // Act & Assert
-            assert.throws(
-                () => RepositoryActivationService.getInstance('/new/workspace'),
-                /Dependencies required on first call/
-            );
+            expect(() => RepositoryActivationService.getInstance('/new/workspace')).toThrow(/Dependencies required on first call/);
         });
     });
 
-    suite('resetInstance()', () => {
-        test('should reset specific workspace instance', () => {
+    describe('resetInstance()', () => {
+        it('should reset specific workspace instance', () => {
             // Arrange
             const workspace1 = '/workspace/one';
             const workspace2 = '/workspace/two';
@@ -160,16 +153,13 @@ suite('RepositoryActivationService', () => {
             RepositoryActivationService.resetInstance(workspace1);
 
             // Assert - workspace1 should require dependencies again
-            assert.throws(
-                () => RepositoryActivationService.getInstance(workspace1),
-                /Dependencies required/
-            );
+            expect(() => RepositoryActivationService.getInstance(workspace1)).toThrow(/Dependencies required/);
             // workspace2 should still exist
             const instance2 = RepositoryActivationService.getInstance(workspace2);
-            assert.ok(instance2);
+            expect(instance2).toBeTruthy();
         });
 
-        test('should reset all instances when no workspace provided', () => {
+        it('should reset all instances when no workspace provided', () => {
             // Arrange
             RepositoryActivationService.getInstance(
                 '/workspace/one',
@@ -188,19 +178,13 @@ suite('RepositoryActivationService', () => {
             RepositoryActivationService.resetInstance();
 
             // Assert - both should require dependencies again
-            assert.throws(
-                () => RepositoryActivationService.getInstance('/workspace/one'),
-                /Dependencies required/
-            );
-            assert.throws(
-                () => RepositoryActivationService.getInstance('/workspace/two'),
-                /Dependencies required/
-            );
+            expect(() => RepositoryActivationService.getInstance('/workspace/one')).toThrow(/Dependencies required/);
+            expect(() => RepositoryActivationService.getInstance('/workspace/two')).toThrow(/Dependencies required/);
         });
     });
 
-    suite('getExistingInstance()', () => {
-        test('should return existing instance', () => {
+    describe('getExistingInstance()', () => {
+        it('should return existing instance', () => {
             // Arrange
             const created = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -213,20 +197,20 @@ suite('RepositoryActivationService', () => {
             const existing = RepositoryActivationService.getExistingInstance(testWorkspaceRoot);
 
             // Assert
-            assert.strictEqual(existing, created);
+            expect(existing).toBe(created);
         });
 
-        test('should return undefined for non-existent workspace', () => {
+        it('should return undefined for non-existent workspace', () => {
             // Act
             const existing = RepositoryActivationService.getExistingInstance('/non/existent');
 
             // Assert
-            assert.strictEqual(existing, undefined);
+            expect(existing).toBe(undefined);
         });
     });
 
-    suite('checkAndPromptActivation()', () => {
-        test('should not prompt when no lockfile exists', async () => {
+    describe('checkAndPromptActivation()', () => {
+        it('should not prompt when no lockfile exists', async () => {
             // Arrange
             mockLockfileManager.read.resolves(null);
 
@@ -234,10 +218,10 @@ suite('RepositoryActivationService', () => {
             await service.checkAndPromptActivation();
 
             // Assert
-            assert.ok(!showInformationMessageStub.called, 'Should not show prompt when no lockfile');
+            expect(!showInformationMessageStub.called, 'Should not show prompt when no lockfile').toBeTruthy();
         });
 
-        test('should not prompt when repository was previously declined', async () => {
+        it('should not prompt when repository was previously declined', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockLockfileManager.read.resolves(lockfile);
@@ -248,10 +232,10 @@ suite('RepositoryActivationService', () => {
             await service.checkAndPromptActivation();
 
             // Assert
-            assert.ok(!showInformationMessageStub.called, 'Should not prompt when previously declined');
+            expect(!showInformationMessageStub.called, 'Should not prompt when previously declined').toBeTruthy();
         });
 
-        test('should prompt when lockfile exists and not previously declined', async () => {
+        it('should prompt when lockfile exists and not previously declined', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockLockfileManager.read.resolves(lockfile);
@@ -274,12 +258,11 @@ suite('RepositoryActivationService', () => {
 
             // Assert - no longer shows activation prompt (Requirement 1.6)
             // Only checks for missing sources/hubs
-            assert.ok(!showInformationMessageStub.called || 
-                !showInformationMessageStub.firstCall.args[0].includes('enable'),
-                'Should not show activation prompt - files already in repository');
+            expect(!showInformationMessageStub.called || 
+                !showInformationMessageStub.firstCall.args[0].includes('enable'), 'Should not show activation prompt - files already in repository').toBeTruthy();
         });
 
-        test('should check for missing sources when lockfile exists', async () => {
+        it('should check for missing sources when lockfile exists', async () => {
             // Arrange
             const lockfile = createMockLockfile(3);
             mockLockfileManager.read.resolves(lockfile);
@@ -301,12 +284,11 @@ suite('RepositoryActivationService', () => {
             // The prompt shown should be about missing sources, not about enabling bundles
             if (showInformationMessageStub.called) {
                 const message = showInformationMessageStub.firstCall.args[0] as string;
-                assert.ok(!message.includes('enable') && !message.includes('Enable'),
-                    'Should not show activation prompt - only missing sources prompt');
+                expect(!message.includes('enable') && !message.includes('Enable'), 'Should not show activation prompt - only missing sources prompt').toBeTruthy();
             }
         });
 
-        test('should not show any prompt when all sources are configured', async () => {
+        it('should not show any prompt when all sources are configured', async () => {
             // Arrange
             const lockfile = createMockLockfile(2, { includeProfiles: true });
             mockLockfileManager.read.resolves(lockfile);
@@ -329,11 +311,10 @@ suite('RepositoryActivationService', () => {
             await service.checkAndPromptActivation();
 
             // Assert - no prompt when all sources are configured
-            assert.ok(!showInformationMessageStub.called,
-                'Should not show any prompt when all sources are configured');
+            expect(!showInformationMessageStub.called, 'Should not show any prompt when all sources are configured').toBeTruthy();
         });
 
-        test('should call checkAndOfferMissingSources when lockfile exists', async () => {
+        it('should call checkAndOfferMissingSources when lockfile exists', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockLockfileManager.read.resolves(lockfile);
@@ -354,11 +335,11 @@ suite('RepositoryActivationService', () => {
             await service.checkAndPromptActivation();
 
             // Assert - should call checkAndOfferMissingSources instead of showing activation prompt
-            assert.ok(checkSpy.calledOnce, 'Should call checkAndOfferMissingSources');
-            assert.ok(checkSpy.calledWith(lockfile), 'Should pass lockfile to check method');
+            expect(checkSpy.calledOnce, 'Should call checkAndOfferMissingSources').toBeTruthy();
+            expect(checkSpy.calledWith(lockfile), 'Should pass lockfile to check method').toBeTruthy();
         });
 
-        test('should skip detection for declined repositories', async () => {
+        it('should skip detection for declined repositories', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockLockfileManager.read.resolves(lockfile);
@@ -375,13 +356,13 @@ suite('RepositoryActivationService', () => {
             await service.checkAndPromptActivation();
 
             // Assert - should skip detection for declined repositories
-            assert.ok(!checkSpy.called, 'Should not check for missing sources when declined');
-            assert.ok(!showInformationMessageStub.called, 'Should not show any prompt when declined');
+            expect(!checkSpy.called, 'Should not check for missing sources when declined').toBeTruthy();
+            expect(!showInformationMessageStub.called, 'Should not show any prompt when declined').toBeTruthy();
         });
     });
 
-    suite('checkAndOfferMissingSources()', () => {
-        test('should detect missing sources', async () => {
+    describe('checkAndOfferMissingSources()', () => {
+        it('should detect missing sources', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockStorage.getSources.resolves([]); // No sources configured
@@ -390,11 +371,11 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert
-            assert.ok(result.missingSources.length > 0, 'Should detect missing sources');
-            assert.strictEqual(result.missingSources[0], 'mock-source');
+            expect(result.missingSources.length > 0, 'Should detect missing sources').toBeTruthy();
+            expect(result.missingSources[0]).toBe('mock-source');
         });
 
-        test('should detect missing hubs', async () => {
+        it('should detect missing hubs', async () => {
             // Arrange
             const lockfile = createMockLockfile(2, { includeHubs: true });
             mockStorage.getSources.resolves([]);
@@ -404,11 +385,11 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert
-            assert.ok(result.missingHubs.length > 0, 'Should detect missing hubs');
-            assert.strictEqual(result.missingHubs[0], 'mock-hub');
+            expect(result.missingHubs.length > 0, 'Should detect missing hubs').toBeTruthy();
+            expect(result.missingHubs[0]).toBe('mock-hub');
         });
 
-        test('should not detect sources that are already configured', async () => {
+        it('should not detect sources that are already configured', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockStorage.getSources.resolves([
@@ -419,11 +400,10 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert
-            assert.strictEqual(result.missingSources.length, 0, 
-                'Should not detect configured sources as missing');
+            expect(result.missingSources.length, 'Should not detect configured sources as missing').toBe(0);
         });
 
-        test('should not detect hubs that are already imported', async () => {
+        it('should not detect hubs that are already imported', async () => {
             // Arrange
             const lockfile = createMockLockfile(2, { includeHubs: true });
             mockStorage.getSources.resolves([]);
@@ -435,11 +415,10 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert
-            assert.strictEqual(result.missingHubs.length, 0, 
-                'Should not detect imported hubs as missing');
+            expect(result.missingHubs.length, 'Should not detect imported hubs as missing').toBe(0);
         });
 
-        test('should offer to add missing sources', async () => {
+        it('should offer to add missing sources', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockStorage.getSources.resolves([]);
@@ -449,12 +428,11 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert
-            assert.ok(showInformationMessageStub.calledOnce, 
-                'Should prompt to add missing sources');
-            assert.ok(result.offeredToAdd, 'Should indicate offer was made');
+            expect(showInformationMessageStub.calledOnce, 'Should prompt to add missing sources').toBeTruthy();
+            expect(result.offeredToAdd, 'Should indicate offer was made').toBeTruthy();
         });
 
-        test('should offer to add missing hubs', async () => {
+        it('should offer to add missing hubs', async () => {
             // Arrange
             const lockfile = createMockLockfile(2, { includeHubs: true });
             mockStorage.getSources.resolves([]);
@@ -466,11 +444,10 @@ suite('RepositoryActivationService', () => {
 
             // Assert
             const message = showInformationMessageStub.firstCall.args[0] as string;
-            assert.ok(message.toLowerCase().includes('hub') || message.toLowerCase().includes('source'),
-                'Message should mention missing sources/hubs');
+            expect(message.toLowerCase().includes('hub') || message.toLowerCase().includes('source'), 'Message should mention missing sources/hubs').toBeTruthy();
         });
 
-        test('should return empty arrays when all sources and hubs are configured', async () => {
+        it('should return empty arrays when all sources and hubs are configured', async () => {
             // Arrange
             const lockfile = createMockLockfile(2, { includeHubs: true });
             mockStorage.getSources.resolves([
@@ -484,24 +461,23 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert
-            assert.strictEqual(result.missingSources.length, 0);
-            assert.strictEqual(result.missingHubs.length, 0);
-            assert.ok(!result.offeredToAdd, 'Should not offer when nothing missing');
+            expect(result.missingSources.length).toBe(0);
+            expect(result.missingHubs.length).toBe(0);
+            expect(!result.offeredToAdd, 'Should not offer when nothing missing').toBeTruthy();
         });
     });
 
-    suite('Edge cases', () => {
-        test('should handle lockfile read errors gracefully', async () => {
+    describe('Edge cases', () => {
+        it('should handle lockfile read errors gracefully', async () => {
             // Arrange
             mockLockfileManager.read.rejects(new Error('Read error'));
 
             // Act & Assert - should not throw
             await service.checkAndPromptActivation();
-            assert.ok(!showInformationMessageStub.called, 
-                'Should not show prompt on error');
+            expect(!showInformationMessageStub.called, 'Should not show prompt on error').toBeTruthy();
         });
 
-        test('should handle empty lockfile gracefully', async () => {
+        it('should handle empty lockfile gracefully', async () => {
             // Arrange
             const emptyLockfile = createMockLockfile(0);
             mockLockfileManager.read.resolves(emptyLockfile);
@@ -524,7 +500,7 @@ suite('RepositoryActivationService', () => {
             // May or may not show missing sources prompt depending on lockfile content
         });
 
-        test('should handle missing lockfile path gracefully', async () => {
+        it('should handle missing lockfile path gracefully', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             mockLockfileManager.read.resolves(lockfile);
@@ -540,7 +516,7 @@ suite('RepositoryActivationService', () => {
             await service.checkAndPromptActivation();
         });
 
-        test('should handle HubManager errors when checking missing sources', async () => {
+        it('should handle HubManager errors when checking missing sources', async () => {
             // Arrange
             const lockfile = createMockLockfile(2, { includeHubs: true });
             mockStorage.getSources.resolves([]);
@@ -550,21 +526,20 @@ suite('RepositoryActivationService', () => {
             const result = await service.checkAndOfferMissingSources(lockfile);
 
             // Assert - should still detect missing sources even if hub check fails
-            assert.ok(result.missingSources.length > 0, 
-                'Should still detect missing sources on hub error');
+            expect(result.missingSources.length > 0, 'Should still detect missing sources on hub error').toBeTruthy();
         });
     });
 });
 
 
-suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
+describe('RepositoryActivationService - Workspace Switching Scenarios', () => {
     let sandbox: sinon.SinonSandbox;
     let mockHubManager: sinon.SinonStubbedInstance<HubManager>;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let mockContext: vscode.ExtensionContext;
     let showInformationMessageStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockHubManager = sandbox.createStubInstance(HubManager);
         mockStorage = sandbox.createStubInstance(RegistryStorage);
@@ -585,12 +560,12 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
         showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
 
-    test('should maintain separate state for different workspaces', async () => {
+    it('should maintain separate state for different workspaces', async () => {
         // Arrange
         const workspace1 = '/workspace/one';
         const workspace2 = '/workspace/two';
@@ -613,12 +588,12 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
         );
 
         // Assert
-        assert.notStrictEqual(service1, service2, 'Should have different instances');
-        assert.strictEqual(service1.getWorkspaceRoot(), workspace1);
-        assert.strictEqual(service2.getWorkspaceRoot(), workspace2);
+        expect(service1, 'Should have different instances').not.toBe(service2);
+        expect(service1.getWorkspaceRoot()).toBe(workspace1);
+        expect(service2.getWorkspaceRoot()).toBe(workspace2);
     });
 
-    test('should allow independent source detection per workspace', async () => {
+    it('should allow independent source detection per workspace', async () => {
         // Arrange
         const workspace1 = '/workspace/one';
         const workspace2 = '/workspace/two';
@@ -666,11 +641,11 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
         // Assert - both should have checked for missing sources
         // Note: No activation prompt is shown (Requirement 1.6)
         // Only missing sources prompt may be shown if sources are missing
-        assert.ok(mockLockfileManager1.read.calledOnce, 'Should read lockfile for workspace 1');
-        assert.ok(mockLockfileManager2.read.calledOnce, 'Should read lockfile for workspace 2');
+        expect(mockLockfileManager1.read.calledOnce, 'Should read lockfile for workspace 1').toBeTruthy();
+        expect(mockLockfileManager2.read.calledOnce, 'Should read lockfile for workspace 2').toBeTruthy();
     });
 
-    test('should handle workspace removal by resetting instance', () => {
+    it('should handle workspace removal by resetting instance', () => {
         // Arrange
         const workspace = '/workspace/to/remove';
         const mockLockfileManager = sandbox.createStubInstance(LockfileManager);
@@ -686,13 +661,10 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
         RepositoryActivationService.resetInstance(workspace);
 
         // Assert - should require dependencies again
-        assert.throws(
-            () => RepositoryActivationService.getInstance(workspace),
-            /Dependencies required/
-        );
+        expect(() => RepositoryActivationService.getInstance(workspace)).toThrow(/Dependencies required/);
     });
 
-    test('should normalize paths for consistent instance lookup', () => {
+    it('should normalize paths for consistent instance lookup', () => {
         // Arrange
         const workspace = '/workspace/test';
         const mockLockfileManager = sandbox.createStubInstance(LockfileManager);
@@ -708,18 +680,18 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
         const instance2 = RepositoryActivationService.getExistingInstance(workspace);
 
         // Assert
-        assert.strictEqual(instance1, instance2, 'Should find same instance with normalized path');
+        expect(instance1, 'Should find same instance with normalized path').toBe(instance2);
     });
 
-    test('should return undefined for non-existent workspace in getExistingInstance', () => {
+    it('should return undefined for non-existent workspace in getExistingInstance', () => {
         // Act
         const instance = RepositoryActivationService.getExistingInstance('/non/existent/workspace');
 
         // Assert
-        assert.strictEqual(instance, undefined, 'Should return undefined for non-existent workspace');
+        expect(instance, 'Should return undefined for non-existent workspace').toBe(undefined);
     });
 
-    test('should preserve other workspace instances when resetting one', () => {
+    it('should preserve other workspace instances when resetting one', () => {
         // Arrange
         const workspace1 = '/workspace/one';
         const workspace2 = '/workspace/two';
@@ -745,11 +717,11 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
 
         // Assert - workspace2 should still exist
         const existingService2 = RepositoryActivationService.getExistingInstance(workspace2);
-        assert.strictEqual(existingService2, service2, 'Should preserve other workspace instances');
+        expect(existingService2, 'Should preserve other workspace instances').toBe(service2);
         
         // workspace1 should be gone
         const existingService1 = RepositoryActivationService.getExistingInstance(workspace1);
-        assert.strictEqual(existingService1, undefined, 'Should have removed workspace1 instance');
+        expect(existingService1, 'Should have removed workspace1 instance').toBe(undefined);
     });
 });
 
@@ -758,7 +730,7 @@ suite('RepositoryActivationService - Workspace Switching Scenarios', () => {
  * Tests for missing bundle installation functionality
  * Requirements: 13.6 - "IF bundles are missing from the repository, THE Extension SHALL offer to download and install them"
  */
-suite('RepositoryActivationService - Missing Bundle Installation', () => {
+describe('RepositoryActivationService - Missing Bundle Installation', () => {
     let sandbox: sinon.SinonSandbox;
     let mockLockfileManager: sinon.SinonStubbedInstance<LockfileManager>;
     let mockHubManager: sinon.SinonStubbedInstance<HubManager>;
@@ -770,7 +742,7 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
     let withProgressStub: sinon.SinonStub;
     const testWorkspaceRoot = '/test/workspace/missing-bundles';
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockLockfileManager = sandbox.createStubInstance(LockfileManager);
         mockHubManager = sandbox.createStubInstance(HubManager);
@@ -810,13 +782,13 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
         });
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
 
-    suite('installMissingBundles()', () => {
-        test('should install missing bundles when user accepts', async () => {
+    describe('installMissingBundles()', () => {
+        it('should install missing bundles when user accepts', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             const missingBundleIds = ['bundle-0', 'bundle-1'];
@@ -833,13 +805,12 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             const result = await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.strictEqual(mockRegistryManager.installBundle.callCount, 2, 
-                'Should call installBundle for each missing bundle');
-            assert.strictEqual(result.succeeded.length, 2, 'Should report 2 successful installations');
-            assert.strictEqual(result.failed.length, 0, 'Should have no failures');
+            expect(mockRegistryManager.installBundle.callCount, 'Should call installBundle for each missing bundle').toBe(2);
+            expect(result.succeeded.length, 'Should report 2 successful installations').toBe(2);
+            expect(result.failed.length, 'Should have no failures').toBe(0);
         });
 
-        test('should handle partial failure when some bundles fail to install', async () => {
+        it('should handle partial failure when some bundles fail to install', async () => {
             // Arrange
             const lockfile = createMockLockfile(3);
             const missingBundleIds = ['bundle-0', 'bundle-1', 'bundle-2'];
@@ -862,13 +833,13 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             const result = await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.strictEqual(result.succeeded.length, 2, 'Should have 2 successful installations');
-            assert.strictEqual(result.failed.length, 1, 'Should have 1 failure');
-            assert.strictEqual(result.failed[0].bundleId, 'bundle-1', 'Should identify failed bundle');
-            assert.ok(result.failed[0].error.includes('Installation failed'), 'Should include error message');
+            expect(result.succeeded.length, 'Should have 2 successful installations').toBe(2);
+            expect(result.failed.length, 'Should have 1 failure').toBe(1);
+            expect(result.failed[0].bundleId, 'Should identify failed bundle').toBe('bundle-1');
+            expect(result.failed[0].error.includes('Installation failed'), 'Should include error message').toBeTruthy();
         });
 
-        test('should show progress notification during batch installation', async () => {
+        it('should show progress notification during batch installation', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             const missingBundleIds = ['bundle-0', 'bundle-1'];
@@ -885,14 +856,14 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.ok(withProgressStub.calledOnce, 'Should show progress notification');
+            expect(withProgressStub.calledOnce, 'Should show progress notification').toBeTruthy();
             const progressOptions = withProgressStub.firstCall.args[0];
-            assert.strictEqual(progressOptions.location, vscode.ProgressLocation.Notification);
-            assert.ok(progressOptions.title.includes('Installing'), 'Progress title should mention installing');
-            assert.ok(progressOptions.cancellable, 'Progress should be cancellable');
+            expect(progressOptions.location).toBe(vscode.ProgressLocation.Notification);
+            expect(progressOptions.title.includes('Installing'), 'Progress title should mention installing').toBeTruthy();
+            expect(progressOptions.cancellable, 'Progress should be cancellable').toBeTruthy();
         });
 
-        test('should use source information from lockfile for installation', async () => {
+        it('should use source information from lockfile for installation', async () => {
             // Arrange
             const lockfile = createMockLockfile(1);
             // Ensure the lockfile has proper source info
@@ -917,12 +888,12 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.ok(mockRegistryManager.installBundle.calledOnce, 'Should call installBundle');
+            expect(mockRegistryManager.installBundle.calledOnce, 'Should call installBundle').toBeTruthy();
             const installCall = mockRegistryManager.installBundle.firstCall;
-            assert.strictEqual(installCall.args[0], 'bundle-0', 'Should pass correct bundle ID');
+            expect(installCall.args[0], 'Should pass correct bundle ID').toBe('bundle-0');
         });
 
-        test('should use repository scope with correct commitMode from lockfile', async () => {
+        it('should use repository scope with correct commitMode from lockfile', async () => {
             // Arrange
             const lockfile = createMockLockfile(1, { commitMode: 'local-only' });
             const missingBundleIds = ['bundle-0'];
@@ -941,11 +912,11 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             // Assert
             const installCall = mockRegistryManager.installBundle.firstCall;
             const options = installCall.args[1];
-            assert.strictEqual(options.scope, 'repository', 'Should use repository scope');
-            assert.strictEqual(options.commitMode, 'local-only', 'Should use commitMode from lockfile');
+            expect(options.scope, 'Should use repository scope').toBe('repository');
+            expect(options.commitMode, 'Should use commitMode from lockfile').toBe('local-only');
         });
 
-        test('should handle cancellation during batch installation', async () => {
+        it('should handle cancellation during batch installation', async () => {
             // Arrange
             const lockfile = createMockLockfile(3);
             const missingBundleIds = ['bundle-0', 'bundle-1', 'bundle-2'];
@@ -983,11 +954,11 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             const result = await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.ok(result.succeeded.length < 3, 'Should stop before installing all bundles');
-            assert.ok(result.cancelled, 'Should indicate cancellation');
+            expect(result.succeeded.length < 3, 'Should stop before installing all bundles').toBeTruthy();
+            expect(result.cancelled, 'Should indicate cancellation').toBeTruthy();
         });
 
-        test('should return empty result when no bundles to install', async () => {
+        it('should return empty result when no bundles to install', async () => {
             // Arrange
             const lockfile = createMockLockfile(2);
             const missingBundleIds: string[] = [];
@@ -1004,12 +975,12 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             const result = await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.strictEqual(result.succeeded.length, 0);
-            assert.strictEqual(result.failed.length, 0);
-            assert.ok(!mockRegistryManager.installBundle.called, 'Should not call installBundle');
+            expect(result.succeeded.length).toBe(0);
+            expect(result.failed.length).toBe(0);
+            expect(!mockRegistryManager.installBundle.called, 'Should not call installBundle').toBeTruthy();
         });
 
-        test('should use version from lockfile for installation', async () => {
+        it('should use version from lockfile for installation', async () => {
             // Arrange
             const lockfile = createMockLockfile(1);
             lockfile.bundles['bundle-0'].version = '2.5.0';
@@ -1029,10 +1000,10 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             // Assert
             const installCall = mockRegistryManager.installBundle.firstCall;
             const options = installCall.args[1];
-            assert.strictEqual(options.version, '2.5.0', 'Should use version from lockfile');
+            expect(options.version, 'Should use version from lockfile').toBe('2.5.0');
         });
 
-        test('should skip bundles not found in lockfile', async () => {
+        it('should skip bundles not found in lockfile', async () => {
             // Arrange
             const lockfile = createMockLockfile(1);
             const missingBundleIds = ['bundle-0', 'non-existent-bundle'];
@@ -1049,15 +1020,14 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             const result = await service.installMissingBundles(lockfile, missingBundleIds);
 
             // Assert
-            assert.strictEqual(mockRegistryManager.installBundle.callCount, 1, 
-                'Should only install bundle that exists in lockfile');
-            assert.strictEqual(result.skipped.length, 1, 'Should report 1 skipped bundle');
-            assert.strictEqual(result.skipped[0], 'non-existent-bundle');
+            expect(mockRegistryManager.installBundle.callCount, 'Should only install bundle that exists in lockfile').toBe(1);
+            expect(result.skipped.length, 'Should report 1 skipped bundle').toBe(1);
+            expect(result.skipped[0]).toBe('non-existent-bundle');
         });
     });
 
-    suite('getInstance() with RegistryManager', () => {
-        test('should accept RegistryManager as optional parameter', () => {
+    describe('getInstance() with RegistryManager', () => {
+        it('should accept RegistryManager as optional parameter', () => {
             // Arrange & Act
             const instance = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -1068,10 +1038,10 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             );
 
             // Assert
-            assert.ok(instance, 'Should create instance with RegistryManager');
+            expect(instance, 'Should create instance with RegistryManager').toBeTruthy();
         });
 
-        test('should work without RegistryManager for backward compatibility', () => {
+        it('should work without RegistryManager for backward compatibility', () => {
             // Arrange & Act
             const instance = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -1081,7 +1051,7 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
             );
 
             // Assert
-            assert.ok(instance, 'Should create instance without RegistryManager');
+            expect(instance, 'Should create instance without RegistryManager').toBeTruthy();
         });
     });
 });
@@ -1091,7 +1061,7 @@ suite('RepositoryActivationService - Missing Bundle Installation', () => {
  * Tests for setup timing behavior
  * Requirements: 1.1-1.5, 6.1-6.4 - Defer lockfile source/hub detection until setup complete
  */
-suite('RepositoryActivationService - Setup Timing Behavior', () => {
+describe('RepositoryActivationService - Setup Timing Behavior', () => {
     let sandbox: sinon.SinonSandbox;
     let mockLockfileManager: sinon.SinonStubbedInstance<LockfileManager>;
     let mockHubManager: sinon.SinonStubbedInstance<HubManager>;
@@ -1101,7 +1071,7 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
     let showInformationMessageStub: sinon.SinonStub;
     const testWorkspaceRoot = '/test/workspace/setup-timing';
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockLockfileManager = sandbox.createStubInstance(LockfileManager);
         mockHubManager = sandbox.createStubInstance(HubManager);
@@ -1125,13 +1095,13 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
         showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         RepositoryActivationService.resetInstance();
     });
 
-    suite('checkAndPromptActivation() with SetupStateManager', () => {
-        test('should skip detection when SetupStateManager.isComplete() returns false', async () => {
+    describe('checkAndPromptActivation() with SetupStateManager', () => {
+        it('should skip detection when SetupStateManager.isComplete() returns false', async () => {
             // Arrange
             mockSetupStateManager.isComplete.resolves(false);
             const lockfile = createMockLockfile(2);
@@ -1151,15 +1121,12 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             await service.checkAndPromptActivation();
 
             // Assert
-            assert.ok(mockSetupStateManager.isComplete.calledOnce, 
-                'Should check if setup is complete');
-            assert.ok(!mockLockfileManager.read.called, 
-                'Should not read lockfile when setup is incomplete');
-            assert.ok(!showInformationMessageStub.called, 
-                'Should not show any prompts when setup is incomplete');
+            expect(mockSetupStateManager.isComplete.calledOnce, 'Should check if setup is complete').toBeTruthy();
+            expect(!mockLockfileManager.read.called, 'Should not read lockfile when setup is incomplete').toBeTruthy();
+            expect(!showInformationMessageStub.called, 'Should not show any prompts when setup is incomplete').toBeTruthy();
         });
 
-        test('should proceed with detection when SetupStateManager.isComplete() returns true', async () => {
+        it('should proceed with detection when SetupStateManager.isComplete() returns true', async () => {
             // Arrange
             mockSetupStateManager.isComplete.resolves(true);
             const lockfile = createMockLockfile(2);
@@ -1182,13 +1149,11 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             await service.checkAndPromptActivation();
 
             // Assert
-            assert.ok(mockSetupStateManager.isComplete.calledOnce, 
-                'Should check if setup is complete');
-            assert.ok(mockLockfileManager.read.calledOnce, 
-                'Should read lockfile when setup is complete');
+            expect(mockSetupStateManager.isComplete.calledOnce, 'Should check if setup is complete').toBeTruthy();
+            expect(mockLockfileManager.read.calledOnce, 'Should read lockfile when setup is complete').toBeTruthy();
         });
 
-        test('should proceed with detection when SetupStateManager is undefined (fail-open)', async () => {
+        it('should proceed with detection when SetupStateManager is undefined (fail-open)', async () => {
             // Arrange - create service WITHOUT SetupStateManager
             const lockfile = createMockLockfile(2);
             mockLockfileManager.read.resolves(lockfile);
@@ -1209,11 +1174,10 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             await service.checkAndPromptActivation();
 
             // Assert
-            assert.ok(mockLockfileManager.read.calledOnce, 
-                'Should read lockfile when SetupStateManager is undefined (fail-open behavior)');
+            expect(mockLockfileManager.read.calledOnce, 'Should read lockfile when SetupStateManager is undefined (fail-open behavior)').toBeTruthy();
         });
 
-        test('should log appropriate message when deferring due to incomplete setup', async () => {
+        it('should log appropriate message when deferring due to incomplete setup', async () => {
             // Arrange
             mockSetupStateManager.isComplete.resolves(false);
             const lockfile = createMockLockfile(2);
@@ -1236,19 +1200,15 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             // Assert - verify the deferral path was taken by checking that:
             // 1. isComplete was called
             // 2. No further processing occurred (lockfile not read)
-            assert.ok(mockSetupStateManager.isComplete.calledOnce, 
-                'Should call isComplete to check setup state');
-            assert.ok(!mockLockfileManager.read.called, 
-                'Should not proceed with lockfile read when deferring');
-            assert.ok(!mockStorage.getSources.called, 
-                'Should not check sources when deferring');
-            assert.ok(!mockHubManager.listHubs.called, 
-                'Should not check hubs when deferring');
+            expect(mockSetupStateManager.isComplete.calledOnce, 'Should call isComplete to check setup state').toBeTruthy();
+            expect(!mockLockfileManager.read.called, 'Should not proceed with lockfile read when deferring').toBeTruthy();
+            expect(!mockStorage.getSources.called, 'Should not check sources when deferring').toBeTruthy();
+            expect(!mockHubManager.listHubs.called, 'Should not check hubs when deferring').toBeTruthy();
         });
     });
 
-    suite('getInstance() with SetupStateManager', () => {
-        test('should accept SetupStateManager as optional parameter', () => {
+    describe('getInstance() with SetupStateManager', () => {
+        it('should accept SetupStateManager as optional parameter', () => {
             // Arrange & Act
             const instance = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -1260,10 +1220,10 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             );
 
             // Assert
-            assert.ok(instance, 'Should create instance with SetupStateManager');
+            expect(instance, 'Should create instance with SetupStateManager').toBeTruthy();
         });
 
-        test('should work without SetupStateManager for backward compatibility', () => {
+        it('should work without SetupStateManager for backward compatibility', () => {
             // Arrange & Act
             const instance = RepositoryActivationService.getInstance(
                 testWorkspaceRoot,
@@ -1273,12 +1233,12 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             );
 
             // Assert
-            assert.ok(instance, 'Should create instance without SetupStateManager');
+            expect(instance, 'Should create instance without SetupStateManager').toBeTruthy();
         });
     });
 
-    suite('Setup state edge cases', () => {
-        test('should handle SetupStateManager.isComplete() throwing an error gracefully', async () => {
+    describe('Setup state edge cases', () => {
+        it('should handle SetupStateManager.isComplete() throwing an error gracefully', async () => {
             // Arrange
             mockSetupStateManager.isComplete.rejects(new Error('State check failed'));
             const lockfile = createMockLockfile(2);
@@ -1297,11 +1257,10 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             await service.checkAndPromptActivation();
             
             // The error should be caught and logged, but not propagate
-            assert.ok(mockSetupStateManager.isComplete.calledOnce, 
-                'Should have attempted to check setup state');
+            expect(mockSetupStateManager.isComplete.calledOnce, 'Should have attempted to check setup state').toBeTruthy();
         });
 
-        test('should not prompt for missing sources when setup is incomplete', async () => {
+        it('should not prompt for missing sources when setup is incomplete', async () => {
             // Arrange
             mockSetupStateManager.isComplete.resolves(false);
             const lockfile = createMockLockfile(2, { includeHubs: true });
@@ -1322,10 +1281,8 @@ suite('RepositoryActivationService - Setup Timing Behavior', () => {
             await service.checkAndPromptActivation();
 
             // Assert
-            assert.ok(!showInformationMessageStub.called, 
-                'Should not prompt for missing sources when setup is incomplete');
-            assert.ok(!mockStorage.getSources.called, 
-                'Should not check for sources when setup is incomplete');
+            expect(!showInformationMessageStub.called, 'Should not prompt for missing sources when setup is incomplete').toBeTruthy();
+            expect(!mockStorage.getSources.called, 'Should not check for sources when setup is incomplete').toBeTruthy();
         });
     });
 });

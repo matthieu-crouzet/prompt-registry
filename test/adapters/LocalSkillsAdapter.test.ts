@@ -3,7 +3,6 @@
  * Tests for local filesystem Anthropic-style skills repository adapter
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -11,7 +10,7 @@ import * as sinon from 'sinon';
 import { LocalSkillsAdapter } from '../../src/adapters/LocalSkillsAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('LocalSkillsAdapter Tests', () => {
+describe('LocalSkillsAdapter Tests', () => {
     let tempDir: string;
     let skillsDir: string;
 
@@ -68,17 +67,17 @@ Instructions for ${name}
         }
     }
 
-    setup(() => {
+    beforeEach(() => {
         createTempSkillsStructure();
     });
 
-    teardown(() => {
+    afterEach(() => {
         cleanupTempDir();
         sinon.restore();
     });
 
-    suite('Constructor', () => {
-        test('should create adapter with valid local path', () => {
+    describe('Constructor', () => {
+        it('should create adapter with valid local path', () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -89,10 +88,10 @@ Instructions for ${name}
             };
 
             const adapter = new LocalSkillsAdapter(source);
-            assert.strictEqual(adapter.type, 'local-skills');
+            expect(adapter.type).toBe('local-skills');
         });
 
-        test('should create adapter with file:// URL', () => {
+        it('should create adapter with file:// URL', () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -103,10 +102,10 @@ Instructions for ${name}
             };
 
             const adapter = new LocalSkillsAdapter(source);
-            assert.strictEqual(adapter.type, 'local-skills');
+            expect(adapter.type).toBe('local-skills');
         });
 
-        test('should throw error for invalid path', () => {
+        it('should throw error for invalid path', () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -116,14 +115,14 @@ Instructions for ${name}
                 priority: 1,
             };
 
-            assert.throws(() => {
+            expect(() => {
                 new LocalSkillsAdapter(source);
-            }, /Invalid local skills path/);
+            }).toThrow(/Invalid local skills path/);
         });
     });
 
-    suite('fetchBundles()', () => {
-        test('should discover skills from skills/ directory', async () => {
+    describe('fetchBundles()', () => {
+        it('should discover skills from skills/ directory', async () => {
             createSkill('algorithmic-art', {
                 name: 'algorithmic-art',
                 description: 'Creating algorithmic art using p5.js',
@@ -143,15 +142,15 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].name, 'algorithmic-art');
-            assert.strictEqual(bundles[0].description, 'Creating algorithmic art using p5.js');
-            assert.ok(bundles[0].id.includes('algorithmic-art'));
-            assert.ok(bundles[0].tags.includes('skill'));
-            assert.ok(bundles[0].tags.includes('local'));
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].name).toBe('algorithmic-art');
+            expect(bundles[0].description).toBe('Creating algorithmic art using p5.js');
+            expect(bundles[0].id.includes('algorithmic-art')).toBeTruthy();
+            expect(bundles[0].tags.includes('skill')).toBeTruthy();
+            expect(bundles[0].tags.includes('local')).toBeTruthy();
         });
 
-        test('should discover multiple skills', async () => {
+        it('should discover multiple skills', async () => {
             createSkill('skill-one', { description: 'First skill' });
             createSkill('skill-two', { description: 'Second skill' });
             createSkill('skill-three', { description: 'Third skill' });
@@ -168,18 +167,18 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 3);
+            expect(bundles.length).toBe(3);
             
             const skillOne = bundles.find(b => b.name === 'skill-one');
             const skillTwo = bundles.find(b => b.name === 'skill-two');
             const skillThree = bundles.find(b => b.name === 'skill-three');
             
-            assert.ok(skillOne);
-            assert.ok(skillTwo);
-            assert.ok(skillThree);
+            expect(skillOne).toBeTruthy();
+            expect(skillTwo).toBeTruthy();
+            expect(skillThree).toBeTruthy();
         });
 
-        test('should skip directories without SKILL.md', async () => {
+        it('should skip directories without SKILL.md', async () => {
             createSkill('valid-skill', { description: 'Valid skill' });
             
             // Create invalid skill directory without SKILL.md
@@ -199,11 +198,11 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].name, 'valid-skill');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].name).toBe('valid-skill');
         });
 
-        test('should handle empty skills directory', async () => {
+        it('should handle empty skills directory', async () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -216,12 +215,12 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
     });
 
-    suite('validate()', () => {
-        test('should validate directory with skills/ subdirectory', async () => {
+    describe('validate()', () => {
+        it('should validate directory with skills/ subdirectory', async () => {
             createSkill('test-skill', { description: 'Test skill' });
 
             const source: RegistrySource = {
@@ -236,12 +235,12 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
-            assert.strictEqual(result.bundlesFound, 1);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
+            expect(result.bundlesFound).toBe(1);
         });
 
-        test('should fail validation when skills/ directory is missing', async () => {
+        it('should fail validation when skills/ directory is missing', async () => {
             // Remove skills directory
             fs.rmSync(skillsDir, { recursive: true });
 
@@ -257,11 +256,11 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('skills')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('skills'))).toBeTruthy();
         });
 
-        test('should fail validation when directory does not exist', async () => {
+        it('should fail validation when directory does not exist', async () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -274,11 +273,11 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('not exist') || e.includes('not accessible')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('not exist') || e.includes('not accessible'))).toBeTruthy();
         });
 
-        test('should warn when no valid skills found', async () => {
+        it('should warn when no valid skills found', async () => {
             // skills/ directory exists but is empty
             const source: RegistrySource = {
                 id: 'test-local-skills',
@@ -292,13 +291,13 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.ok(result.warnings.some(w => w.includes('No valid skills')));
+            expect(result.valid).toBe(true);
+            expect(result.warnings.some(w => w.includes('No valid skills'))).toBeTruthy();
         });
     });
 
-    suite('fetchMetadata()', () => {
-        test('should return correct metadata', async () => {
+    describe('fetchMetadata()', () => {
+        it('should return correct metadata', async () => {
             createSkill('skill-one', { description: 'First skill' });
             createSkill('skill-two', { description: 'Second skill' });
 
@@ -314,15 +313,15 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const metadata = await adapter.fetchMetadata();
 
-            assert.strictEqual(metadata.bundleCount, 2);
-            assert.strictEqual(metadata.description, 'Local Skills Repository');
-            assert.ok(metadata.name);
-            assert.ok(metadata.lastUpdated);
+            expect(metadata.bundleCount).toBe(2);
+            expect(metadata.description).toBe('Local Skills Repository');
+            expect(metadata.name).toBeTruthy();
+            expect(metadata.lastUpdated).toBeTruthy();
         });
     });
 
-    suite('getManifestUrl()', () => {
-        test('should return file:// URL for skill manifest', () => {
+    describe('getManifestUrl()', () => {
+        it('should return file:// URL for skill manifest', () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -336,13 +335,13 @@ Instructions for ${name}
             const sourceName = path.basename(tempDir);
             const url = adapter.getManifestUrl(`local-skills-${sourceName}-test-skill`);
             
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('SKILL.md'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('SKILL.md')).toBeTruthy();
         });
     });
 
-    suite('getDownloadUrl()', () => {
-        test('should return file:// URL for skill directory', () => {
+    describe('getDownloadUrl()', () => {
+        it('should return file:// URL for skill directory', () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -356,13 +355,13 @@ Instructions for ${name}
             const sourceName = path.basename(tempDir);
             const url = adapter.getDownloadUrl(`local-skills-${sourceName}-test-skill`);
             
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('test-skill'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('test-skill')).toBeTruthy();
         });
     });
 
-    suite('downloadBundle()', () => {
-        test('should package skill as ZIP buffer', async () => {
+    describe('downloadBundle()', () => {
+        it('should package skill as ZIP buffer', async () => {
             createSkill('test-skill', {
                 description: 'Test skill for download',
                 additionalFiles: ['helper.md']
@@ -380,19 +379,19 @@ Instructions for ${name}
             const adapter = new LocalSkillsAdapter(source);
             const bundles = await adapter.fetchBundles();
             
-            assert.strictEqual(bundles.length, 1);
+            expect(bundles.length).toBe(1);
             
             const zipBuffer = await adapter.downloadBundle(bundles[0]);
             
-            assert.ok(Buffer.isBuffer(zipBuffer));
-            assert.ok(zipBuffer.length > 0);
+            expect(Buffer.isBuffer(zipBuffer)).toBeTruthy();
+            expect(zipBuffer.length > 0).toBeTruthy();
             
             // Verify it's a valid ZIP (starts with PK signature)
-            assert.strictEqual(zipBuffer[0], 0x50); // 'P'
-            assert.strictEqual(zipBuffer[1], 0x4B); // 'K'
+            expect(zipBuffer[0]).toBe(0x50); // 'P'
+            expect(zipBuffer[1]).toBe(0x4B); // 'K'
         });
 
-        test('should throw error for non-existent skill', async () => {
+        it('should throw error for non-existent skill', async () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -419,15 +418,12 @@ Instructions for ${name}
                 license: 'Unknown',
             };
 
-            await assert.rejects(
-                adapter.downloadBundle(fakeBundle as any),
-                /Skill not found/
-            );
+            await expect(adapter.downloadBundle(fakeBundle as any)).rejects.toThrow(/Skill not found/);
         });
     });
 
-    suite('getSkillSourcePath()', () => {
-        test('should return absolute path to skill directory', () => {
+    describe('getSkillSourcePath()', () => {
+        it('should return absolute path to skill directory', () => {
             createSkill('test-skill', { description: 'Test skill' });
 
             const source: RegistrySource = {
@@ -459,14 +455,14 @@ Instructions for ${name}
 
             const skillPath = adapter.getSkillSourcePath(mockBundle as any);
             
-            assert.ok(path.isAbsolute(skillPath));
-            assert.ok(skillPath.includes('test-skill'));
-            assert.strictEqual(skillPath, path.join(tempDir, 'skills', 'test-skill'));
+            expect(path.isAbsolute(skillPath)).toBeTruthy();
+            expect(skillPath.includes('test-skill')).toBeTruthy();
+            expect(skillPath).toBe(path.join(tempDir, 'skills', 'test-skill'));
         });
     });
 
-    suite('getSkillName()', () => {
-        test('should extract skill name from bundle ID', () => {
+    describe('getSkillName()', () => {
+        it('should extract skill name from bundle ID', () => {
             const source: RegistrySource = {
                 id: 'test-local-skills',
                 name: 'Test Local Skills',
@@ -496,7 +492,7 @@ Instructions for ${name}
 
             const skillName = adapter.getSkillName(mockBundle as any);
             
-            assert.strictEqual(skillName, 'my-awesome-skill');
+            expect(skillName).toBe('my-awesome-skill');
         });
     });
 });

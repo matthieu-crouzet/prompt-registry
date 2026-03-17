@@ -10,7 +10,6 @@
  * Requirements: 1.1, 1.2, 1.3, 1.4, 3.1, 3.2, 3.3
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -19,7 +18,7 @@ import nock from 'nock';
 import { createE2ETestContext, E2ETestContext, generateTestId } from '../helpers/e2eTestHelpers';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('E2E: Awesome Copilot Bundle Update Tests', () => {
+describe('E2E: Awesome Copilot Bundle Update Tests', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -56,8 +55,7 @@ Content: ${content}
         }
     });
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('awesome-copilot');
         
         // Create sinon sandbox for stubbing
@@ -103,8 +101,7 @@ Content: ${content}
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         await testContext.cleanup();
         sandbox.restore();
         nock.cleanAll();
@@ -159,25 +156,21 @@ Content: ${content}
             ]);
     }
 
-    suite('Test Setup Validation', () => {
-        test('should create isolated test context with unique storage path', async function() {
-            this.timeout(10000);
-            
+    describe('Test Setup Validation', () => {
+        it('should create isolated test context with unique storage path', async function() {
             // Verify test context was created
-            assert.ok(testContext, 'Test context should be created');
-            assert.ok(testContext.tempStoragePath, 'Temp storage path should exist');
-            assert.ok(fs.existsSync(testContext.tempStoragePath), 'Temp directory should exist');
+            expect(testContext, 'Test context should be created').toBeTruthy();
+            expect(testContext.tempStoragePath, 'Temp storage path should exist').toBeTruthy();
+            expect(fs.existsSync(testContext.tempStoragePath), 'Temp directory should exist').toBeTruthy();
             
             // Verify storage is initialized
             const paths = testContext.storage.getPaths();
-            assert.ok(fs.existsSync(paths.installed), 'Installed directory should exist');
+            expect(fs.existsSync(paths.installed), 'Installed directory should exist').toBeTruthy();
         });
     });
 
-    suite('Awesome Copilot Update Workflow', () => {
-        test('Example 1.1: Update command downloads from configured branch', async function() {
-            this.timeout(60000);
-            
+    describe('Awesome Copilot Update Workflow', () => {
+        it('Example 1.1: Update command downloads from configured branch', async function() {
             const sourceId = `${testId}-source`;
             const source = createMockSource(sourceId);
             const initialVersion = '1.0.0';
@@ -213,17 +206,17 @@ Content: ${content}
             
             // Step 3: Get available bundles and install
             const bundles = await testContext.registryManager.searchBundles({ sourceId });
-            assert.ok(bundles.length > 0, 'Should have bundles after sync');
+            expect(bundles.length > 0, 'Should have bundles after sync').toBeTruthy();
             
             const bundleToInstall = bundles.find(b => b.id === 'test-collection');
-            assert.ok(bundleToInstall, 'Should find test-collection bundle');
+            expect(bundleToInstall, 'Should find test-collection bundle').toBeTruthy();
             
             await testContext.registryManager.installBundle(bundleToInstall!.id, { scope: 'user' });
             
             // Verify initial installation
             const installedBefore = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedBefore.length, 1, 'Should have one installed bundle');
-            assert.strictEqual(installedBefore[0].version, initialVersion, 'Should have initial version');
+            expect(installedBefore.length, 'Should have one installed bundle').toBe(1);
+            expect(installedBefore[0].version, 'Should have initial version').toBe(initialVersion);
             
             // Clean up previous mocks and setup new ones for update
             nock.cleanAll();
@@ -260,18 +253,15 @@ Content: ${content}
             
             // Verify update occurred
             const installedAfter = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedAfter.length, 1, 'Should still have one installed bundle');
-            assert.strictEqual(installedAfter[0].version, updatedVersion, 
-                'Bundle should be updated to new version');
+            expect(installedAfter.length, 'Should still have one installed bundle').toBe(1);
+            expect(installedAfter[0].version, 'Bundle should be updated to new version').toBe(updatedVersion);
             
             // Verify the update was from the configured branch (main)
             // The nock mocks verify the correct URLs were called
-            assert.ok(true, 'Update downloaded from configured branch (main)');
+            expect(true, 'Update downloaded from configured branch (main)').toBeTruthy();
         });
 
-        test('Example 1.2: Bundle files are replaced after update', async function() {
-            this.timeout(60000);
-            
+        it('Example 1.2: Bundle files are replaced after update', async function() {
             const sourceId = `${testId}-source-files`;
             const source = createMockSource(sourceId);
             const initialVersion = '1.0.0';
@@ -300,7 +290,7 @@ Content: ${content}
             // Get bundle and install
             const bundles = await testContext.registryManager.searchBundles({ sourceId });
             const bundleToInstall = bundles.find(b => b.id === 'test-collection');
-            assert.ok(bundleToInstall, 'Should find test-collection bundle');
+            expect(bundleToInstall, 'Should find test-collection bundle').toBeTruthy();
             
             await testContext.registryManager.installBundle(bundleToInstall!.id, { scope: 'user' });
             
@@ -312,8 +302,7 @@ Content: ${content}
             const promptPath = path.join(installPath, 'prompts', 'test.prompt.md');
             if (fs.existsSync(promptPath)) {
                 const initialContent = fs.readFileSync(promptPath, 'utf-8');
-                assert.ok(initialContent.includes('INITIAL_CONTENT_MARKER'), 
-                    'Initial content should contain marker');
+                expect(initialContent.includes('INITIAL_CONTENT_MARKER'), 'Initial content should contain marker').toBeTruthy();
             }
             
             // Clean up and setup mocks for update
@@ -353,19 +342,14 @@ Content: ${content}
             
             if (fs.existsSync(newPromptPath)) {
                 const updatedContent = fs.readFileSync(newPromptPath, 'utf-8');
-                assert.ok(updatedContent.includes('UPDATED_CONTENT_MARKER'), 
-                    'Updated content should contain new marker');
-                assert.ok(!updatedContent.includes('INITIAL_CONTENT_MARKER'), 
-                    'Updated content should not contain old marker');
+                expect(updatedContent.includes('UPDATED_CONTENT_MARKER'), 'Updated content should contain new marker').toBeTruthy();
+                expect(!updatedContent.includes('INITIAL_CONTENT_MARKER'), 'Updated content should not contain old marker').toBeTruthy();
             }
             
-            assert.strictEqual(installedAfter[0].version, updatedVersion, 
-                'Version should be updated');
+            expect(installedAfter[0].version, 'Version should be updated').toBe(updatedVersion);
         });
 
-        test('Example 1.3: Installation record reflects new version', async function() {
-            this.timeout(60000);
-            
+        it('Example 1.3: Installation record reflects new version', async function() {
             const sourceId = `${testId}-source-record`;
             const source = createMockSource(sourceId);
             const initialVersion = '1.0.0';
@@ -398,8 +382,7 @@ Content: ${content}
             
             // Verify initial installation record
             const recordBefore = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(recordBefore[0].version, initialVersion, 
-                'Initial record should have initial version');
+            expect(recordBefore[0].version, 'Initial record should have initial version').toBe(initialVersion);
             
             // Clean up and setup mocks for update
             nock.cleanAll();
@@ -433,16 +416,12 @@ Content: ${content}
             
             // Verify installation record reflects new version
             const recordAfter = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(recordAfter.length, 1, 'Should have one installation record');
-            assert.strictEqual(recordAfter[0].version, updatedVersion, 
-                'Installation record should reflect new version');
-            assert.strictEqual(recordAfter[0].bundleId, 'test-collection', 
-                'Bundle ID should remain the same');
+            expect(recordAfter.length, 'Should have one installation record').toBe(1);
+            expect(recordAfter[0].version, 'Installation record should reflect new version').toBe(updatedVersion);
+            expect(recordAfter[0].bundleId, 'Bundle ID should remain the same').toBe('test-collection');
         });
 
-        test('Example 1.4: Installation scope is preserved', async function() {
-            this.timeout(60000);
-            
+        it('Example 1.4: Installation scope is preserved', async function() {
             const sourceId = `${testId}-source-scope`;
             const source = createMockSource(sourceId);
             const initialVersion = '1.0.0';
@@ -476,8 +455,7 @@ Content: ${content}
             
             // Verify initial scope
             const installedBefore = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedBefore[0].scope, installScope, 
-                'Initial installation should have correct scope');
+            expect(installedBefore[0].scope, 'Initial installation should have correct scope').toBe(installScope);
             
             // Clean up and setup mocks for update
             nock.cleanAll();
@@ -511,10 +489,8 @@ Content: ${content}
             
             // Verify scope is preserved after update
             const installedAfter = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedAfter[0].scope, installScope, 
-                'Installation scope should be preserved after update');
-            assert.strictEqual(installedAfter[0].version, updatedVersion, 
-                'Version should be updated');
+            expect(installedAfter[0].scope, 'Installation scope should be preserved after update').toBe(installScope);
+            expect(installedAfter[0].version, 'Version should be updated').toBe(updatedVersion);
         });
     });
 });

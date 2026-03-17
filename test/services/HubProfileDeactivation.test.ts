@@ -3,14 +3,13 @@
  * Tests for deactivating profiles and cleanup
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubManager } from '../../src/services/HubManager';
 import { HubConfig } from '../../src/types/hub';
 
-suite('Hub Profile Deactivation', () => {
+describe('Hub Profile Deactivation', () => {
     let storage: HubStorage;
     let hubManager: HubManager;
     let tempDir: string;
@@ -74,7 +73,7 @@ suite('Hub Profile Deactivation', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-hub-deactivation');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -83,14 +82,14 @@ suite('Hub Profile Deactivation', () => {
         hubManager = new HubManager(storage, {} as any, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Profile Deactivation', () => {
-        test('should deactivate profile and remove activation state', async () => {
+    describe('Profile Deactivation', () => {
+        it('should deactivate profile and remove activation state', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -100,15 +99,15 @@ suite('Hub Profile Deactivation', () => {
             // Deactivate
             const result = await hubManager.deactivateProfile('test-hub', 'profile-1');
 
-            assert.ok(result.success);
-            assert.strictEqual(result.profileId, 'profile-1');
+            expect(result.success).toBeTruthy();
+            expect(result.profileId).toBe('profile-1');
 
             // Verify activation state removed
             const state = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.strictEqual(state, null);
+            expect(state).toBe(null);
         });
 
-        test('should mark profile as inactive in hub config', async () => {
+        it('should mark profile as inactive in hub config', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -117,39 +116,39 @@ suite('Hub Profile Deactivation', () => {
 
             const updated = await storage.loadHub('test-hub');
             const profile = updated.config.profiles.find(p => p.id === 'profile-1');
-            assert.strictEqual(profile?.active, false);
+            expect(profile?.active).toBe(false);
         });
 
-        test('should handle deactivating non-active profile', async () => {
+        it('should handle deactivating non-active profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             const result = await hubManager.deactivateProfile('test-hub', 'profile-1');
 
             // Should succeed even if profile wasn't active
-            assert.ok(result.success);
+            expect(result.success).toBeTruthy();
         });
 
-        test('should return failure for non-existent profile', async () => {
+        it('should return failure for non-existent profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             const result = await hubManager.deactivateProfile('test-hub', 'non-existent');
 
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error);
+            expect(result.success).toBe(false);
+            expect(result.error).toBeTruthy();
         });
 
-        test('should return failure for non-existent hub', async () => {
+        it('should return failure for non-existent hub', async () => {
             const result = await hubManager.deactivateProfile('non-existent', 'profile-1');
 
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error);
+            expect(result.success).toBe(false);
+            expect(result.error).toBeTruthy();
         });
     });
 
-    suite('Profile Switching', () => {
-        test('should switch from one profile to another', async () => {
+    describe('Profile Switching', () => {
+        it('should switch from one profile to another', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -161,21 +160,21 @@ suite('Hub Profile Deactivation', () => {
 
             // Verify first is deactivated
             const state1 = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.strictEqual(state1, null);
+            expect(state1).toBe(null);
 
             // Verify second is active
             const state2 = await storage.getProfileActivationState('test-hub', 'profile-2');
-            assert.ok(state2);
+            expect(state2).toBeTruthy();
 
             const updated = await storage.loadHub('test-hub');
             const profile1 = updated.config.profiles.find(p => p.id === 'profile-1');
             const profile2 = updated.config.profiles.find(p => p.id === 'profile-2');
 
-            assert.strictEqual(profile1?.active, false);
-            assert.strictEqual(profile2?.active, true);
+            expect(profile1?.active).toBe(false);
+            expect(profile2?.active).toBe(true);
         });
 
-        test('should track bundle changes when switching', async () => {
+        it('should track bundle changes when switching', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -186,14 +185,14 @@ suite('Hub Profile Deactivation', () => {
             const state2 = await storage.getProfileActivationState('test-hub', 'profile-2');
 
             // Different profiles should have different bundle lists
-            assert.ok(state1);
-            assert.ok(state2);
-            assert.notDeepStrictEqual(state1.syncedBundles, state2.syncedBundles);
+            expect(state1).toBeTruthy();
+            expect(state2).toBeTruthy();
+            expect(state1.syncedBundles).not.toEqual(state2.syncedBundles);
         });
     });
 
-    suite('Get Active Profile', () => {
-        test('should get currently active profile for hub', async () => {
+    describe('Get Active Profile', () => {
+        it('should get currently active profile for hub', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -201,28 +200,28 @@ suite('Hub Profile Deactivation', () => {
 
             const active = await hubManager.getActiveProfile('test-hub');
 
-            assert.ok(active);
-            assert.strictEqual(active.profileId, 'profile-1');
-            assert.strictEqual(active.hubId, 'test-hub');
+            expect(active).toBeTruthy();
+            expect(active.profileId).toBe('profile-1');
+            expect(active.hubId).toBe('test-hub');
         });
 
-        test('should return null when no profile is active', async () => {
+        it('should return null when no profile is active', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             const active = await hubManager.getActiveProfile('test-hub');
 
-            assert.strictEqual(active, null);
+            expect(active).toBe(null);
         });
 
-        test('should return null for non-existent hub', async () => {
+        it('should return null for non-existent hub', async () => {
             const active = await hubManager.getActiveProfile('non-existent');
-            assert.strictEqual(active, null);
+            expect(active).toBe(null);
         });
     });
 
-    suite('List All Active Profiles', () => {
-        test('should list all active profiles across all hubs', async () => {
+    describe('List All Active Profiles', () => {
+        it('should list all active profiles across all hubs', async () => {
             const hub1 = createTestHub();
             const hub2 = createTestHub();
             await storage.saveHub('hub-1', hub1, { type: 'github', location: 'test/repo1' });
@@ -233,53 +232,53 @@ suite('Hub Profile Deactivation', () => {
 
             const active = await hubManager.listAllActiveProfiles();
 
-            assert.strictEqual(active.length, 2);
-            assert.ok(active.some(p => p.hubId === 'hub-1'));
-            assert.ok(active.some(p => p.hubId === 'hub-2'));
+            expect(active.length).toBe(2);
+            expect(active.some(p => p.hubId === 'hub-1')).toBeTruthy();
+            expect(active.some(p => p.hubId === 'hub-2')).toBeTruthy();
         });
 
-        test('should return empty array when no profiles are active', async () => {
+        it('should return empty array when no profiles are active', async () => {
             const active = await hubManager.listAllActiveProfiles();
-            assert.strictEqual(active.length, 0);
+            expect(active.length).toBe(0);
         });
 
-        test('should update list after deactivation', async () => {
+        it('should update list after deactivation', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
             let active = await hubManager.listAllActiveProfiles();
-            assert.strictEqual(active.length, 1);
+            expect(active.length).toBe(1);
 
             await hubManager.deactivateProfile('test-hub', 'profile-1');
             active = await hubManager.listAllActiveProfiles();
-            assert.strictEqual(active.length, 0);
+            expect(active.length).toBe(0);
         });
     });
 
-    suite('Deactivation Result', () => {
-        test('should return deactivation result with profile info', async () => {
+    describe('Deactivation Result', () => {
+        it('should return deactivation result with profile info', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
             const result = await hubManager.deactivateProfile('test-hub', 'profile-1');
 
-            assert.ok(result.success);
-            assert.strictEqual(result.hubId, 'test-hub');
-            assert.strictEqual(result.profileId, 'profile-1');
+            expect(result.success).toBeTruthy();
+            expect(result.hubId).toBe('test-hub');
+            expect(result.profileId).toBe('profile-1');
         });
 
-        test('should include bundle IDs that were removed', async () => {
+        it('should include bundle IDs that were removed', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
             const result = await hubManager.deactivateProfile('test-hub', 'profile-1');
 
-            assert.ok(result.success);
-            assert.ok(result.removedBundles);
-            assert.ok(Array.isArray(result.removedBundles));
+            expect(result.success).toBeTruthy();
+            expect(result.removedBundles).toBeTruthy();
+            expect(Array.isArray(result.removedBundles)).toBeTruthy();
         });
     });
 });

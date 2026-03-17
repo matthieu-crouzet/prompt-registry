@@ -3,13 +3,12 @@
  * Tests for profile activation state management and persistence
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubConfig, ProfileActivationState } from '../../src/types/hub';
 
-suite('Hub Profile Activation State', () => {
+describe('Hub Profile Activation State', () => {
     let storage: HubStorage;
     let tempDir: string;
 
@@ -71,7 +70,7 @@ suite('Hub Profile Activation State', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-hub-activation');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -79,14 +78,14 @@ suite('Hub Profile Activation State', () => {
         storage = new HubStorage(tempDir);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Activation State Storage', () => {
-        test('should save profile activation state', async () => {
+    describe('Activation State Storage', () => {
+        it('should save profile activation state', async () => {
             const state: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -97,18 +96,18 @@ suite('Hub Profile Activation State', () => {
             await storage.saveProfileActivationState('test-hub', 'profile-1', state);
 
             const retrieved = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(retrieved, "Expected activation state to exist");
-            assert.strictEqual(retrieved.hubId, 'test-hub');
-            assert.strictEqual(retrieved.profileId, 'profile-1');
-            assert.strictEqual(retrieved.syncedBundles.length, 2);
+            expect(retrieved, "Expected activation state to exist").toBeTruthy();
+            expect(retrieved.hubId).toBe('test-hub');
+            expect(retrieved.profileId).toBe('profile-1');
+            expect(retrieved.syncedBundles.length).toBe(2);
         });
 
-        test('should return null for non-existent activation state', async () => {
+        it('should return null for non-existent activation state', async () => {
             const state = await storage.getProfileActivationState('non-existent', 'profile-1');
-            assert.strictEqual(state, null);
+            expect(state).toBe(null);
         });
 
-        test('should update existing activation state', async () => {
+        it('should update existing activation state', async () => {
             const state1: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -128,11 +127,11 @@ suite('Hub Profile Activation State', () => {
             await storage.saveProfileActivationState('test-hub', 'profile-1', state2);
 
             const retrieved = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(retrieved, "Expected activation state to exist");
-            assert.strictEqual(retrieved.syncedBundles.length, 2);
+            expect(retrieved, "Expected activation state to exist").toBeTruthy();
+            expect(retrieved.syncedBundles.length).toBe(2);
         });
 
-        test('should delete activation state', async () => {
+        it('should delete activation state', async () => {
             const state: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -144,12 +143,12 @@ suite('Hub Profile Activation State', () => {
             await storage.deleteProfileActivationState('test-hub', 'profile-1');
 
             const retrieved = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.strictEqual(retrieved, null);
+            expect(retrieved).toBe(null);
         });
     });
 
-    suite('Active Profile Tracking', () => {
-        test('should list all active profiles', async () => {
+    describe('Active Profile Tracking', () => {
+        it('should list all active profiles', async () => {
             const state1: ProfileActivationState = {
                 hubId: 'hub-1',
                 profileId: 'profile-1',
@@ -168,15 +167,15 @@ suite('Hub Profile Activation State', () => {
             await storage.saveProfileActivationState('hub-2', 'profile-2', state2);
 
             const active = await storage.listActiveProfiles();
-            assert.strictEqual(active.length, 2);
+            expect(active.length).toBe(2);
         });
 
-        test('should return empty array when no profiles are active', async () => {
+        it('should return empty array when no profiles are active', async () => {
             const active = await storage.listActiveProfiles();
-            assert.strictEqual(active.length, 0);
+            expect(active.length).toBe(0);
         });
 
-        test('should get active profile for specific hub', async () => {
+        it('should get active profile for specific hub', async () => {
             const state: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -187,17 +186,17 @@ suite('Hub Profile Activation State', () => {
             await storage.saveProfileActivationState('test-hub', 'profile-1', state);
 
             const active = await storage.getActiveProfileForHub('test-hub');
-            assert.strictEqual(active?.profileId, 'profile-1');
+            expect(active?.profileId).toBe('profile-1');
         });
 
-        test('should return null when hub has no active profile', async () => {
+        it('should return null when hub has no active profile', async () => {
             const active = await storage.getActiveProfileForHub('test-hub');
-            assert.strictEqual(active, null);
+            expect(active).toBe(null);
         });
     });
 
-    suite('Profile Active Flag Sync', () => {
-        test('should mark profile as active in hub config', async () => {
+    describe('Profile Active Flag Sync', () => {
+        it('should mark profile as active in hub config', async () => {
             const hub = createSampleHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -205,10 +204,10 @@ suite('Hub Profile Activation State', () => {
 
             const updated = await storage.loadHub('test-hub');
             const profile = updated.config.profiles.find(p => p.id === 'profile-1');
-            assert.strictEqual(profile?.active, true);
+            expect(profile?.active).toBe(true);
         });
 
-        test('should mark profile as inactive in hub config', async () => {
+        it('should mark profile as inactive in hub config', async () => {
             const hub = createSampleHub();
             hub.profiles[0].active = true;
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
@@ -217,10 +216,10 @@ suite('Hub Profile Activation State', () => {
 
             const updated = await storage.loadHub('test-hub');
             const profile = updated.config.profiles.find(p => p.id === 'profile-1');
-            assert.strictEqual(profile?.active, false);
+            expect(profile?.active).toBe(false);
         });
 
-        test('should handle multiple profiles in same hub', async () => {
+        it('should handle multiple profiles in same hub', async () => {
             const hub = createSampleHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -230,26 +229,20 @@ suite('Hub Profile Activation State', () => {
             const updated = await storage.loadHub('test-hub');
             const profile1 = updated.config.profiles.find(p => p.id === 'profile-1');
             const profile2 = updated.config.profiles.find(p => p.id === 'profile-2');
-            assert.strictEqual(profile1?.active, true);
-            assert.strictEqual(profile2?.active, false);
+            expect(profile1?.active).toBe(true);
+            expect(profile2?.active).toBe(false);
         });
 
-        test('should throw error if profile not found', async () => {
+        it('should throw error if profile not found', async () => {
             const hub = createSampleHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
-            await assert.rejects(
-                async () => await storage.setProfileActiveFlag('test-hub', 'non-existent', true),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Profile not found'));
-                    return true;
-                }
-            );
+            await expect(storage.setProfileActiveFlag('test-hub', 'non-existent', true)).rejects.toThrow(/Profile not found/);
         });
     });
 
-    suite('Activation State Persistence', () => {
-        test('should persist activation state across storage instances', async () => {
+    describe('Activation State Persistence', () => {
+        it('should persist activation state across storage instances', async () => {
             const state: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -263,14 +256,14 @@ suite('Hub Profile Activation State', () => {
             const storage2 = new HubStorage(tempDir);
             const retrieved = await storage2.getProfileActivationState('test-hub', 'profile-1');
 
-            assert.ok(retrieved, "Expected activation state to exist");
+            expect(retrieved, "Expected activation state to exist").toBeTruthy();
 
-            assert.strictEqual(retrieved.hubId, 'test-hub');
-            assert.strictEqual(retrieved.profileId, 'profile-1');
-            assert.strictEqual(retrieved.syncedBundles.length, 1);
+            expect(retrieved.hubId).toBe('test-hub');
+            expect(retrieved.profileId).toBe('profile-1');
+            expect(retrieved.syncedBundles.length).toBe(1);
         });
 
-        test('should persist active flag across storage instances', async () => {
+        it('should persist active flag across storage instances', async () => {
             const hub = createSampleHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await storage.setProfileActiveFlag('test-hub', 'profile-1', true);
@@ -280,12 +273,12 @@ suite('Hub Profile Activation State', () => {
             const updated = await storage2.loadHub('test-hub');
             const profile = updated.config.profiles.find(p => p.id === 'profile-1');
 
-            assert.strictEqual(profile?.active, true);
+            expect(profile?.active).toBe(true);
         });
     });
 
-    suite('Bundle Sync Tracking', () => {
-        test('should track synced bundles in activation state', async () => {
+    describe('Bundle Sync Tracking', () => {
+        it('should track synced bundles in activation state', async () => {
             const state: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -296,11 +289,11 @@ suite('Hub Profile Activation State', () => {
             await storage.saveProfileActivationState('test-hub', 'profile-1', state);
 
             const retrieved = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(retrieved, "Expected activation state to exist");
-            assert.deepStrictEqual(retrieved.syncedBundles, ['bundle-1', 'bundle-2', 'bundle-3']);
+            expect(retrieved, "Expected activation state to exist").toBeTruthy();
+            expect(retrieved.syncedBundles).toEqual(['bundle-1', 'bundle-2', 'bundle-3']);
         });
 
-        test('should handle empty synced bundles list', async () => {
+        it('should handle empty synced bundles list', async () => {
             const state: ProfileActivationState = {
                 hubId: 'test-hub',
                 profileId: 'profile-1',
@@ -311,8 +304,8 @@ suite('Hub Profile Activation State', () => {
             await storage.saveProfileActivationState('test-hub', 'profile-1', state);
 
             const retrieved = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(retrieved, "Expected activation state to exist");
-            assert.strictEqual(retrieved.syncedBundles.length, 0);
+            expect(retrieved, "Expected activation state to exist").toBeTruthy();
+            expect(retrieved.syncedBundles.length).toBe(0);
         });
     });
 });

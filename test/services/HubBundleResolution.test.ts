@@ -3,14 +3,13 @@
  * Tests for resolving bundle references to downloadable sources
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubManager } from '../../src/services/HubManager';
 import { HubConfig } from '../../src/types/hub';
 
-suite('Hub Bundle Resolution', () => {
+describe('Hub Bundle Resolution', () => {
     let storage: HubStorage;
     let hubManager: HubManager;
     let tempDir: string;
@@ -80,7 +79,7 @@ suite('Hub Bundle Resolution', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-hub-bundle-resolution');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -89,50 +88,44 @@ suite('Hub Bundle Resolution', () => {
         hubManager = new HubManager(storage, {} as any, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Source Resolution', () => {
-        test('should resolve source by ID', async () => {
+    describe('Source Resolution', () => {
+        it('should resolve source by ID', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const source = await hubManager.resolveSource('test-hub', 'github-source');
 
-            assert.ok(source);
-            assert.strictEqual(source.id, 'github-source');
-            assert.strictEqual(source.type, 'github');
-            assert.strictEqual(source.url, 'github:test/repo');
+            expect(source).toBeTruthy();
+            expect(source.id).toBe('github-source');
+            expect(source.type).toBe('github');
+            expect(source.url).toBe('github:test/repo');
         });
 
-        test('should throw error for non-existent source', async () => {
+        it('should throw error for non-existent source', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
-            await assert.rejects(
-                async () => await hubManager.resolveSource('test-hub', 'non-existent'),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Source not found'));
-                    return true;
-                }
-            );
+            await expect(hubManager.resolveSource('test-hub', 'non-existent')).rejects.toThrow(/Source not found/);
         });
 
-        test('should handle disabled sources', async () => {
+        it('should handle disabled sources', async () => {
             const hub = createHubWithSources();
             hub.sources[0].enabled = false;
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const source = await hubManager.resolveSource('test-hub', 'github-source');
-            assert.strictEqual(source.enabled, false);
+            expect(source.enabled).toBe(false);
         });
     });
 
-    suite('Bundle URL Resolution', () => {
-        test('should resolve GitHub bundle URL', async () => {
+    describe('Bundle URL Resolution', () => {
+        it('should resolve GitHub bundle URL', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
@@ -143,11 +136,11 @@ suite('Hub Bundle Resolution', () => {
                 required: true
             });
 
-            assert.ok(url);
-            assert.ok(url.includes('bundle-1'));
+            expect(url).toBeTruthy();
+            expect(url.includes('bundle-1')).toBeTruthy();
         });
 
-        test('should resolve URL source bundle URL', async () => {
+        it('should resolve URL source bundle URL', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
@@ -158,11 +151,11 @@ suite('Hub Bundle Resolution', () => {
                 required: false
             });
 
-            assert.ok(url);
-            assert.ok(url.includes('bundle-2'));
+            expect(url).toBeTruthy();
+            expect(url.includes('bundle-2')).toBeTruthy();
         });
 
-        test('should handle latest version', async () => {
+        it('should handle latest version', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
@@ -173,105 +166,93 @@ suite('Hub Bundle Resolution', () => {
                 required: true
             });
 
-            assert.ok(url);
+            expect(url).toBeTruthy();
             // Latest should resolve to a valid URL
         });
 
-        test('should throw error for invalid source in bundle', async () => {
+        it('should throw error for invalid source in bundle', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
-            await assert.rejects(
-                async () => await hubManager.resolveBundleUrl('test-hub', {
+            await expect(hubManager.resolveBundleUrl('test-hub', {
                     id: 'bundle-x',
                     version: '1.0.0',
                     source: 'non-existent-source',
                     required: true
-                }),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Source not found'));
-                    return true;
-                }
-            );
+                })).rejects.toThrow(/Source not found/);
         });
     });
 
-    suite('Profile Bundle Resolution', () => {
-        test('should resolve all bundles in profile', async () => {
+    describe('Profile Bundle Resolution', () => {
+        it('should resolve all bundles in profile', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const resolved = await hubManager.resolveProfileBundles('test-hub', 'test-profile');
 
-            assert.strictEqual(resolved.length, 3);
+            expect(resolved.length).toBe(3);
             // URL is no longer populated by resolveProfileBundles
-            assert.ok(resolved.every(b => b.bundle));
+            expect(resolved.every(b => b.bundle)).toBeTruthy();
         });
 
-        test('should include bundle metadata in resolution', async () => {
+        it('should include bundle metadata in resolution', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const resolved = await hubManager.resolveProfileBundles('test-hub', 'test-profile');
 
             const bundle1 = resolved.find(r => r.bundle.id === 'bundle-1');
-            assert.ok(bundle1);
-            assert.strictEqual(bundle1.bundle.version, '1.0.0');
-            assert.strictEqual(bundle1.bundle.required, true);
-            assert.strictEqual(bundle1.bundle.source, 'github-source');
+            expect(bundle1).toBeTruthy();
+            expect(bundle1.bundle.version).toBe('1.0.0');
+            expect(bundle1.bundle.required).toBe(true);
+            expect(bundle1.bundle.source).toBe('github-source');
         });
 
-        test('should handle profile with no bundles', async () => {
+        it('should handle profile with no bundles', async () => {
             const hub = createHubWithSources();
             hub.profiles[0].bundles = [];
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const resolved = await hubManager.resolveProfileBundles('test-hub', 'test-profile');
 
-            assert.strictEqual(resolved.length, 0);
+            expect(resolved.length).toBe(0);
         });
 
-        test('should throw error for non-existent profile', async () => {
+        it('should throw error for non-existent profile', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
-            await assert.rejects(
-                async () => await hubManager.resolveProfileBundles('test-hub', 'non-existent'),
-                (err: Error) => {
-                    assert.ok(err.message.includes('Profile not found'));
-                    return true;
-                }
-            );
+            await expect(hubManager.resolveProfileBundles('test-hub', 'non-existent')).rejects.toThrow(/Profile not found/);
         });
     });
 
-    suite('Required vs Optional Bundles', () => {
-        test('should identify required bundles', async () => {
+    describe('Required vs Optional Bundles', () => {
+        it('should identify required bundles', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const resolved = await hubManager.resolveProfileBundles('test-hub', 'test-profile');
             const required = resolved.filter(r => r.bundle.required);
 
-            assert.strictEqual(required.length, 2);
-            assert.ok(required.some(r => r.bundle.id === 'bundle-1'));
-            assert.ok(required.some(r => r.bundle.id === 'bundle-3'));
+            expect(required.length).toBe(2);
+            expect(required.some(r => r.bundle.id === 'bundle-1')).toBeTruthy();
+            expect(required.some(r => r.bundle.id === 'bundle-3')).toBeTruthy();
         });
 
-        test('should identify optional bundles', async () => {
+        it('should identify optional bundles', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const resolved = await hubManager.resolveProfileBundles('test-hub', 'test-profile');
             const optional = resolved.filter(r => !r.bundle.required);
 
-            assert.strictEqual(optional.length, 1);
-            assert.strictEqual(optional[0].bundle.id, 'bundle-2');
+            expect(optional.length).toBe(1);
+            expect(optional[0].bundle.id).toBe('bundle-2');
         });
     });
 
-    suite('Source Priority', () => {
-        test('should include source priority in resolution', async () => {
+    describe('Source Priority', () => {
+        it('should include source priority in resolution', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
@@ -279,45 +260,45 @@ suite('Hub Bundle Resolution', () => {
 
             // Check that source priority is accessible
             const bundle1 = resolved.find(r => r.bundle.id === 'bundle-1');
-            assert.ok(bundle1);
+            expect(bundle1).toBeTruthy();
             
             const source1 = await hubManager.resolveSource('test-hub', bundle1.bundle.source);
-            assert.strictEqual(source1.priority, 1);
+            expect(source1.priority).toBe(1);
         });
 
-        test('should handle multiple sources with different priorities', async () => {
+        it('should handle multiple sources with different priorities', async () => {
             const hub = createHubWithSources();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             const source1 = await hubManager.resolveSource('test-hub', 'github-source');
             const source2 = await hubManager.resolveSource('test-hub', 'url-source');
 
-            assert.strictEqual(source1.priority, 1);
-            assert.strictEqual(source2.priority, 2);
-            assert.ok(source2.priority > source1.priority);
+            expect(source1.priority).toBe(1);
+            expect(source2.priority).toBe(2);
+            expect(source2.priority > source1.priority).toBeTruthy();
         });
     });
 
-    suite('Bundle Resolution Error Handling', () => {
-        test('should handle disabled source gracefully', async () => {
+    describe('Bundle Resolution Error Handling', () => {
+        it('should handle disabled source gracefully', async () => {
             const hub = createHubWithSources();
             hub.sources[0].enabled = false;
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             // Should still resolve but mark source as disabled
             const source = await hubManager.resolveSource('test-hub', 'github-source');
-            assert.strictEqual(source.enabled, false);
+            expect(source.enabled).toBe(false);
         });
 
-        test('should resolve bundles even with missing source reference', async () => {
+        it('should resolve bundles even with missing source reference', async () => {
             const hub = createHubWithSources();
             hub.profiles[0].bundles[0].source = 'missing-source';
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/hub' });
 
             // resolveProfileBundles no longer validates sources - that happens during installation
             const resolved = await hubManager.resolveProfileBundles('test-hub', 'test-profile');
-            assert.ok(resolved.length > 0);
-            assert.strictEqual(resolved[0].bundle.source, 'missing-source');
+            expect(resolved.length > 0).toBeTruthy();
+            expect(resolved[0].bundle.source).toBe('missing-source');
         });
     });
 });

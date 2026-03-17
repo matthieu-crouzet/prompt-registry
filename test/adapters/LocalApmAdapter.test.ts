@@ -3,12 +3,11 @@
  * Tests local filesystem-based APM package loading
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import { LocalApmAdapter } from '../../src/adapters/LocalApmAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('LocalApmAdapter', () => {
+describe('LocalApmAdapter', () => {
     const fixturesPath = path.join(__dirname, '../fixtures/apm');
     const singlePackagePath = path.join(fixturesPath, 'single-package');
     const monorepoPath = path.join(fixturesPath, 'monorepo');
@@ -22,125 +21,122 @@ suite('LocalApmAdapter', () => {
         priority: 1,
     };
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid local path', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid local path', () => {
             const adapter = new LocalApmAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'local-apm');
+            expect(adapter.type).toBe('local-apm');
         });
 
-        test('should accept file:// URL', () => {
+        it('should accept file:// URL', () => {
             const source = { ...mockSource, url: `file://${singlePackagePath}` };
             const adapter = new LocalApmAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should throw error for invalid path format', () => {
+        it('should throw error for invalid path format', () => {
             const source = { ...mockSource, url: 'http://invalid.com/path' };
-            assert.throws(() => new LocalApmAdapter(source), /Invalid local path/);
+            expect(() => new LocalApmAdapter(source)).toThrow(/Invalid local path/);
         });
 
-        test('should accept paths starting with ~/', () => {
+        it('should accept paths starting with ~/', () => {
             // This test validates path format acceptance, not actual resolution
             const source = { ...mockSource, url: '~/some/path' };
             const adapter = new LocalApmAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
     });
 
-    suite('fetchMetadata', () => {
-        test('should fetch local APM package metadata', async () => {
+    describe('fetchMetadata', () => {
+        it('should fetch local APM package metadata', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
-            assert.ok(metadata);
-            assert.strictEqual(typeof metadata.name, 'string');
-            assert.strictEqual(typeof metadata.description, 'string');
-            assert.strictEqual(typeof metadata.bundleCount, 'number');
-            assert.ok(metadata.bundleCount >= 0);
-            assert.ok(metadata.lastUpdated);
+            expect(metadata).toBeTruthy();
+            expect(typeof metadata.name).toBe('string');
+            expect(typeof metadata.description).toBe('string');
+            expect(typeof metadata.bundleCount).toBe('number');
+            expect(metadata.bundleCount >= 0).toBeTruthy();
+            expect(metadata.lastUpdated).toBeTruthy();
         });
 
-        test('should report correct package count for single package', async () => {
+        it('should report correct package count for single package', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
-            assert.strictEqual(metadata.bundleCount, 1);
+            expect(metadata.bundleCount).toBe(1);
         });
 
-        test('should throw error for non-existent directory', async () => {
+        it('should throw error for non-existent directory', async () => {
             const source = { ...mockSource, url: '/non/existent/path' };
             const adapter = new LocalApmAdapter(source);
 
-            await assert.rejects(
-                () => adapter.fetchMetadata(),
-                /not found|does not exist/i
-            );
+            await expect(() => adapter.fetchMetadata()).rejects.toThrow(/not found|does not exist/i);
         });
     });
 
-    suite('fetchBundles - Single Package', () => {
-        test('should discover apm.yml at root', async () => {
+    describe('fetchBundles - Single Package', () => {
+        it('should discover apm.yml at root', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.ok(Array.isArray(bundles));
-            assert.strictEqual(bundles.length, 1);
+            expect(Array.isArray(bundles)).toBeTruthy();
+            expect(bundles.length).toBe(1);
         });
 
-        test('should parse apm.yml correctly', async () => {
-            const adapter = new LocalApmAdapter(mockSource);
-            const bundles = await adapter.fetchBundles();
-
-            const bundle = bundles[0];
-            assert.strictEqual(bundle.name, 'test-apm-package');
-            assert.strictEqual(bundle.version, '1.2.0');
-            assert.strictEqual(bundle.description, 'A test APM package for unit testing');
-            assert.strictEqual(bundle.author, 'Test Author');
-            assert.ok(Array.isArray(bundle.tags));
-            assert.ok(bundle.tags.includes('testing'));
-            assert.ok(bundle.tags.includes('apm'));
-            assert.ok(bundle.tags.includes('local'));
-        });
-
-        test('should include all bundle metadata', async () => {
-            const adapter = new LocalApmAdapter(mockSource);
-            const bundles = await adapter.fetchBundles();
-
-            for (const bundle of bundles) {
-                assert.ok(bundle.id);
-                assert.ok(bundle.name);
-                assert.ok(bundle.version);
-                assert.ok(bundle.description);
-                assert.ok(bundle.author);
-                assert.strictEqual(bundle.sourceId, 'test-local-apm');
-                assert.ok(Array.isArray(bundle.environments));
-                assert.ok(Array.isArray(bundle.tags));
-                assert.ok(bundle.lastUpdated);
-                assert.ok(bundle.downloadUrl);
-                assert.ok(bundle.manifestUrl);
-                assert.ok(bundle.license);
-            }
-        });
-
-        test('should handle file:// URLs in download/manifest URLs', async () => {
-            const adapter = new LocalApmAdapter(mockSource);
-            const bundles = await adapter.fetchBundles();
-
-            for (const bundle of bundles) {
-                assert.ok(bundle.downloadUrl.startsWith('file://'));
-                assert.ok(bundle.manifestUrl.startsWith('file://'));
-            }
-        });
-
-        test('should infer cloud environment from azure tag', async () => {
+        it('should parse apm.yml correctly', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             const bundle = bundles[0];
-            assert.ok(bundle.environments.includes('cloud'));
+            expect(bundle.name).toBe('test-apm-package');
+            expect(bundle.version).toBe('1.2.0');
+            expect(bundle.description).toBe('A test APM package for unit testing');
+            expect(bundle.author).toBe('Test Author');
+            expect(Array.isArray(bundle.tags)).toBeTruthy();
+            expect(bundle.tags.includes('testing')).toBeTruthy();
+            expect(bundle.tags.includes('apm')).toBeTruthy();
+            expect(bundle.tags.includes('local')).toBeTruthy();
         });
 
-        test('should cache results for performance', async () => {
+        it('should include all bundle metadata', async () => {
+            const adapter = new LocalApmAdapter(mockSource);
+            const bundles = await adapter.fetchBundles();
+
+            for (const bundle of bundles) {
+                expect(bundle.id).toBeTruthy();
+                expect(bundle.name).toBeTruthy();
+                expect(bundle.version).toBeTruthy();
+                expect(bundle.description).toBeTruthy();
+                expect(bundle.author).toBeTruthy();
+                expect(bundle.sourceId).toBe('test-local-apm');
+                expect(Array.isArray(bundle.environments)).toBeTruthy();
+                expect(Array.isArray(bundle.tags)).toBeTruthy();
+                expect(bundle.lastUpdated).toBeTruthy();
+                expect(bundle.downloadUrl).toBeTruthy();
+                expect(bundle.manifestUrl).toBeTruthy();
+                expect(bundle.license).toBeTruthy();
+            }
+        });
+
+        it('should handle file:// URLs in download/manifest URLs', async () => {
+            const adapter = new LocalApmAdapter(mockSource);
+            const bundles = await adapter.fetchBundles();
+
+            for (const bundle of bundles) {
+                expect(bundle.downloadUrl.startsWith('file://')).toBeTruthy();
+                expect(bundle.manifestUrl.startsWith('file://')).toBeTruthy();
+            }
+        });
+
+        it('should infer cloud environment from azure tag', async () => {
+            const adapter = new LocalApmAdapter(mockSource);
+            const bundles = await adapter.fetchBundles();
+
+            const bundle = bundles[0];
+            expect(bundle.environments.includes('cloud')).toBeTruthy();
+        });
+
+        it('should cache results for performance', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             
             const start1 = Date.now();
@@ -152,25 +148,25 @@ suite('LocalApmAdapter', () => {
             const time2 = Date.now() - start2;
 
             // Second call should be faster (cached)
-            assert.ok(time2 < time1 || time2 < 10, 'Second call should use cache');
-            assert.deepStrictEqual(bundles1, bundles2);
+            expect(time2 < time1 || time2 < 10, 'Second call should use cache').toBeTruthy();
+            expect(bundles1).toEqual(bundles2);
         });
     });
 
-    suite('fetchBundles - Monorepo', () => {
-        test('should discover multiple packages in subdirectories', async () => {
+    describe('fetchBundles - Monorepo', () => {
+        it('should discover multiple packages in subdirectories', async () => {
             const source = { ...mockSource, url: monorepoPath };
             const adapter = new LocalApmAdapter(source);
             const bundles = await adapter.fetchBundles();
 
-            assert.ok(Array.isArray(bundles));
-            assert.strictEqual(bundles.length, 2);
+            expect(Array.isArray(bundles)).toBeTruthy();
+            expect(bundles.length).toBe(2);
 
             const names = bundles.map(b => b.name).sort();
-            assert.deepStrictEqual(names, ['package-alpha', 'package-beta']);
+            expect(names).toEqual(['package-alpha', 'package-beta']);
         });
 
-        test('should respect scanSubdirectories config', async () => {
+        it('should respect scanSubdirectories config', async () => {
             const source = { 
                 ...mockSource, 
                 url: monorepoPath,
@@ -180,125 +176,125 @@ suite('LocalApmAdapter', () => {
             const bundles = await adapter.fetchBundles();
 
             // With scanning disabled, should not find packages in subdirs
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
     });
 
-    suite('validate', () => {
-        test('should validate accessible directory', async () => {
+    describe('validate', () => {
+        it('should validate accessible directory', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
-            assert.strictEqual(result.bundlesFound, 1);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
+            expect(result.bundlesFound).toBe(1);
         });
 
-        test('should fail validation for non-existent directory', async () => {
+        it('should fail validation for non-existent directory', async () => {
             const source = { ...mockSource, url: '/non/existent/path' };
             const adapter = new LocalApmAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
-            assert.ok(result.errors[0].includes('does not exist'));
-            assert.strictEqual(result.bundlesFound, 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
+            expect(result.errors[0].includes('does not exist')).toBeTruthy();
+            expect(result.bundlesFound).toBe(0);
         });
 
-        test('should warn for directory without apm.yml', async () => {
+        it('should warn for directory without apm.yml', async () => {
             // Use a directory that exists but has no apm.yml files
             const source = { ...mockSource, url: path.join(__dirname, '../fixtures/github') };
             const adapter = new LocalApmAdapter(source);
             const result = await adapter.validate();
 
             // Should be valid but with warning about no packages found or zero bundles
-            assert.strictEqual(result.valid, true);
-            assert.ok(result.warnings.length > 0 || result.bundlesFound === 0);
+            expect(result.valid).toBe(true);
+            expect(result.warnings.length > 0 || result.bundlesFound === 0).toBeTruthy();
         });
     });
 
-    suite('getDownloadUrl', () => {
-        test('should generate correct file:// URL', () => {
+    describe('getDownloadUrl', () => {
+        it('should generate correct file:// URL', () => {
             const adapter = new LocalApmAdapter(mockSource);
             const url = adapter.getDownloadUrl('test-package', '1.0.0');
 
-            assert.ok(url.startsWith('file://'));
+            expect(url.startsWith('file://')).toBeTruthy();
         });
     });
 
-    suite('getManifestUrl', () => {
-        test('should generate correct manifest URL', () => {
+    describe('getManifestUrl', () => {
+        it('should generate correct manifest URL', () => {
             const adapter = new LocalApmAdapter(mockSource);
             const url = adapter.getManifestUrl('test-package', '1.0.0');
 
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('apm.yml'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('apm.yml')).toBeTruthy();
         });
     });
 
-    suite('downloadBundle', () => {
-        test('should create zip archive from APM package', async () => {
+    describe('downloadBundle', () => {
+        it('should create zip archive from APM package', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             const bundle = bundles[0];
             
-            assert.ok(bundle);
+            expect(bundle).toBeTruthy();
             const buffer = await adapter.downloadBundle(bundle);
 
-            assert.ok(Buffer.isBuffer(buffer));
-            assert.ok(buffer.length > 0);
+            expect(Buffer.isBuffer(buffer)).toBeTruthy();
+            expect(buffer.length > 0).toBeTruthy();
         });
 
-        test('should include deployment manifest in archive', async () => {
+        it('should include deployment manifest in archive', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             const bundle = bundles[0];
             
-            assert.ok(bundle);
+            expect(bundle).toBeTruthy();
             const buffer = await adapter.downloadBundle(bundle);
 
             // Archive should be non-trivial size (manifest + files)
-            assert.ok(buffer.length > 100);
+            expect(buffer.length > 100).toBeTruthy();
         });
     });
 
-    suite('Path Handling', () => {
-        test('should handle absolute paths', () => {
+    describe('Path Handling', () => {
+        it('should handle absolute paths', () => {
             const source = { ...mockSource, url: singlePackagePath };
             const adapter = new LocalApmAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should handle file:// URLs', () => {
+        it('should handle file:// URLs', () => {
             const source = { ...mockSource, url: `file://${singlePackagePath}` };
             const adapter = new LocalApmAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should normalize paths correctly', async () => {
+        it('should normalize paths correctly', async () => {
             const source = { ...mockSource, url: singlePackagePath + '//' };
             const adapter = new LocalApmAdapter(source);
             
             // Should still work despite extra slashes
             const bundles = await adapter.fetchBundles();
-            assert.ok(bundles.length > 0);
+            expect(bundles.length > 0).toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should provide helpful error messages', async () => {
+    describe('Error Handling', () => {
+        it('should provide helpful error messages', async () => {
             const source = { ...mockSource, url: '/completely/invalid/path' };
             const adapter = new LocalApmAdapter(source);
 
             try {
                 await adapter.fetchBundles();
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error: any) {
-                assert.ok(error.message.includes('APM') || error.message.includes('not found') || error.message.includes('does not exist'));
+                expect(error.message.includes('APM') || error.message.includes('not found') || error.message.includes('does not exist')).toBeTruthy();
             }
         });
 
-        test('should handle bundle without localPackagePath', async () => {
+        it('should handle bundle without localPackagePath', async () => {
             const adapter = new LocalApmAdapter(mockSource);
             const testBundle = {
                 id: 'test-bundle',
@@ -319,42 +315,39 @@ suite('LocalApmAdapter', () => {
                 // Note: no localPackagePath
             };
 
-            await assert.rejects(
-                () => adapter.downloadBundle(testBundle),
-                /No local path|not found/i
-            );
+            await expect(() => adapter.downloadBundle(testBundle)).rejects.toThrow(/No local path|not found/i);
         });
     });
 
-    suite('Security', () => {
-        test('should not allow path traversal in URL', () => {
+    describe('Security', () => {
+        it('should not allow path traversal in URL', () => {
             const source = { ...mockSource, url: '/some/path/../../../etc/passwd' };
             const adapter = new LocalApmAdapter(source);
             
             // Adapter should normalize the path
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should skip hidden directories when scanning', async () => {
+        it('should skip hidden directories when scanning', async () => {
             const source = { ...mockSource, url: monorepoPath };
             const adapter = new LocalApmAdapter(source);
             const bundles = await adapter.fetchBundles();
 
             // Should not include any bundles from hidden directories
             for (const bundle of bundles) {
-                assert.ok(!bundle.id.includes('.hidden'));
+                expect(!bundle.id.includes('.hidden')).toBeTruthy();
             }
         });
 
-        test('should skip node_modules and apm_modules directories', async () => {
+        it('should skip node_modules and apm_modules directories', async () => {
             const source = { ...mockSource, url: monorepoPath };
             const adapter = new LocalApmAdapter(source);
             const bundles = await adapter.fetchBundles();
 
             // Should not include any bundles from node_modules
             for (const bundle of bundles) {
-                assert.ok(!bundle.id.includes('node_modules'));
-                assert.ok(!bundle.id.includes('apm_modules'));
+                expect(!bundle.id.includes('node_modules')).toBeTruthy();
+                expect(!bundle.id.includes('apm_modules')).toBeTruthy();
             }
         });
     });

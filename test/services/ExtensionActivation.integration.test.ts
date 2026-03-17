@@ -7,7 +7,6 @@
  * Requirements: 5.1, 13.1
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -17,7 +16,7 @@ import { LockfileManager } from '../../src/services/LockfileManager';
 import { RepositoryActivationService } from '../../src/services/RepositoryActivationService';
 import { HubManager } from '../../src/services/HubManager';
 
-suite('Extension Activation Integration', () => {
+describe('Extension Activation Integration', () => {
     let sandbox: sinon.SinonSandbox;
     let testContext: E2ETestContext;
     let mockWorkspaceFolders: vscode.WorkspaceFolder[] | undefined;
@@ -28,8 +27,7 @@ suite('Extension Activation Integration', () => {
         fs.writeFileSync(lockfilePath, JSON.stringify(lockfile, null, 2));
     };
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         sandbox = sinon.createSandbox();
         
         // Create E2E test context with isolated temp directory
@@ -52,20 +50,19 @@ suite('Extension Activation Integration', () => {
         RepositoryActivationService.resetInstance();
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         sandbox.restore();
         LockfileManager.resetInstance();
         RepositoryActivationService.resetInstance();
         await testContext.cleanup();
     });
 
-    suite('Lockfile Detection on Activation', () => {
+    describe('Lockfile Detection on Activation', () => {
         /**
          * Requirement 5.1: WHEN a workspace is opened, THE Extension SHALL check for
          * `prompt-registry.lock.json` at the repository root
          */
-        test('should detect lockfile when workspace is opened', async () => {
+        it('should detect lockfile when workspace is opened', async () => {
             // Arrange
             const mockLockfile = {
                 $schema: 'https://example.com/lockfile.schema.json',
@@ -98,16 +95,16 @@ suite('Extension Activation Integration', () => {
             const lockfile = await lockfileManager.read();
 
             // Assert
-            assert.ok(lockfile, 'Lockfile should be detected');
-            assert.strictEqual(lockfile?.version, '1.0.0');
-            assert.ok(lockfile?.bundles['test-bundle'], 'Bundle should be in lockfile');
+            expect(lockfile, 'Lockfile should be detected').toBeTruthy();
+            expect(lockfile?.version).toBe('1.0.0');
+            expect(lockfile?.bundles['test-bundle'], 'Bundle should be in lockfile').toBeTruthy();
         });
 
         /**
          * Requirement 5.1: WHEN a workspace is opened, THE Extension SHALL check for
          * `prompt-registry.lock.json` at the repository root
          */
-        test('should handle missing lockfile gracefully', async () => {
+        it('should handle missing lockfile gracefully', async () => {
             // Arrange - no lockfile written
 
             // Act
@@ -115,14 +112,14 @@ suite('Extension Activation Integration', () => {
             const lockfile = await lockfileManager.read();
 
             // Assert
-            assert.strictEqual(lockfile, null, 'Should return null when lockfile does not exist');
+            expect(lockfile, 'Should return null when lockfile does not exist').toBe(null);
         });
 
         /**
          * Requirement 5.1: WHEN a workspace is opened, THE Extension SHALL check for
          * `prompt-registry.lock.json` at the repository root
          */
-        test('should not check for lockfile when no workspace is open', async () => {
+        it('should not check for lockfile when no workspace is open', async () => {
             // Arrange
             mockWorkspaceFolders = undefined;
 
@@ -131,18 +128,18 @@ suite('Extension Activation Integration', () => {
             const lockfile = await lockfileManager.read();
 
             // Assert
-            assert.strictEqual(lockfile, null, 'Should return null when no workspace is open');
+            expect(lockfile, 'Should return null when no workspace is open').toBe(null);
         });
     });
 
-    suite('Activation Prompt Flow', () => {
+    describe('Activation Prompt Flow', () => {
         /**
          * Requirement 1.6: THE System SHALL NOT prompt users to "enable" or "install" 
          * repository bundles since the files are already present in the repository.
          * 
          * Instead, the system only checks for missing sources/hubs.
          */
-        test('should NOT show activation prompt when lockfile is detected (Requirement 1.6)', async () => {
+        it('should NOT show activation prompt when lockfile is detected (Requirement 1.6)', async () => {
             // Arrange
             const mockLockfile = {
                 $schema: 'https://example.com/lockfile.schema.json',
@@ -201,10 +198,8 @@ suite('Extension Activation Integration', () => {
             if (mockShowInformationMessage.called) {
                 const callArgs = mockShowInformationMessage.firstCall.args;
                 // If any prompt is shown, it should NOT be an activation prompt
-                assert.ok(!callArgs[0].toLowerCase().includes('enable'), 
-                    'Should NOT show activation prompt - files already in repository');
-                assert.ok(!callArgs[0].toLowerCase().includes('bundle'), 
-                    'Should NOT mention bundle count in activation prompt');
+                expect(!callArgs[0].toLowerCase().includes('enable'), 'Should NOT show activation prompt - files already in repository').toBeTruthy();
+                expect(!callArgs[0].toLowerCase().includes('bundle'), 'Should NOT mention bundle count in activation prompt').toBeTruthy();
             }
         });
 
@@ -215,7 +210,7 @@ suite('Extension Activation Integration', () => {
          * Requirement 13.4: WHEN the user declines, THE Extension SHALL remember the choice
          * and not prompt again for this repository
          */
-        test('should not show prompt if previously declined', async () => {
+        it('should not show prompt if previously declined', async () => {
             // Arrange
             const workspacePath = testContext.tempStoragePath;
             // Implementation uses array-based tracking: repositoryActivation.declined = [path1, path2, ...]
@@ -247,14 +242,14 @@ suite('Extension Activation Integration', () => {
             await activationService.checkAndPromptActivation();
 
             // Assert
-            assert.ok(mockShowInformationMessage.notCalled, 'Should not show prompt if previously declined');
+            expect(mockShowInformationMessage.notCalled, 'Should not show prompt if previously declined').toBeTruthy();
         });
 
         /**
          * Requirement 13.1: WHEN a workspace with a lockfile is opened for the first time,
          * THE Extension SHALL display a notification
          */
-        test('should not show prompt when no lockfile exists', async () => {
+        it('should not show prompt when no lockfile exists', async () => {
             // Arrange - no lockfile written
 
             // Mock notification
@@ -271,7 +266,7 @@ suite('Extension Activation Integration', () => {
             await activationService.checkAndPromptActivation();
 
             // Assert
-            assert.ok(mockShowInformationMessage.notCalled, 'Should not show prompt when no lockfile exists');
+            expect(mockShowInformationMessage.notCalled, 'Should not show prompt when no lockfile exists').toBeTruthy();
         });
 
         /**
@@ -281,7 +276,7 @@ suite('Extension Activation Integration', () => {
          * The "Don't ask again" functionality now applies to missing source/hub prompts,
          * not activation prompts (which no longer exist per Requirement 1.6).
          */
-        test('should skip source detection for declined repositories', async () => {
+        it('should skip source detection for declined repositories', async () => {
             // Arrange
             const workspacePath = testContext.tempStoragePath;
             // Implementation uses array-based tracking: repositoryActivation.declined = [path1, path2, ...]
@@ -322,7 +317,7 @@ suite('Extension Activation Integration', () => {
             await activationService.checkAndPromptActivation();
 
             // Assert - no prompt should be shown for declined repositories
-            assert.ok(mockShowInformationMessage.notCalled, 'Should not show any prompt for declined repositories');
+            expect(mockShowInformationMessage.notCalled, 'Should not show any prompt for declined repositories').toBeTruthy();
         });
     });
 });

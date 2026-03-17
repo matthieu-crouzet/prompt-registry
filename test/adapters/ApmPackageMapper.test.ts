@@ -3,10 +3,9 @@
  * Tests mapping of APM manifest format to Prompt Registry Bundle format
  */
 
-import * as assert from 'assert';
 import { ApmPackageMapper, ApmManifest, PackageContext } from '../../src/adapters/ApmPackageMapper';
 
-suite('ApmPackageMapper', () => {
+describe('ApmPackageMapper', () => {
     let mapper: ApmPackageMapper;
 
     const baseContext: PackageContext = {
@@ -16,12 +15,12 @@ suite('ApmPackageMapper', () => {
         path: '',
     };
 
-    setup(() => {
+    beforeEach(() => {
         mapper = new ApmPackageMapper();
     });
 
-    suite('toBundle', () => {
-        test('should map basic manifest to bundle', () => {
+    describe('toBundle', () => {
+        it('should map basic manifest to bundle', () => {
             const manifest: ApmManifest = {
                 name: 'Test Package',
                 version: '1.0.0',
@@ -30,35 +29,35 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.id, 'test-owner-test-package');
-            assert.strictEqual(bundle.name, 'Test Package');
-            assert.strictEqual(bundle.version, '1.0.0');
-            assert.strictEqual(bundle.description, 'A test package');
-            assert.strictEqual(bundle.sourceId, 'test-source');
-            assert.ok(bundle.tags.includes('apm'));
+            expect(bundle.id).toBe('test-owner-test-package');
+            expect(bundle.name).toBe('Test Package');
+            expect(bundle.version).toBe('1.0.0');
+            expect(bundle.description).toBe('A test package');
+            expect(bundle.sourceId).toBe('test-source');
+            expect(bundle.tags.includes('apm')).toBeTruthy();
         });
 
-        test('should use default version 1.0.0 if not provided', () => {
+        it('should use default version 1.0.0 if not provided', () => {
             const manifest: ApmManifest = {
                 name: 'Test Package',
             };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.version, '1.0.0');
+            expect(bundle.version).toBe('1.0.0');
         });
 
-        test('should use owner as default author', () => {
+        it('should use owner as default author', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
             };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.author, 'test-owner');
+            expect(bundle.author).toBe('test-owner');
         });
 
-        test('should use manifest author if provided', () => {
+        it('should use manifest author if provided', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 author: 'Custom Author',
@@ -66,10 +65,10 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.author, 'Custom Author');
+            expect(bundle.author).toBe('Custom Author');
         });
 
-        test('should include all manifest tags plus apm tag', () => {
+        it('should include all manifest tags plus apm tag', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 tags: ['azure', 'testing'],
@@ -77,12 +76,12 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.tags.includes('azure'));
-            assert.ok(bundle.tags.includes('testing'));
-            assert.ok(bundle.tags.includes('apm'));
+            expect(bundle.tags.includes('azure')).toBeTruthy();
+            expect(bundle.tags.includes('testing')).toBeTruthy();
+            expect(bundle.tags.includes('apm')).toBeTruthy();
         });
 
-        test('should infer cloud environment from azure tag', () => {
+        it('should infer cloud environment from azure tag', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 tags: ['azure'],
@@ -90,10 +89,10 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.environments.includes('cloud'));
+            expect(bundle.environments.includes('cloud')).toBeTruthy();
         });
 
-        test('should infer cloud environment from aws tag', () => {
+        it('should infer cloud environment from aws tag', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 tags: ['aws'],
@@ -101,10 +100,10 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.environments.includes('cloud'));
+            expect(bundle.environments.includes('cloud')).toBeTruthy();
         });
 
-        test('should infer infrastructure environment from devops tag', () => {
+        it('should infer infrastructure environment from devops tag', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 tags: ['devops'],
@@ -112,10 +111,10 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.environments.includes('infrastructure'));
+            expect(bundle.environments.includes('infrastructure')).toBeTruthy();
         });
 
-        test('should infer web environment from frontend tag', () => {
+        it('should infer web environment from frontend tag', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 tags: ['frontend'],
@@ -123,10 +122,10 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.environments.includes('web'));
+            expect(bundle.environments.includes('web')).toBeTruthy();
         });
 
-        test('should default to general environment if no tags match', () => {
+        it('should default to general environment if no tags match', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 tags: ['random-tag'],
@@ -134,10 +133,10 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.environments.includes('general'));
+            expect(bundle.environments.includes('general')).toBeTruthy();
         });
 
-        test('should map APM dependencies correctly', () => {
+        it('should map APM dependencies correctly', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 dependencies: {
@@ -147,13 +146,13 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.dependencies.length, 2);
-            assert.strictEqual(bundle.dependencies[0].bundleId, 'owner/dep1');
-            assert.strictEqual(bundle.dependencies[0].versionRange, '*');
-            assert.strictEqual(bundle.dependencies[0].optional, false);
+            expect(bundle.dependencies.length).toBe(2);
+            expect(bundle.dependencies[0].bundleId).toBe('owner/dep1');
+            expect(bundle.dependencies[0].versionRange).toBe('*');
+            expect(bundle.dependencies[0].optional).toBe(false);
         });
 
-        test('should handle empty dependencies', () => {
+        it('should handle empty dependencies', () => {
             const manifest: ApmManifest = {
                 name: 'Test',
                 dependencies: {
@@ -163,120 +162,120 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.dependencies.length, 0);
+            expect(bundle.dependencies.length).toBe(0);
         });
 
-        test('should include apmPackageRef for root package', () => {
+        it('should include apmPackageRef for root package', () => {
             const manifest: ApmManifest = { name: 'Test' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual((bundle as any).apmPackageRef, 'test-owner/test-repo');
+            expect((bundle as any).apmPackageRef).toBe('test-owner/test-repo');
         });
 
-        test('should include apmPackageRef for subpath package', () => {
+        it('should include apmPackageRef for subpath package', () => {
             const manifest: ApmManifest = { name: 'Test' };
             const context = { ...baseContext, path: 'packages/my-pkg' };
 
             const bundle = mapper.toBundle(manifest, context);
 
-            assert.strictEqual((bundle as any).apmPackageRef, 'test-owner/test-repo/packages/my-pkg');
+            expect((bundle as any).apmPackageRef).toBe('test-owner/test-repo/packages/my-pkg');
         });
 
-        test('should generate correct manifest URL', () => {
+        it('should generate correct manifest URL', () => {
             const manifest: ApmManifest = { name: 'Test' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.manifestUrl.includes('raw.githubusercontent.com'));
-            assert.ok(bundle.manifestUrl.includes('test-owner/test-repo'));
-            assert.ok(bundle.manifestUrl.includes('apm.yml'));
+            expect(bundle.manifestUrl.includes('raw.githubusercontent.com')).toBeTruthy();
+            expect(bundle.manifestUrl.includes('test-owner/test-repo')).toBeTruthy();
+            expect(bundle.manifestUrl.includes('apm.yml')).toBeTruthy();
         });
 
-        test('should generate correct manifest URL for subpath', () => {
+        it('should generate correct manifest URL for subpath', () => {
             const manifest: ApmManifest = { name: 'Test' };
             const context = { ...baseContext, path: 'packages/my-pkg' };
 
             const bundle = mapper.toBundle(manifest, context);
 
-            assert.ok(bundle.manifestUrl.includes('packages/my-pkg/apm.yml'));
+            expect(bundle.manifestUrl.includes('packages/my-pkg/apm.yml')).toBeTruthy();
         });
 
-        test('should set license to MIT by default', () => {
+        it('should set license to MIT by default', () => {
             const manifest: ApmManifest = { name: 'Test' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.license, 'MIT');
+            expect(bundle.license).toBe('MIT');
         });
 
-        test('should use manifest license if provided', () => {
+        it('should use manifest license if provided', () => {
             const manifest: ApmManifest = { name: 'Test', license: 'Apache-2.0' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.license, 'Apache-2.0');
+            expect(bundle.license).toBe('Apache-2.0');
         });
 
-        test('should include lastUpdated timestamp', () => {
+        it('should include lastUpdated timestamp', () => {
             const manifest: ApmManifest = { name: 'Test' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.lastUpdated);
+            expect(bundle.lastUpdated).toBeTruthy();
             // Should be a valid ISO date string
-            assert.ok(!isNaN(Date.parse(bundle.lastUpdated)));
+            expect(!isNaN(Date.parse(bundle.lastUpdated))).toBeTruthy();
         });
 
-        test('should sanitize bundle ID by converting to lowercase and replacing spaces', () => {
+        it('should sanitize bundle ID by converting to lowercase and replacing spaces', () => {
             const manifest: ApmManifest = { name: 'My Test Package' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.id, 'test-owner-my-test-package');
-            assert.ok(!bundle.id.includes(' '));
-            assert.strictEqual(bundle.id, bundle.id.toLowerCase());
+            expect(bundle.id).toBe('test-owner-my-test-package');
+            expect(!bundle.id.includes(' ')).toBeTruthy();
+            expect(bundle.id).toBe(bundle.id.toLowerCase());
         });
 
-        test('should generate description from package ref if not provided', () => {
+        it('should generate description from package ref if not provided', () => {
             const manifest: ApmManifest = { name: 'Test' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(bundle.description.includes('test-owner/test-repo'));
+            expect(bundle.description.includes('test-owner/test-repo')).toBeTruthy();
         });
 
-        test('should set repository URL', () => {
+        it('should set repository URL', () => {
             const manifest: ApmManifest = { name: 'Test' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.strictEqual(bundle.repository, 'https://github.com/test-owner/test-repo');
+            expect(bundle.repository).toBe('https://github.com/test-owner/test-repo');
         });
     });
 
-    suite('Security', () => {
-        test('should sanitize name with special characters', () => {
+    describe('Security', () => {
+        it('should sanitize name with special characters', () => {
             const manifest: ApmManifest = { name: 'Test<script>alert(1)</script>' };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
             // ID should be sanitized
-            assert.ok(!bundle.id.includes('<'));
-            assert.ok(!bundle.id.includes('>'));
+            expect(!bundle.id.includes('<')).toBeTruthy();
+            expect(!bundle.id.includes('>')).toBeTruthy();
         });
 
-        test('should handle very long names gracefully', () => {
+        it('should handle very long names gracefully', () => {
             const longName = 'A'.repeat(1000);
             const manifest: ApmManifest = { name: longName };
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
             // Should not throw and should have reasonable ID length
-            assert.ok(bundle.id.length < 500);
+            expect(bundle.id.length < 500).toBeTruthy();
         });
 
-        test('should handle null/undefined tags gracefully', () => {
+        it('should handle null/undefined tags gracefully', () => {
             const manifest: ApmManifest = { 
                 name: 'Test',
                 tags: undefined,
@@ -284,8 +283,8 @@ suite('ApmPackageMapper', () => {
 
             const bundle = mapper.toBundle(manifest, baseContext);
 
-            assert.ok(Array.isArray(bundle.tags));
-            assert.ok(bundle.tags.includes('apm'));
+            expect(Array.isArray(bundle.tags)).toBeTruthy();
+            expect(bundle.tags.includes('apm')).toBeTruthy();
         });
     });
 });

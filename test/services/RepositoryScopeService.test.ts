@@ -7,7 +7,6 @@
  * Requirements: 1.2-1.7, 3.1-3.7
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as sinon from 'sinon';
@@ -26,7 +25,7 @@ function calculateChecksumSync(filePath: string): string {
     return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-suite('RepositoryScopeService', () => {
+describe('RepositoryScopeService', () => {
     let service: RepositoryScopeService;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let tempDir: string;
@@ -151,9 +150,9 @@ suite('RepositoryScopeService', () => {
         fs.writeFileSync(lockfilePath, JSON.stringify(lockfile, null, 2));
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
-        tempDir = path.join(__dirname, '..', '..', '..', 'test-temp-repo-scope');
+        tempDir = path.join(__dirname, '..', '..', 'test-temp-repo-scope-service');
         workspaceRoot = path.join(tempDir, 'workspace');
         
         // Create temp directories
@@ -182,7 +181,7 @@ suite('RepositoryScopeService', () => {
         service = new RepositoryScopeService(workspaceRoot, mockStorage as unknown as RegistryStorage);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         // Reset LockfileManager instance for this workspace
         LockfileManager.resetInstance(workspaceRoot);
@@ -192,98 +191,98 @@ suite('RepositoryScopeService', () => {
         }
     });
 
-    suite('Service Initialization', () => {
-        test('should initialize with workspace root and storage', () => {
-            assert.ok(service, 'Service should be initialized');
+    describe('Service Initialization', () => {
+        it('should initialize with workspace root and storage', () => {
+            expect(service, 'Service should be initialized').toBeTruthy();
         });
 
-        test('should have IScopeService methods', () => {
-            assert.ok(typeof service.syncBundle === 'function', 'Should have syncBundle method');
-            assert.ok(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method');
-            assert.ok(typeof service.getTargetPath === 'function', 'Should have getTargetPath method');
-            assert.ok(typeof service.getStatus === 'function', 'Should have getStatus method');
+        it('should have IScopeService methods', () => {
+            expect(typeof service.syncBundle === 'function', 'Should have syncBundle method').toBeTruthy();
+            expect(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method').toBeTruthy();
+            expect(typeof service.getTargetPath === 'function', 'Should have getTargetPath method').toBeTruthy();
+            expect(typeof service.getStatus === 'function', 'Should have getStatus method').toBeTruthy();
         });
 
-        test('should have switchCommitMode method', () => {
-            assert.ok(typeof service.switchCommitMode === 'function', 'Should have switchCommitMode method');
+        it('should have switchCommitMode method', () => {
+            expect(typeof service.switchCommitMode === 'function', 'Should have switchCommitMode method').toBeTruthy();
         });
     });
 
-    suite('getTargetPath', () => {
-        test('should return correct path for prompt type', () => {
+    describe('getTargetPath', () => {
+        it('should return correct path for prompt type', () => {
             const targetPath = service.getTargetPath('prompt', 'my-prompt');
-            assert.ok(targetPath.includes('.github/prompts/'), 'Should include .github/prompts/');
-            assert.ok(targetPath.endsWith('my-prompt.prompt.md'), 'Should end with correct filename');
+            expect(targetPath.includes('.github/prompts/'), 'Should include .github/prompts/').toBeTruthy();
+            expect(targetPath.endsWith('my-prompt.prompt.md'), 'Should end with correct filename').toBeTruthy();
         });
 
-        test('should return correct path for instructions type', () => {
+        it('should return correct path for instructions type', () => {
             const targetPath = service.getTargetPath('instructions', 'coding-standards');
-            assert.ok(targetPath.includes('.github/instructions/'), 'Should include .github/instructions/');
-            assert.ok(targetPath.endsWith('coding-standards.instructions.md'), 'Should end with correct filename');
+            expect(targetPath.includes('.github/instructions/'), 'Should include .github/instructions/').toBeTruthy();
+            expect(targetPath.endsWith('coding-standards.instructions.md'), 'Should end with correct filename').toBeTruthy();
         });
 
-        test('should return correct path for agent type', () => {
+        it('should return correct path for agent type', () => {
             const targetPath = service.getTargetPath('agent', 'code-reviewer');
-            assert.ok(targetPath.includes('.github/agents/'), 'Should include .github/agents/');
-            assert.ok(targetPath.endsWith('code-reviewer.agent.md'), 'Should end with correct filename');
+            expect(targetPath.includes('.github/agents/'), 'Should include .github/agents/').toBeTruthy();
+            expect(targetPath.endsWith('code-reviewer.agent.md'), 'Should end with correct filename').toBeTruthy();
         });
 
-        test('should return correct path for skill type', () => {
+        it('should return correct path for skill type', () => {
             const targetPath = service.getTargetPath('skill', 'my-skill');
-            assert.ok(targetPath.includes('.github/skills/'), 'Should include .github/skills/');
+            expect(targetPath.includes('.github/skills/'), 'Should include .github/skills/').toBeTruthy();
         });
 
-        test('should return correct path for chatmode type', () => {
+        it('should return correct path for chatmode type', () => {
             const targetPath = service.getTargetPath('chatmode', 'expert-mode');
-            assert.ok(targetPath.includes('.github/prompts/'), 'Chatmodes should go to prompts directory');
-            assert.ok(targetPath.endsWith('expert-mode.chatmode.md'), 'Should end with correct filename');
+            expect(targetPath.includes('.github/prompts/'), 'Chatmodes should go to prompts directory').toBeTruthy();
+            expect(targetPath.endsWith('expert-mode.chatmode.md'), 'Should end with correct filename').toBeTruthy();
         });
 
-        test('should return absolute path within workspace', () => {
+        it('should return absolute path within workspace', () => {
             const targetPath = service.getTargetPath('prompt', 'test');
-            assert.ok(path.isAbsolute(targetPath), 'Should return absolute path');
-            assert.ok(targetPath.startsWith(workspaceRoot), 'Should be within workspace root');
+            expect(path.isAbsolute(targetPath), 'Should return absolute path').toBeTruthy();
+            expect(targetPath.startsWith(workspaceRoot), 'Should be within workspace root').toBeTruthy();
         });
     });
 
-    suite('getStatus', () => {
-        test('should return status with baseDirectory', async () => {
+    describe('getStatus', () => {
+        it('should return status with baseDirectory', async () => {
             const status = await service.getStatus();
-            assert.ok(status.baseDirectory, 'Should have baseDirectory');
-            assert.ok(status.baseDirectory.includes('.github'), 'baseDirectory should include .github');
+            expect(status.baseDirectory, 'Should have baseDirectory').toBeTruthy();
+            expect(status.baseDirectory.includes('.github'), 'baseDirectory should include .github').toBeTruthy();
         });
 
-        test('should report dirExists as false when .github does not exist', async () => {
+        it('should report dirExists as false when .github does not exist', async () => {
             const status = await service.getStatus();
-            assert.strictEqual(status.dirExists, false, 'dirExists should be false');
+            expect(status.dirExists, 'dirExists should be false').toBe(false);
         });
 
-        test('should report dirExists as true when .github exists', async () => {
+        it('should report dirExists as true when .github exists', async () => {
             fs.mkdirSync(path.join(workspaceRoot, '.github'), { recursive: true });
             const status = await service.getStatus();
-            assert.strictEqual(status.dirExists, true, 'dirExists should be true');
+            expect(status.dirExists, 'dirExists should be true').toBe(true);
         });
 
-        test('should count synced files', async () => {
+        it('should count synced files', async () => {
             // Create .github/prompts with a file
             const promptsDir = path.join(workspaceRoot, '.github', 'prompts');
             fs.mkdirSync(promptsDir, { recursive: true });
             fs.writeFileSync(path.join(promptsDir, 'test.prompt.md'), '# Test');
             
             const status = await service.getStatus();
-            assert.strictEqual(status.syncedFiles, 1, 'Should count synced files');
-            assert.ok(status.files.includes('test.prompt.md'), 'Should list synced files');
+            expect(status.syncedFiles, 'Should count synced files').toBe(1);
+            expect(status.files.includes('test.prompt.md'), 'Should list synced files').toBeTruthy();
         });
 
-        test('should return empty files array when no files synced', async () => {
+        it('should return empty files array when no files synced', async () => {
             const status = await service.getStatus();
-            assert.deepStrictEqual(status.files, [], 'Should return empty files array');
-            assert.strictEqual(status.syncedFiles, 0, 'Should have zero synced files');
+            expect(status.files, 'Should return empty files array').toEqual([]);
+            expect(status.syncedFiles, 'Should have zero synced files').toBe(0);
         });
     });
 
-    suite('syncBundle - File Placement', () => {
-        test('should place prompt files in .github/prompts/', async () => {
+    describe('syncBundle - File Placement', () => {
+        it('should place prompt files in .github/prompts/', async () => {
             const bundleId = 'test-bundle';
             const bundlePath = createMockBundle(bundleId, [
                 { name: 'test.prompt.md', content: '# Test Prompt', type: 'prompt' }
@@ -294,10 +293,10 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const targetFile = path.join(workspaceRoot, '.github', 'prompts', 'test.prompt.md');
-            assert.ok(fs.existsSync(targetFile), 'Prompt file should be placed in .github/prompts/');
+            expect(fs.existsSync(targetFile), 'Prompt file should be placed in .github/prompts/').toBeTruthy();
         });
 
-        test('should place instruction files in .github/instructions/', async () => {
+        it('should place instruction files in .github/instructions/', async () => {
             const bundleId = 'test-bundle';
             const bundlePath = createMockBundle(bundleId, [
                 { name: 'coding.instructions.md', content: '# Coding Standards', type: 'instructions' }
@@ -308,10 +307,10 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const targetFile = path.join(workspaceRoot, '.github', 'instructions', 'coding.instructions.md');
-            assert.ok(fs.existsSync(targetFile), 'Instructions file should be placed in .github/instructions/');
+            expect(fs.existsSync(targetFile), 'Instructions file should be placed in .github/instructions/').toBeTruthy();
         });
 
-        test('should place agent files in .github/agents/', async () => {
+        it('should place agent files in .github/agents/', async () => {
             const bundleId = 'test-bundle';
             const bundlePath = createMockBundle(bundleId, [
                 { name: 'reviewer.agent.md', content: '# Code Reviewer', type: 'agent' }
@@ -322,10 +321,10 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const targetFile = path.join(workspaceRoot, '.github', 'agents', 'reviewer.agent.md');
-            assert.ok(fs.existsSync(targetFile), 'Agent file should be placed in .github/agents/');
+            expect(fs.existsSync(targetFile), 'Agent file should be placed in .github/agents/').toBeTruthy();
         });
 
-        test('should create parent directories if they do not exist', async () => {
+        it('should create parent directories if they do not exist', async () => {
             const bundleId = 'test-bundle';
             const bundlePath = createMockBundle(bundleId, [
                 { name: 'test.prompt.md', content: '# Test', type: 'prompt' }
@@ -334,14 +333,14 @@ suite('RepositoryScopeService', () => {
             mockStorage.getInstalledBundle.resolves(createMockInstalledBundle(bundleId, 'commit'));
             
             // Ensure .github doesn't exist
-            assert.ok(!fs.existsSync(path.join(workspaceRoot, '.github')), '.github should not exist initially');
+            expect(!fs.existsSync(path.join(workspaceRoot, '.github')), '.github should not exist initially').toBeTruthy();
             
             await service.syncBundle(bundleId, bundlePath);
             
-            assert.ok(fs.existsSync(path.join(workspaceRoot, '.github', 'prompts')), 'Should create .github/prompts/');
+            expect(fs.existsSync(path.join(workspaceRoot, '.github', 'prompts')), 'Should create .github/prompts/').toBeTruthy();
         });
 
-        test('should handle bundles with mixed file types', async () => {
+        it('should handle bundles with mixed file types', async () => {
             const bundleId = 'mixed-bundle';
             const bundlePath = createMockBundle(bundleId, [
                 { name: 'prompt1.prompt.md', content: '# Prompt 1', type: 'prompt' },
@@ -353,14 +352,14 @@ suite('RepositoryScopeService', () => {
             
             await service.syncBundle(bundleId, bundlePath);
             
-            assert.ok(fs.existsSync(path.join(workspaceRoot, '.github', 'prompts', 'prompt1.prompt.md')));
-            assert.ok(fs.existsSync(path.join(workspaceRoot, '.github', 'instructions', 'coding.instructions.md')));
-            assert.ok(fs.existsSync(path.join(workspaceRoot, '.github', 'agents', 'reviewer.agent.md')));
+            expect(fs.existsSync(path.join(workspaceRoot, '.github', 'prompts', 'prompt1.prompt.md'))).toBeTruthy();
+            expect(fs.existsSync(path.join(workspaceRoot, '.github', 'instructions', 'coding.instructions.md'))).toBeTruthy();
+            expect(fs.existsSync(path.join(workspaceRoot, '.github', 'agents', 'reviewer.agent.md'))).toBeTruthy();
         });
     });
 
-    suite('syncBundle - Git Exclude Management', () => {
-        test('should NOT modify git exclude for commit mode', async () => {
+    describe('syncBundle - Git Exclude Management', () => {
+        it('should NOT modify git exclude for commit mode', async () => {
             createGitDirectory();
             
             const bundleId = 'commit-bundle';
@@ -373,13 +372,10 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const excludeContent = readGitExclude();
-            assert.ok(
-                excludeContent === null || !excludeContent.includes('.github/prompts/test.prompt.md'),
-                'Git exclude should not contain file path for commit mode'
-            );
+            expect(excludeContent === null || !excludeContent.includes('.github/prompts/test.prompt.md'), 'Git exclude should not contain file path for commit mode').toBeTruthy();
         });
 
-        test('should add paths to git exclude for local-only mode', async () => {
+        it('should add paths to git exclude for local-only mode', async () => {
             createGitDirectory();
             
             const bundleId = 'local-bundle';
@@ -392,17 +388,14 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const excludeContent = readGitExclude();
-            assert.ok(excludeContent, 'Git exclude file should exist');
-            assert.ok(
-                excludeContent!.includes('.github/prompts/test.prompt.md'),
-                'Git exclude should contain file path for local-only mode'
-            );
+            expect(excludeContent, 'Git exclude file should exist').toBeTruthy();
+            expect(excludeContent!.includes('.github/prompts/test.prompt.md'), 'Git exclude should contain file path for local-only mode').toBeTruthy();
         });
 
-        test('should create .git/info/exclude if it does not exist', async () => {
+        it('should create .git/info/exclude if it does not exist', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
-            assert.ok(!fs.existsSync(excludePath), 'Exclude file should not exist initially');
+            expect(!fs.existsSync(excludePath), 'Exclude file should not exist initially').toBeTruthy();
             
             const bundleId = 'local-bundle';
             const bundlePath = createMockBundle(bundleId, [
@@ -413,10 +406,10 @@ suite('RepositoryScopeService', () => {
             
             await service.syncBundle(bundleId, bundlePath);
             
-            assert.ok(fs.existsSync(excludePath), 'Git exclude file should be created');
+            expect(fs.existsSync(excludePath), 'Git exclude file should be created').toBeTruthy();
         });
 
-        test('should add entries under "# Prompt Registry (local)" section', async () => {
+        it('should add entries under "# Prompt Registry (local)" section', async () => {
             createGitDirectory();
             
             const bundleId = 'local-bundle';
@@ -429,14 +422,11 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const excludeContent = readGitExclude();
-            assert.ok(excludeContent, 'Git exclude file should exist');
-            assert.ok(
-                excludeContent!.includes('# Prompt Registry (local)'),
-                'Git exclude should contain section header'
-            );
+            expect(excludeContent, 'Git exclude file should exist').toBeTruthy();
+            expect(excludeContent!.includes('# Prompt Registry (local)'), 'Git exclude should contain section header').toBeTruthy();
         });
 
-        test('should preserve existing git exclude content', async () => {
+        it('should preserve existing git exclude content', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
             fs.writeFileSync(excludePath, '# Existing content\n*.log\n');
@@ -451,13 +441,13 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             const excludeContent = readGitExclude();
-            assert.ok(excludeContent!.includes('# Existing content'), 'Should preserve existing content');
-            assert.ok(excludeContent!.includes('*.log'), 'Should preserve existing patterns');
+            expect(excludeContent!.includes('# Existing content'), 'Should preserve existing content').toBeTruthy();
+            expect(excludeContent!.includes('*.log'), 'Should preserve existing patterns').toBeTruthy();
         });
     });
 
-    suite('syncBundle - commitMode from Storage', () => {
-        test('should retrieve commitMode from RegistryStorage', async () => {
+    describe('syncBundle - commitMode from Storage', () => {
+        it('should retrieve commitMode from RegistryStorage', async () => {
             createGitDirectory();
             
             const bundleId = 'storage-test-bundle';
@@ -470,11 +460,10 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
             
             // Verify storage was called
-            assert.ok(mockStorage.getInstalledBundle.calledWith(bundleId, 'repository'), 
-                'Should call getInstalledBundle with bundleId and repository scope');
+            expect(mockStorage.getInstalledBundle.calledWith(bundleId, 'repository'), 'Should call getInstalledBundle with bundleId and repository scope').toBeTruthy();
         });
 
-        test('should use commitMode from options when provided (takes precedence over storage)', async () => {
+        it('should use commitMode from options when provided (takes precedence over storage)', async () => {
             createGitDirectory();
             
             const bundleId = 'options-precedence-bundle';
@@ -489,13 +478,11 @@ suite('RepositoryScopeService', () => {
             
             // Verify git exclude was updated (proving options took precedence over storage)
             const excludeContent = readGitExclude();
-            assert.ok(excludeContent?.includes('.github/prompts/test.prompt.md'), 
-                'Should use commitMode from options (local-only), not storage (commit)');
-            assert.ok(excludeContent?.includes('# Prompt Registry (local)'),
-                'Should have section header when using local-only mode');
+            expect(excludeContent?.includes('.github/prompts/test.prompt.md'), 'Should use commitMode from options (local-only), not storage (commit)').toBeTruthy();
+            expect(excludeContent?.includes('# Prompt Registry (local)'), 'Should have section header when using local-only mode').toBeTruthy();
         });
 
-        test('should NOT update git exclude when options specify commit mode (overriding storage)', async () => {
+        it('should NOT update git exclude when options specify commit mode (overriding storage)', async () => {
             createGitDirectory();
             
             const bundleId = 'commit-override-bundle';
@@ -510,13 +497,12 @@ suite('RepositoryScopeService', () => {
             
             // Verify git exclude was NOT updated (proving options took precedence)
             const excludeContent = readGitExclude();
-            assert.ok(!excludeContent || !excludeContent.includes('.github/prompts/test.prompt.md'), 
-                'Should use commitMode from options (commit), not storage (local-only)');
+            expect(!excludeContent || !excludeContent.includes('.github/prompts/test.prompt.md'), 'Should use commitMode from options (commit), not storage (local-only)').toBeTruthy();
         });
     });
 
-    suite('unsyncBundle', () => {
-        test('should remove files from .github/ directories', async () => {
+    describe('unsyncBundle', () => {
+        it('should remove files from .github/ directories', async () => {
             // Setup: create synced files
             const promptsDir = path.join(workspaceRoot, '.github', 'prompts');
             fs.mkdirSync(promptsDir, { recursive: true });
@@ -540,10 +526,10 @@ suite('RepositoryScopeService', () => {
             
             await service.unsyncBundle(bundleId);
             
-            assert.ok(!fs.existsSync(path.join(promptsDir, 'test.prompt.md')), 'File should be removed');
+            expect(!fs.existsSync(path.join(promptsDir, 'test.prompt.md')), 'File should be removed').toBeTruthy();
         });
 
-        test('should remove entries from .git/info/exclude', async () => {
+        it('should remove entries from .git/info/exclude', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
             fs.writeFileSync(excludePath, '# Prompt Registry (local)\n.github/prompts/test.prompt.md\n');
@@ -573,13 +559,10 @@ suite('RepositoryScopeService', () => {
             await service.unsyncBundle(bundleId);
             
             const excludeContent = readGitExclude();
-            assert.ok(
-                !excludeContent!.includes('.github/prompts/test.prompt.md'),
-                'Git exclude should not contain removed file path'
-            );
+            expect(!excludeContent!.includes('.github/prompts/test.prompt.md'), 'Git exclude should not contain removed file path').toBeTruthy();
         });
 
-        test('should handle non-existent bundle gracefully', async () => {
+        it('should handle non-existent bundle gracefully', async () => {
             // No lockfile created - bundle doesn't exist
             mockStorage.getInstalledBundle.resolves(undefined);
             
@@ -588,8 +571,8 @@ suite('RepositoryScopeService', () => {
         });
     });
 
-    suite('switchCommitMode', () => {
-        test('should add paths to git exclude when switching from commit to local-only', async () => {
+    describe('switchCommitMode', () => {
+        it('should add paths to git exclude when switching from commit to local-only', async () => {
             createGitDirectory();
             
             // Setup: create synced files
@@ -608,14 +591,11 @@ suite('RepositoryScopeService', () => {
             await service.switchCommitMode(bundleId, 'local-only');
             
             const excludeContent = readGitExclude();
-            assert.ok(excludeContent, 'Git exclude file should exist');
-            assert.ok(
-                excludeContent!.includes('.github/prompts/test.prompt.md'),
-                'Git exclude should contain file path after switching to local-only'
-            );
+            expect(excludeContent, 'Git exclude file should exist').toBeTruthy();
+            expect(excludeContent!.includes('.github/prompts/test.prompt.md'), 'Git exclude should contain file path after switching to local-only').toBeTruthy();
         });
 
-        test('should remove paths from git exclude when switching from local-only to commit', async () => {
+        it('should remove paths from git exclude when switching from local-only to commit', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
             fs.writeFileSync(excludePath, '# Prompt Registry (local)\n.github/prompts/test.prompt.md\n');
@@ -636,15 +616,12 @@ suite('RepositoryScopeService', () => {
             await service.switchCommitMode(bundleId, 'commit');
             
             const excludeContent = readGitExclude();
-            assert.ok(
-                !excludeContent!.includes('.github/prompts/test.prompt.md'),
-                'Git exclude should not contain file path after switching to commit'
-            );
+            expect(!excludeContent!.includes('.github/prompts/test.prompt.md'), 'Git exclude should not contain file path after switching to commit').toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should proceed without git integration when .git directory is missing', async () => {
+    describe('Error Handling', () => {
+        it('should proceed without git integration when .git directory is missing', async () => {
             // Don't create .git directory
             
             const bundleId = 'no-git-bundle';
@@ -659,10 +636,10 @@ suite('RepositoryScopeService', () => {
             
             // File should still be placed
             const targetFile = path.join(workspaceRoot, '.github', 'prompts', 'test.prompt.md');
-            assert.ok(fs.existsSync(targetFile), 'File should be placed even without .git');
+            expect(fs.existsSync(targetFile), 'File should be placed even without .git').toBeTruthy();
         });
 
-        test('should handle missing bundle manifest gracefully', async () => {
+        it('should handle missing bundle manifest gracefully', async () => {
             const bundleId = 'no-manifest-bundle';
             const bundlePath = path.join(tempDir, 'bundles', bundleId);
             fs.mkdirSync(bundlePath, { recursive: true });
@@ -674,7 +651,7 @@ suite('RepositoryScopeService', () => {
             await service.syncBundle(bundleId, bundlePath);
         });
 
-        test('should rollback on partial file installation failure', async () => {
+        it('should rollback on partial file installation failure', async () => {
             const bundleId = 'rollback-bundle';
             const bundlePath = createMockBundle(bundleId, [
                 { name: 'test1.prompt.md', content: '# Test 1', type: 'prompt' },
@@ -708,8 +685,8 @@ suite('RepositoryScopeService', () => {
         });
     });
 
-    suite('Git Exclude Section Management', () => {
-        test('should remove section header when no entries remain', async () => {
+    describe('Git Exclude Section Management', () => {
+        it('should remove section header when no entries remain', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
             fs.writeFileSync(excludePath, '# Other content\n*.log\n\n# Prompt Registry (local)\n.github/prompts/test.prompt.md\n');
@@ -739,14 +716,11 @@ suite('RepositoryScopeService', () => {
             
             const excludeContent = readGitExclude();
             // Section header should be removed when empty
-            assert.ok(
-                !excludeContent!.includes('# Prompt Registry (local)') || 
-                excludeContent!.includes('# Prompt Registry (local)\n\n'),
-                'Section header should be removed or empty when no entries remain'
-            );
+            expect(!excludeContent!.includes('# Prompt Registry (local)') || 
+                excludeContent!.includes('# Prompt Registry (local)\n\n'), 'Section header should be removed or empty when no entries remain').toBeTruthy();
         });
 
-        test('should keep section header when entries remain', async () => {
+        it('should keep section header when entries remain', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
             fs.writeFileSync(excludePath, '# Prompt Registry (local)\n.github/prompts/test1.prompt.md\n.github/prompts/test2.prompt.md\n');
@@ -764,14 +738,8 @@ suite('RepositoryScopeService', () => {
             fs.writeFileSync(excludePath, content.replace('.github/prompts/test1.prompt.md\n', ''));
             
             const excludeContent = readGitExclude();
-            assert.ok(
-                excludeContent!.includes('# Prompt Registry (local)'),
-                'Section header should remain when entries exist'
-            );
-            assert.ok(
-                excludeContent!.includes('.github/prompts/test2.prompt.md'),
-                'Other entries should remain'
-            );
+            expect(excludeContent!.includes('# Prompt Registry (local)'), 'Section header should remain when entries exist').toBeTruthy();
+            expect(excludeContent!.includes('.github/prompts/test2.prompt.md'), 'Other entries should remain').toBeTruthy();
         });
     });
 
@@ -784,7 +752,7 @@ suite('RepositoryScopeService', () => {
      * Requirements: 10.4 - "WHEN installing skill directories, THE Extension SHALL place them in .github/skills/<skill-name>/"
      * Requirements: 1.5 - "WHEN installing agent skills at repository scope, THE Extension SHALL place files in .github/skills/"
      */
-    suite('syncBundle - Skills Directory Handling', () => {
+    describe('syncBundle - Skills Directory Handling', () => {
         /**
          * Create a mock bundle with a skill directory
          */
@@ -821,7 +789,7 @@ prompts:
             return bundlePath;
         };
 
-        test('should copy skill directories to .github/skills/<skill-name>/', async () => {
+        it('should copy skill directories to .github/skills/<skill-name>/', async () => {
             const bundleId = 'skill-bundle';
             const skillName = 'my-skill';
             const bundlePath = createMockBundleWithSkill(bundleId, skillName, [
@@ -834,12 +802,12 @@ prompts:
             await service.syncBundle(bundleId, bundlePath);
             
             const targetSkillDir = path.join(workspaceRoot, '.github', 'skills', skillName);
-            assert.ok(fs.existsSync(targetSkillDir), 'Skill directory should be created');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'index.js')), 'index.js should be copied');
+            expect(fs.existsSync(targetSkillDir), 'Skill directory should be created').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'index.js')), 'index.js should be copied').toBeTruthy();
         });
 
-        test('should copy all files within skill directory recursively', async () => {
+        it('should copy all files within skill directory recursively', async () => {
             const bundleId = 'skill-bundle-recursive';
             const skillName = 'complex-skill';
             const bundlePath = createMockBundleWithSkill(bundleId, skillName, [
@@ -854,13 +822,13 @@ prompts:
             await service.syncBundle(bundleId, bundlePath);
             
             const targetSkillDir = path.join(workspaceRoot, '.github', 'skills', skillName);
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'src', 'main.js')), 'src/main.js should be copied');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'src', 'utils', 'helper.js')), 'src/utils/helper.js should be copied');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'config', 'settings.json')), 'config/settings.json should be copied');
+            expect(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'src', 'main.js')), 'src/main.js should be copied').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'src', 'utils', 'helper.js')), 'src/utils/helper.js should be copied').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'config', 'settings.json')), 'config/settings.json should be copied').toBeTruthy();
         });
 
-        test('should preserve skill directory structure', async () => {
+        it('should preserve skill directory structure', async () => {
             const bundleId = 'skill-bundle-structure';
             const skillName = 'structured-skill';
             const bundlePath = createMockBundleWithSkill(bundleId, skillName, [
@@ -876,15 +844,15 @@ prompts:
             const targetSkillDir = path.join(workspaceRoot, '.github', 'skills', skillName);
             
             // Verify directory structure is preserved
-            assert.ok(fs.statSync(path.join(targetSkillDir, 'lib')).isDirectory(), 'lib should be a directory');
-            assert.ok(fs.statSync(path.join(targetSkillDir, 'lib', 'utils')).isDirectory(), 'lib/utils should be a directory');
+            expect(fs.statSync(path.join(targetSkillDir, 'lib')).isDirectory(), 'lib should be a directory').toBeTruthy();
+            expect(fs.statSync(path.join(targetSkillDir, 'lib', 'utils')).isDirectory(), 'lib/utils should be a directory').toBeTruthy();
             
             // Verify file contents are preserved
             const coreContent = fs.readFileSync(path.join(targetSkillDir, 'lib', 'core.js'), 'utf-8');
-            assert.strictEqual(coreContent, 'exports.core = {};', 'File content should be preserved');
+            expect(coreContent, 'File content should be preserved').toBe('exports.core = {};');
         });
 
-        test('should create parent .github/skills/ directory if it does not exist', async () => {
+        it('should create parent .github/skills/ directory if it does not exist', async () => {
             const bundleId = 'skill-bundle-parent';
             const skillName = 'new-skill';
             const bundlePath = createMockBundleWithSkill(bundleId, skillName, [
@@ -895,15 +863,15 @@ prompts:
             
             // Ensure .github/skills doesn't exist
             const skillsDir = path.join(workspaceRoot, '.github', 'skills');
-            assert.ok(!fs.existsSync(skillsDir), '.github/skills should not exist initially');
+            expect(!fs.existsSync(skillsDir), '.github/skills should not exist initially').toBeTruthy();
             
             await service.syncBundle(bundleId, bundlePath);
             
-            assert.ok(fs.existsSync(skillsDir), '.github/skills should be created');
-            assert.ok(fs.existsSync(path.join(skillsDir, skillName)), 'Skill directory should be created');
+            expect(fs.existsSync(skillsDir), '.github/skills should be created').toBeTruthy();
+            expect(fs.existsSync(path.join(skillsDir, skillName)), 'Skill directory should be created').toBeTruthy();
         });
 
-        test('should add skill files to git exclude for local-only mode', async () => {
+        it('should add skill files to git exclude for local-only mode', async () => {
             createGitDirectory();
             
             const bundleId = 'skill-bundle-local';
@@ -918,14 +886,11 @@ prompts:
             await service.syncBundle(bundleId, bundlePath);
             
             const excludeContent = readGitExclude();
-            assert.ok(excludeContent, 'Git exclude file should exist');
-            assert.ok(
-                excludeContent!.includes('.github/skills/local-skill'),
-                'Git exclude should contain skill directory path'
-            );
+            expect(excludeContent, 'Git exclude file should exist').toBeTruthy();
+            expect(excludeContent!.includes('.github/skills/local-skill'), 'Git exclude should contain skill directory path').toBeTruthy();
         });
 
-        test('should NOT add skill files to git exclude for commit mode', async () => {
+        it('should NOT add skill files to git exclude for commit mode', async () => {
             createGitDirectory();
             
             const bundleId = 'skill-bundle-commit';
@@ -939,13 +904,10 @@ prompts:
             await service.syncBundle(bundleId, bundlePath);
             
             const excludeContent = readGitExclude();
-            assert.ok(
-                excludeContent === null || !excludeContent.includes('.github/skills/commit-skill'),
-                'Git exclude should not contain skill path for commit mode'
-            );
+            expect(excludeContent === null || !excludeContent.includes('.github/skills/commit-skill'), 'Git exclude should not contain skill path for commit mode').toBeTruthy();
         });
 
-        test('should handle bundles with mixed skills and prompts', async () => {
+        it('should handle bundles with mixed skills and prompts', async () => {
             const bundleId = 'mixed-bundle-with-skill';
             const bundlePath = path.join(tempDir, 'bundles', bundleId);
             fs.mkdirSync(bundlePath, { recursive: true });
@@ -979,19 +941,16 @@ prompts:
             await service.syncBundle(bundleId, bundlePath);
             
             // Verify prompt was installed
-            assert.ok(
-                fs.existsSync(path.join(workspaceRoot, '.github', 'prompts', 'my-prompt.prompt.md')),
-                'Prompt should be installed'
-            );
+            expect(fs.existsSync(path.join(workspaceRoot, '.github', 'prompts', 'my-prompt.prompt.md')), 'Prompt should be installed').toBeTruthy();
             
             // Verify skill was installed
             const targetSkillDir = path.join(workspaceRoot, '.github', 'skills', 'my-skill');
-            assert.ok(fs.existsSync(targetSkillDir), 'Skill directory should be created');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'index.js')), 'index.js should be copied');
+            expect(fs.existsSync(targetSkillDir), 'Skill directory should be created').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'index.js')), 'index.js should be copied').toBeTruthy();
         });
 
-        test('should handle skill manifest with file path (skills/name/SKILL.md) instead of directory path', async () => {
+        it('should handle skill manifest with file path (skills/name/SKILL.md) instead of directory path', async () => {
             // This test covers the AwesomeCopilotAdapter case where the manifest has:
             // file: skills/my-skill/SKILL.md (file path) instead of file: skills/my-skill (directory path)
             const bundleId = 'skill-bundle-file-path';
@@ -1023,13 +982,13 @@ prompts:
             
             // Verify skill directory and all files were copied
             const targetSkillDir = path.join(workspaceRoot, '.github', 'skills', skillName);
-            assert.ok(fs.existsSync(targetSkillDir), 'Skill directory should be created');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied');
-            assert.ok(fs.existsSync(path.join(targetSkillDir, 'resources', 'helper.md')), 'resources/helper.md should be copied');
+            expect(fs.existsSync(targetSkillDir), 'Skill directory should be created').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'SKILL.md')), 'SKILL.md should be copied').toBeTruthy();
+            expect(fs.existsSync(path.join(targetSkillDir, 'resources', 'helper.md')), 'resources/helper.md should be copied').toBeTruthy();
         });
     });
 
-    suite('unsyncBundle - Skills Directory Removal', () => {
+    describe('unsyncBundle - Skills Directory Removal', () => {
         /**
          * Create a mock bundle with a skill directory for unsync tests
          */
@@ -1065,7 +1024,7 @@ prompts:
             return bundlePath;
         };
 
-        test('should remove entire skill directory on unsync', async () => {
+        it('should remove entire skill directory on unsync', async () => {
             const bundleId = 'skill-unsync-bundle';
             const skillName = 'removable-skill';
             
@@ -1097,10 +1056,10 @@ prompts:
             
             await service.unsyncBundle(bundleId);
             
-            assert.ok(!fs.existsSync(targetSkillDir), 'Skill directory should be removed');
+            expect(!fs.existsSync(targetSkillDir), 'Skill directory should be removed').toBeTruthy();
         });
 
-        test('should clean up git exclude entries for all skill files', async () => {
+        it('should clean up git exclude entries for all skill files', async () => {
             createGitDirectory();
             const excludePath = path.join(workspaceRoot, '.git', 'info', 'exclude');
             fs.writeFileSync(excludePath, '# Prompt Registry (local)\n.github/skills/my-skill\n');
@@ -1132,13 +1091,10 @@ prompts:
             await service.unsyncBundle(bundleId);
             
             const excludeContent = readGitExclude();
-            assert.ok(
-                !excludeContent!.includes('.github/skills/my-skill'),
-                'Git exclude should not contain skill path after unsync'
-            );
+            expect(!excludeContent!.includes('.github/skills/my-skill'), 'Git exclude should not contain skill path after unsync').toBeTruthy();
         });
 
-        test('should handle partial directory removal gracefully', async () => {
+        it('should handle partial directory removal gracefully', async () => {
             const bundleId = 'skill-partial-unsync';
             const skillName = 'partial-skill';
             
@@ -1173,8 +1129,8 @@ prompts:
         });
     });
 
-    suite('copilotFileTypeUtils Integration for Skills', () => {
-        test('should detect skill type from manifest type field', async () => {
+    describe('copilotFileTypeUtils Integration for Skills', () => {
+        it('should detect skill type from manifest type field', async () => {
             const bundleId = 'skill-type-detection';
             const skillName = 'detected-skill';
             
@@ -1203,12 +1159,12 @@ prompts:
             
             // Skill should be placed in .github/skills/
             const targetSkillDir = path.join(workspaceRoot, '.github', 'skills', skillName);
-            assert.ok(fs.existsSync(targetSkillDir), 'Skill should be placed in .github/skills/');
+            expect(fs.existsSync(targetSkillDir), 'Skill should be placed in .github/skills/').toBeTruthy();
         });
 
-        test('should use getRepositoryTargetDirectory for skill type', () => {
+        it('should use getRepositoryTargetDirectory for skill type', () => {
             const targetPath = service.getTargetPath('skill', 'test-skill');
-            assert.ok(targetPath.includes('.github/skills/'), 'Skill target path should include .github/skills/');
+            expect(targetPath.includes('.github/skills/'), 'Skill target path should include .github/skills/').toBeTruthy();
         });
     });
 });

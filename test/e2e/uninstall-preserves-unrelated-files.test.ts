@@ -12,7 +12,6 @@
  * - The .github folder itself is preserved when it contains unrelated content
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -30,7 +29,7 @@ import {
 import { LockfileManager } from '../../src/services/LockfileManager';
 import { RepositoryActivationService } from '../../src/services/RepositoryActivationService';
 
-suite('E2E: Uninstall Preserves Unrelated .github Files', () => {
+describe('E2E: Uninstall Preserves Unrelated .github Files', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -144,8 +143,7 @@ suite('E2E: Uninstall Preserves Unrelated .github Files', () => {
         return { sourceId, bundle };
     }
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('preserve-files');
         sandbox = sinon.createSandbox();
         
@@ -175,8 +173,7 @@ suite('E2E: Uninstall Preserves Unrelated .github Files', () => {
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         LockfileManager.resetInstance();
         RepositoryActivationService.resetInstance();
         await testContext.cleanup();
@@ -184,11 +181,9 @@ suite('E2E: Uninstall Preserves Unrelated .github Files', () => {
         cleanupReleaseMocks();
     });
 
-    suite('Bug Fix: Preserve Unrelated .github Files on Uninstall', () => {
+    describe('Bug Fix: Preserve Unrelated .github Files on Uninstall', () => {
         
-        test('Uninstalling last bundle should NOT remove .github folder when unrelated files exist', async function() {
-            this.timeout(60000);
-            
+        it('Uninstalling last bundle should NOT remove .github folder when unrelated files exist', async function() {
             // === ARRANGE: Create unrelated files in .github BEFORE installing bundle ===
             const githubDir = path.join(workspaceRoot, '.github');
             const workflowsDir = path.join(githubDir, 'workflows');
@@ -227,10 +222,10 @@ jobs:
             fs.writeFileSync(issueTemplateFile, '## Bug Report\n\n### Description\n\n### Steps to Reproduce\n');
             
             // Verify unrelated files exist before installation
-            assert.ok(fs.existsSync(ciWorkflowFile), 'CI workflow should exist before installation');
-            assert.ok(fs.existsSync(releaseWorkflowFile), 'Release workflow should exist before installation');
-            assert.ok(fs.existsSync(codeownersFile), 'CODEOWNERS should exist before installation');
-            assert.ok(fs.existsSync(issueTemplateFile), 'Issue template should exist before installation');
+            expect(fs.existsSync(ciWorkflowFile), 'CI workflow should exist before installation').toBeTruthy();
+            expect(fs.existsSync(releaseWorkflowFile), 'Release workflow should exist before installation').toBeTruthy();
+            expect(fs.existsSync(codeownersFile), 'CODEOWNERS should exist before installation').toBeTruthy();
+            expect(fs.existsSync(issueTemplateFile), 'Issue template should exist before installation').toBeTruthy();
             
             // === ACT: Install and then uninstall a bundle ===
             const { bundle } = await setupSourceAndGetBundle('preserve-source', TEST_CONTENT);
@@ -242,11 +237,11 @@ jobs:
             // Verify bundle files were installed
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             const promptFile = path.join(promptsDir, 'test-prompt.prompt.md');
-            assert.ok(fs.existsSync(promptFile), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFile), 'Prompt file should exist after installation').toBeTruthy();
             
             // Verify lockfile exists
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             // Get the actual bundle ID from the lockfile
             const lockfileBefore = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
@@ -256,30 +251,28 @@ jobs:
             await testContext.registryManager.uninstallBundle(actualBundleId, 'repository');
             
             // === ASSERT: Verify prompt registry files are removed ===
-            assert.ok(!fs.existsSync(promptFile), 'Prompt file should be removed after uninstallation');
+            expect(!fs.existsSync(promptFile), 'Prompt file should be removed after uninstallation').toBeTruthy();
             
             // Verify empty prompt registry directories are cleaned up
-            assert.ok(!fs.existsSync(promptsDir), '.github/prompts should be removed when empty');
+            expect(!fs.existsSync(promptsDir), '.github/prompts should be removed when empty').toBeTruthy();
             
             // === CRITICAL ASSERTIONS: Unrelated files should be preserved ===
-            assert.ok(fs.existsSync(githubDir), '.github folder should NOT be removed when unrelated files exist');
-            assert.ok(fs.existsSync(workflowsDir), '.github/workflows should NOT be removed');
-            assert.ok(fs.existsSync(ciWorkflowFile), 'CI workflow file should be preserved');
-            assert.ok(fs.existsSync(releaseWorkflowFile), 'Release workflow file should be preserved');
-            assert.ok(fs.existsSync(codeownersFile), 'CODEOWNERS file should be preserved');
-            assert.ok(fs.existsSync(issueTemplateFile), 'Issue template file should be preserved');
+            expect(fs.existsSync(githubDir), '.github folder should NOT be removed when unrelated files exist').toBeTruthy();
+            expect(fs.existsSync(workflowsDir), '.github/workflows should NOT be removed').toBeTruthy();
+            expect(fs.existsSync(ciWorkflowFile), 'CI workflow file should be preserved').toBeTruthy();
+            expect(fs.existsSync(releaseWorkflowFile), 'Release workflow file should be preserved').toBeTruthy();
+            expect(fs.existsSync(codeownersFile), 'CODEOWNERS file should be preserved').toBeTruthy();
+            expect(fs.existsSync(issueTemplateFile), 'Issue template file should be preserved').toBeTruthy();
             
             // Verify content of preserved files is intact
             const ciContent = fs.readFileSync(ciWorkflowFile, 'utf-8');
-            assert.ok(ciContent.includes('npm test'), 'CI workflow content should be intact');
+            expect(ciContent.includes('npm test'), 'CI workflow content should be intact').toBeTruthy();
             
             const codeownersContent = fs.readFileSync(codeownersFile, 'utf-8');
-            assert.ok(codeownersContent.includes('@test-owner'), 'CODEOWNERS content should be intact');
+            expect(codeownersContent.includes('@test-owner'), 'CODEOWNERS content should be intact').toBeTruthy();
         });
 
-        test('Uninstalling bundle should clean up empty prompt registry subdirectories only', async function() {
-            this.timeout(60000);
-            
+        it('Uninstalling bundle should clean up empty prompt registry subdirectories only', async function() {
             // === ARRANGE: Create unrelated file in .github root ===
             const githubDir = path.join(workspaceRoot, '.github');
             fs.mkdirSync(githubDir, { recursive: true });
@@ -293,7 +286,7 @@ updates:
       interval: weekly
 `);
             
-            assert.ok(fs.existsSync(dependabotFile), 'Dependabot config should exist before installation');
+            expect(fs.existsSync(dependabotFile), 'Dependabot config should exist before installation').toBeTruthy();
             
             // === ACT: Install and uninstall bundle ===
             const { bundle } = await setupSourceAndGetBundle('cleanup-source', TEST_CONTENT);
@@ -304,7 +297,7 @@ updates:
             
             // Verify installation created .github/prompts
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
-            assert.ok(fs.existsSync(promptsDir), '.github/prompts should exist after installation');
+            expect(fs.existsSync(promptsDir), '.github/prompts should exist after installation').toBeTruthy();
             
             // Get bundle ID and uninstall
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
@@ -315,20 +308,18 @@ updates:
             
             // === ASSERT ===
             // Empty prompt registry directory should be removed
-            assert.ok(!fs.existsSync(promptsDir), '.github/prompts should be removed when empty');
+            expect(!fs.existsSync(promptsDir), '.github/prompts should be removed when empty').toBeTruthy();
             
             // .github folder should still exist with unrelated file
-            assert.ok(fs.existsSync(githubDir), '.github folder should be preserved');
-            assert.ok(fs.existsSync(dependabotFile), 'Dependabot config should be preserved');
+            expect(fs.existsSync(githubDir), '.github folder should be preserved').toBeTruthy();
+            expect(fs.existsSync(dependabotFile), 'Dependabot config should be preserved').toBeTruthy();
             
             // Verify dependabot content is intact
             const dependabotContent = fs.readFileSync(dependabotFile, 'utf-8');
-            assert.ok(dependabotContent.includes('package-ecosystem: npm'), 'Dependabot content should be intact');
+            expect(dependabotContent.includes('package-ecosystem: npm'), 'Dependabot content should be intact').toBeTruthy();
         });
 
-        test('Uninstalling bundle should preserve user-modified prompt files', async function() {
-            this.timeout(60000);
-            
+        it('Uninstalling bundle should preserve user-modified prompt files', async function() {
             // === ARRANGE: Install a bundle ===
             const { bundle } = await setupSourceAndGetBundle('modified-source', TEST_CONTENT);
             
@@ -339,7 +330,7 @@ updates:
             // Verify bundle files were installed
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             const promptFile = path.join(promptsDir, 'test-prompt.prompt.md');
-            assert.ok(fs.existsSync(promptFile), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFile), 'Prompt file should exist after installation').toBeTruthy();
             
             // === ACT: Modify the prompt file (simulate user customization) ===
             const originalContent = fs.readFileSync(promptFile, 'utf-8');
@@ -354,20 +345,18 @@ updates:
             await testContext.registryManager.uninstallBundle(actualBundleId, 'repository');
             
             // === ASSERT: User-modified file should be preserved ===
-            assert.ok(fs.existsSync(promptFile), 'User-modified prompt file should be preserved');
+            expect(fs.existsSync(promptFile), 'User-modified prompt file should be preserved').toBeTruthy();
             
             // Verify the user's modifications are intact
             const preservedContent = fs.readFileSync(promptFile, 'utf-8');
-            assert.ok(preservedContent.includes('User Customization'), 'User modifications should be preserved');
-            assert.ok(preservedContent.includes('This was added by the user'), 'User content should be intact');
+            expect(preservedContent.includes('User Customization'), 'User modifications should be preserved').toBeTruthy();
+            expect(preservedContent.includes('This was added by the user'), 'User content should be intact').toBeTruthy();
             
             // .github/prompts should NOT be removed because it contains user-modified file
-            assert.ok(fs.existsSync(promptsDir), '.github/prompts should be preserved when containing user-modified files');
+            expect(fs.existsSync(promptsDir), '.github/prompts should be preserved when containing user-modified files').toBeTruthy();
         });
 
-        test('Uninstalling bundle should preserve user-created prompt files in same directory', async function() {
-            this.timeout(60000);
-            
+        it('Uninstalling bundle should preserve user-created prompt files in same directory', async function() {
             // === ARRANGE: Install a bundle ===
             const { bundle } = await setupSourceAndGetBundle('user-created-source', TEST_CONTENT);
             
@@ -378,7 +367,7 @@ updates:
             // Verify bundle files were installed
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             const bundlePromptFile = path.join(promptsDir, 'test-prompt.prompt.md');
-            assert.ok(fs.existsSync(bundlePromptFile), 'Bundle prompt file should exist after installation');
+            expect(fs.existsSync(bundlePromptFile), 'Bundle prompt file should exist after installation').toBeTruthy();
             
             // === ACT: Create a user's own prompt file in the same directory ===
             const userPromptFile = path.join(promptsDir, 'my-custom-prompt.prompt.md');
@@ -390,7 +379,7 @@ This is a prompt I created myself, not from any bundle.
 Do something custom.
 `);
             
-            assert.ok(fs.existsSync(userPromptFile), 'User-created prompt should exist');
+            expect(fs.existsSync(userPromptFile), 'User-created prompt should exist').toBeTruthy();
             
             // Get bundle ID and uninstall
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
@@ -401,18 +390,18 @@ Do something custom.
             
             // === ASSERT ===
             // Bundle's prompt file should be removed (it's tracked and unmodified)
-            assert.ok(!fs.existsSync(bundlePromptFile), 'Bundle prompt file should be removed');
+            expect(!fs.existsSync(bundlePromptFile), 'Bundle prompt file should be removed').toBeTruthy();
             
             // User-created prompt file should be preserved (not tracked in lockfile)
-            assert.ok(fs.existsSync(userPromptFile), 'User-created prompt file should be preserved');
+            expect(fs.existsSync(userPromptFile), 'User-created prompt file should be preserved').toBeTruthy();
             
             // Verify user's content is intact
             const userContent = fs.readFileSync(userPromptFile, 'utf-8');
-            assert.ok(userContent.includes('My Custom Prompt'), 'User prompt content should be intact');
-            assert.ok(userContent.includes('not from any bundle'), 'User prompt should be preserved');
+            expect(userContent.includes('My Custom Prompt'), 'User prompt content should be intact').toBeTruthy();
+            expect(userContent.includes('not from any bundle'), 'User prompt should be preserved').toBeTruthy();
             
             // .github/prompts should NOT be removed because it contains user-created file
-            assert.ok(fs.existsSync(promptsDir), '.github/prompts should be preserved when containing user-created files');
+            expect(fs.existsSync(promptsDir), '.github/prompts should be preserved when containing user-created files').toBeTruthy();
         });
     });
 });

@@ -9,7 +9,6 @@
  * - Metadata, environments, hooks sections
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
@@ -81,140 +80,140 @@ const createFullManifest = (): any => ({
     }
 });
 
-suite('DeploymentManifestValidator - Schema Validation', () => {
+describe('DeploymentManifestValidator - Schema Validation', () => {
     
-    suite('Required Fields', () => {
-        test('should accept minimal valid manifest with id, name, version', () => {
+    describe('Required Fields', () => {
+        it('should accept minimal valid manifest with id, name, version', () => {
             const manifest = createMinimalManifest();
             
-            assert.ok(manifest.id);
-            assert.ok(manifest.name);
-            assert.ok(manifest.version);
-            assert.strictEqual(manifest.id, 'test-bundle');
-            assert.strictEqual(manifest.name, 'Test Bundle');
-            assert.strictEqual(manifest.version, '1.0.0');
+            expect(manifest.id).toBeTruthy();
+            expect(manifest.name).toBeTruthy();
+            expect(manifest.version).toBeTruthy();
+            expect(manifest.id).toBe('test-bundle');
+            expect(manifest.name).toBe('Test Bundle');
+            expect(manifest.version).toBe('1.0.0');
         });
 
-        test('should reject manifest missing id', () => {
+        it('should reject manifest missing id', () => {
             const manifest = createMinimalManifest();
             delete manifest.id;
             
-            assert.strictEqual(manifest.id, undefined);
+            expect(manifest.id).toBe(undefined);
             // Validation should fail
         });
 
-        test('should reject manifest missing name', () => {
+        it('should reject manifest missing name', () => {
             const manifest = createMinimalManifest();
             delete manifest.name;
             
-            assert.strictEqual(manifest.name, undefined);
+            expect(manifest.name).toBe(undefined);
             // Validation should fail
         });
 
-        test('should reject manifest missing version', () => {
+        it('should reject manifest missing version', () => {
             const manifest = createMinimalManifest();
             delete manifest.version;
             
-            assert.strictEqual(manifest.version, undefined);
+            expect(manifest.version).toBe(undefined);
             // Validation should fail
         });
 
-        test('should reject manifest with empty id', () => {
+        it('should reject manifest with empty id', () => {
             const manifest = createMinimalManifest();
             manifest.id = '';
             
-            assert.strictEqual(manifest.id, '');
+            expect(manifest.id).toBe('');
             // Validation should fail - id must not be empty
         });
 
-        test('should reject manifest with empty name', () => {
+        it('should reject manifest with empty name', () => {
             const manifest = createMinimalManifest();
             manifest.name = '';
             
-            assert.strictEqual(manifest.name, '');
+            expect(manifest.name).toBe('');
             // Validation should fail - name must not be empty
         });
 
-        test('should reject manifest with invalid version format', () => {
+        it('should reject manifest with invalid version format', () => {
             const manifest = createMinimalManifest();
             manifest.version = 'not-a-version';
             
             // Should fail semantic version validation
-            assert.ok(manifest.version);
+            expect(manifest.version).toBeTruthy();
         });
     });
 
-    suite('Optional Top-Level Fields', () => {
-        test('should accept manifest with description', () => {
+    describe('Optional Top-Level Fields', () => {
+        it('should accept manifest with description', () => {
             const manifest = createMinimalManifest();
             manifest.description = 'A test bundle';
             
-            assert.strictEqual(manifest.description, 'A test bundle');
+            expect(manifest.description).toBe('A test bundle');
         });
 
-        test('should accept manifest with author', () => {
+        it('should accept manifest with author', () => {
             const manifest = createMinimalManifest();
             manifest.author = 'Test Author';
             
-            assert.strictEqual(manifest.author, 'Test Author');
+            expect(manifest.author).toBe('Test Author');
         });
 
-        test('should accept manifest with tags array', () => {
+        it('should accept manifest with tags array', () => {
             const manifest = createMinimalManifest();
             manifest.tags = ['test', 'example'];
             
-            assert.ok(Array.isArray(manifest.tags));
-            assert.strictEqual(manifest.tags.length, 2);
+            expect(Array.isArray(manifest.tags)).toBeTruthy();
+            expect(manifest.tags.length).toBe(2);
         });
 
-        test('should accept manifest with environments array', () => {
+        it('should accept manifest with environments array', () => {
             const manifest = createMinimalManifest();
             manifest.environments = ['vscode', 'cursor', 'windsurf'];
             
-            assert.ok(Array.isArray(manifest.environments));
-            assert.ok(manifest.environments.includes('vscode'));
+            expect(Array.isArray(manifest.environments)).toBeTruthy();
+            expect(manifest.environments.includes('vscode')).toBeTruthy();
         });
 
-        test('should accept manifest with license', () => {
+        it('should accept manifest with license', () => {
             const manifest = createMinimalManifest();
             manifest.license = 'MIT';
             
-            assert.strictEqual(manifest.license, 'MIT');
+            expect(manifest.license).toBe('MIT');
         });
 
-        test('should accept manifest with repository URL', () => {
+        it('should accept manifest with repository URL', () => {
             const manifest = createMinimalManifest();
             manifest.repository = 'https://github.com/user/repo';
             
-            assert.ok(manifest.repository.startsWith('https://'));
+            expect(manifest.repository.startsWith('https://')).toBeTruthy();
         });
 
-        test('should accept manifest with empty dependencies array', () => {
+        it('should accept manifest with empty dependencies array', () => {
             const manifest = createMinimalManifest();
             manifest.dependencies = [];
             
-            assert.ok(Array.isArray(manifest.dependencies));
-            assert.strictEqual(manifest.dependencies.length, 0);
+            expect(Array.isArray(manifest.dependencies)).toBeTruthy();
+            expect(manifest.dependencies.length).toBe(0);
         });
     });
 
-    suite('Prompts Section - All Resource Types', () => {
-        test('should accept manifest without prompts section', () => {
+    describe('Prompts Section - All Resource Types', () => {
+        it('should accept manifest without prompts section', () => {
             const manifest = createMinimalManifest();
             
-            assert.strictEqual(manifest.prompts, undefined);
+            expect(manifest.prompts).toBe(undefined);
             // Should be valid - prompts is optional
         });
 
-        test('should accept manifest with empty prompts array', () => {
+        it('should accept manifest with empty prompts array', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [];
             
-            assert.ok(Array.isArray(manifest.prompts));
-            assert.strictEqual(manifest.prompts.length, 0);
+            expect(Array.isArray(manifest.prompts)).toBeTruthy();
+            expect(manifest.prompts.length).toBe(0);
         });
 
-        test('should accept prompt with type "prompt"', () => {
+        it('should accept prompt with type "prompt"', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-prompt',
@@ -224,11 +223,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 type: 'prompt'
             }];
             
-            assert.strictEqual(manifest.prompts[0].type, 'prompt');
-            assert.ok(manifest.prompts[0].file.endsWith('.prompt.md'));
+            expect(manifest.prompts[0].type).toBe('prompt');
+            expect(manifest.prompts[0].file.endsWith('.prompt.md')).toBeTruthy();
         });
 
-        test('should accept prompt with type "instructions"', () => {
+        it('should accept prompt with type "instructions"', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-instructions',
@@ -238,11 +237,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 type: 'instructions'
             }];
             
-            assert.strictEqual(manifest.prompts[0].type, 'instructions');
-            assert.ok(manifest.prompts[0].file.endsWith('.instructions.md'));
+            expect(manifest.prompts[0].type).toBe('instructions');
+            expect(manifest.prompts[0].file.endsWith('.instructions.md')).toBeTruthy();
         });
 
-        test('should accept prompt with type "chatmode"', () => {
+        it('should accept prompt with type "chatmode"', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-chatmode',
@@ -252,11 +251,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 type: 'chatmode'
             }];
             
-            assert.strictEqual(manifest.prompts[0].type, 'chatmode');
-            assert.ok(manifest.prompts[0].file.endsWith('.chatmode.md'));
+            expect(manifest.prompts[0].type).toBe('chatmode');
+            expect(manifest.prompts[0].file.endsWith('.chatmode.md')).toBeTruthy();
         });
 
-        test('should accept prompt with type "agent"', () => {
+        it('should accept prompt with type "agent"', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-agent',
@@ -266,11 +265,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 type: 'agent'
             }];
             
-            assert.strictEqual(manifest.prompts[0].type, 'agent');
-            assert.ok(manifest.prompts[0].file.endsWith('.agent.md'));
+            expect(manifest.prompts[0].type).toBe('agent');
+            expect(manifest.prompts[0].file.endsWith('.agent.md')).toBeTruthy();
         });
 
-        test('should accept prompt without type (defaults to prompt)', () => {
+        it('should accept prompt without type (defaults to prompt)', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-prompt',
@@ -279,11 +278,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 file: 'prompts/test.prompt.md'
             }];
             
-            assert.strictEqual(manifest.prompts[0].type, undefined);
+            expect(manifest.prompts[0].type).toBe(undefined);
             // Type is optional, defaults to 'prompt'
         });
 
-        test('should reject prompt with invalid type', () => {
+        it('should reject prompt with invalid type', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-prompt',
@@ -294,10 +293,10 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
             }];
             
             // Should fail - type must be one of: prompt, instructions, chatmode, agent
-            assert.strictEqual(manifest.prompts[0].type, 'invalid-type');
+            expect(manifest.prompts[0].type).toBe('invalid-type');
         });
 
-        test('should accept prompt with tags array', () => {
+        it('should accept prompt with tags array', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-prompt',
@@ -307,11 +306,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 tags: ['testing', 'example']
             }];
             
-            assert.ok(Array.isArray(manifest.prompts[0].tags));
-            assert.strictEqual(manifest.prompts[0].tags.length, 2);
+            expect(Array.isArray(manifest.prompts[0].tags)).toBeTruthy();
+            expect(manifest.prompts[0].tags.length).toBe(2);
         });
 
-        test('should reject prompt missing required id', () => {
+        it('should reject prompt missing required id', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 name: 'Test Prompt',
@@ -319,11 +318,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 file: 'prompts/test.prompt.md'
             }];
             
-            assert.strictEqual(manifest.prompts[0].id, undefined);
+            expect(manifest.prompts[0].id).toBe(undefined);
             // Should fail - id is required
         });
 
-        test('should reject prompt missing required name', () => {
+        it('should reject prompt missing required name', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-prompt',
@@ -331,11 +330,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 file: 'prompts/test.prompt.md'
             }];
             
-            assert.strictEqual(manifest.prompts[0].name, undefined);
+            expect(manifest.prompts[0].name).toBe(undefined);
             // Should fail - name is required
         });
 
-        test('should reject prompt missing required file', () => {
+        it('should reject prompt missing required file', () => {
             const manifest = createMinimalManifest();
             manifest.prompts = [{
                 id: 'test-prompt',
@@ -343,28 +342,28 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 description: 'A test prompt'
             }];
             
-            assert.strictEqual(manifest.prompts[0].file, undefined);
+            expect(manifest.prompts[0].file).toBe(undefined);
             // Should fail - file is required
         });
     });
 
-    suite('MCP Servers Section', () => {
-        test('should accept manifest without mcpServers', () => {
+    describe('MCP Servers Section', () => {
+        it('should accept manifest without mcpServers', () => {
             const manifest = createMinimalManifest();
             
-            assert.strictEqual(manifest.mcpServers, undefined);
+            expect(manifest.mcpServers).toBe(undefined);
             // Should be valid - mcpServers is optional
         });
 
-        test('should accept manifest with empty mcpServers object', () => {
+        it('should accept manifest with empty mcpServers object', () => {
             const manifest = createMinimalManifest();
             manifest.mcpServers = {};
             
-            assert.strictEqual(typeof manifest.mcpServers, 'object');
-            assert.strictEqual(Object.keys(manifest.mcpServers).length, 0);
+            expect(typeof manifest.mcpServers).toBe('object');
+            expect(Object.keys(manifest.mcpServers).length).toBe(0);
         });
 
-        test('should accept valid MCP server configuration', () => {
+        it('should accept valid MCP server configuration', () => {
             const manifest = createMinimalManifest();
             manifest.mcpServers = {
                 filesystem: {
@@ -373,12 +372,12 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 }
             };
             
-            assert.ok(manifest.mcpServers.filesystem);
-            assert.strictEqual(manifest.mcpServers.filesystem.command, 'npx');
-            assert.ok(Array.isArray(manifest.mcpServers.filesystem.args));
+            expect(manifest.mcpServers.filesystem).toBeTruthy();
+            expect(manifest.mcpServers.filesystem.command).toBe('npx');
+            expect(Array.isArray(manifest.mcpServers.filesystem.args)).toBeTruthy();
         });
 
-        test('should accept MCP server with env variables', () => {
+        it('should accept MCP server with env variables', () => {
             const manifest = createMinimalManifest();
             manifest.mcpServers = {
                 github: {
@@ -391,11 +390,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 }
             };
             
-            assert.ok(manifest.mcpServers.github.env);
-            assert.ok(manifest.mcpServers.github.env.GITHUB_TOKEN);
+            expect(manifest.mcpServers.github.env).toBeTruthy();
+            expect(manifest.mcpServers.github.env.GITHUB_TOKEN).toBeTruthy();
         });
 
-        test('should reject MCP server missing command', () => {
+        it('should reject MCP server missing command', () => {
             const manifest = createMinimalManifest();
             manifest.mcpServers = {
                 invalid: {
@@ -403,30 +402,30 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 }
             };
             
-            assert.strictEqual(manifest.mcpServers.invalid.command, undefined);
+            expect(manifest.mcpServers.invalid.command).toBe(undefined);
             // Should fail - command is required
         });
     });
 
-    suite('Metadata Section', () => {
-        test('should accept manifest without metadata section', () => {
+    describe('Metadata Section', () => {
+        it('should accept manifest without metadata section', () => {
             const manifest = createMinimalManifest();
             
-            assert.strictEqual(manifest.metadata, undefined);
+            expect(manifest.metadata).toBe(undefined);
             // Should be valid - metadata is optional
         });
 
-        test('should accept metadata with manifest_version', () => {
+        it('should accept metadata with manifest_version', () => {
             const manifest = createMinimalManifest();
             manifest.metadata = {
                 manifest_version: '1.0',
                 description: 'Test'
             };
             
-            assert.strictEqual(manifest.metadata.manifest_version, '1.0');
+            expect(manifest.metadata.manifest_version).toBe('1.0');
         });
 
-        test('should accept metadata with repository object', () => {
+        it('should accept metadata with repository object', () => {
             const manifest = createMinimalManifest();
             manifest.metadata = {
                 manifest_version: '1.0',
@@ -438,11 +437,11 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 }
             };
             
-            assert.strictEqual(manifest.metadata.repository.type, 'git');
-            assert.ok(manifest.metadata.repository.url);
+            expect(manifest.metadata.repository.type).toBe('git');
+            expect(manifest.metadata.repository.url).toBeTruthy();
         });
 
-        test('should accept metadata with compatibility section', () => {
+        it('should accept metadata with compatibility section', () => {
             const manifest = createMinimalManifest();
             manifest.metadata = {
                 manifest_version: '1.0',
@@ -453,37 +452,37 @@ suite('DeploymentManifestValidator - Schema Validation', () => {
                 }
             };
             
-            assert.ok(manifest.metadata.compatibility);
-            assert.ok(Array.isArray(manifest.metadata.compatibility.platforms));
+            expect(manifest.metadata.compatibility).toBeTruthy();
+            expect(Array.isArray(manifest.metadata.compatibility.platforms)).toBeTruthy();
         });
     });
 
-    suite('Full Manifest Validation', () => {
-        test('should accept comprehensive manifest with all sections', () => {
+    describe('Full Manifest Validation', () => {
+        it('should accept comprehensive manifest with all sections', () => {
             const manifest = createFullManifest();
             
             // Verify all sections present
-            assert.ok(manifest.id);
-            assert.ok(manifest.name);
-            assert.ok(manifest.version);
-            assert.ok(manifest.prompts);
-            assert.ok(manifest.mcpServers);
-            assert.ok(manifest.metadata);
+            expect(manifest.id).toBeTruthy();
+            expect(manifest.name).toBeTruthy();
+            expect(manifest.version).toBeTruthy();
+            expect(manifest.prompts).toBeTruthy();
+            expect(manifest.mcpServers).toBeTruthy();
+            expect(manifest.metadata).toBeTruthy();
             
             // Verify all 4 resource types
             const types = manifest.prompts.map((p: any) => p.type);
-            assert.ok(types.includes('prompt'));
-            assert.ok(types.includes('instructions'));
-            assert.ok(types.includes('chatmode'));
-            assert.ok(types.includes('agent'));
+            expect(types.includes('prompt')).toBeTruthy();
+            expect(types.includes('instructions')).toBeTruthy();
+            expect(types.includes('chatmode')).toBeTruthy();
+            expect(types.includes('agent')).toBeTruthy();
         });
     });
 });
 
-suite('DeploymentManifestValidator - Resource Type Validation', () => {
+describe('DeploymentManifestValidator - Resource Type Validation', () => {
     
-    suite('File Extension Conventions', () => {
-        test('should validate prompt files end with .prompt.md', () => {
+    describe('File Extension Conventions', () => {
+        it('should validate prompt files end with .prompt.md', () => {
             const validExtensions = [
                 'test.prompt.md',
                 'code-review.prompt.md',
@@ -491,11 +490,11 @@ suite('DeploymentManifestValidator - Resource Type Validation', () => {
             ];
             
             validExtensions.forEach(file => {
-                assert.ok(file.endsWith('.prompt.md'), `${file} should end with .prompt.md`);
+                expect(file.endsWith('.prompt.md'), `${file} should end with .prompt.md`).toBeTruthy();
             });
         });
 
-        test('should validate instruction files end with .instructions.md', () => {
+        it('should validate instruction files end with .instructions.md', () => {
             const validExtensions = [
                 'test.instructions.md',
                 'style-guide.instructions.md',
@@ -503,11 +502,11 @@ suite('DeploymentManifestValidator - Resource Type Validation', () => {
             ];
             
             validExtensions.forEach(file => {
-                assert.ok(file.endsWith('.instructions.md'), `${file} should end with .instructions.md`);
+                expect(file.endsWith('.instructions.md'), `${file} should end with .instructions.md`).toBeTruthy();
             });
         });
 
-        test('should validate chatmode files end with .chatmode.md', () => {
+        it('should validate chatmode files end with .chatmode.md', () => {
             const validExtensions = [
                 'test.chatmode.md',
                 'architect.chatmode.md',
@@ -515,11 +514,11 @@ suite('DeploymentManifestValidator - Resource Type Validation', () => {
             ];
             
             validExtensions.forEach(file => {
-                assert.ok(file.endsWith('.chatmode.md'), `${file} should end with .chatmode.md`);
+                expect(file.endsWith('.chatmode.md'), `${file} should end with .chatmode.md`).toBeTruthy();
             });
         });
 
-        test('should validate agent files end with .agent.md', () => {
+        it('should validate agent files end with .agent.md', () => {
             const validExtensions = [
                 'test.agent.md',
                 'qa-engineer.agent.md',
@@ -527,11 +526,11 @@ suite('DeploymentManifestValidator - Resource Type Validation', () => {
             ];
             
             validExtensions.forEach(file => {
-                assert.ok(file.endsWith('.agent.md'), `${file} should end with .agent.md`);
+                expect(file.endsWith('.agent.md'), `${file} should end with .agent.md`).toBeTruthy();
             });
         });
 
-        test('should detect mismatched type and file extension', () => {
+        it('should detect mismatched type and file extension', () => {
             const mismatches = [
                 { type: 'prompt', file: 'test.instructions.md' },
                 { type: 'instructions', file: 'test.chatmode.md' },
@@ -541,30 +540,29 @@ suite('DeploymentManifestValidator - Resource Type Validation', () => {
             
             mismatches.forEach(({ type, file }) => {
                 const expectedExt = `.${type === 'instructions' ? 'instructions' : type}.md`;
-                assert.ok(!file.endsWith(expectedExt), 
-                    `Type ${type} should not match file ${file}`);
+                expect(!file.endsWith(expectedExt), `Type ${type} should not match file ${file}`).toBeTruthy();
             });
         });
     });
 
-    suite('Type Field Validation', () => {
-        test('should accept all valid type values', () => {
+    describe('Type Field Validation', () => {
+        it('should accept all valid type values', () => {
             const validTypes = ['prompt', 'instructions', 'chatmode', 'agent'];
             
             validTypes.forEach(type => {
-                assert.ok(['prompt', 'instructions', 'chatmode', 'agent'].includes(type));
+                expect(['prompt', 'instructions', 'chatmode', 'agent'].includes(type)).toBeTruthy();
             });
         });
 
-        test('should reject invalid type values', () => {
+        it('should reject invalid type values', () => {
             const invalidTypes = ['prompts', 'instruction', 'chat', 'bot', 'unknown'];
             
             invalidTypes.forEach(type => {
-                assert.ok(!['prompt', 'instructions', 'chatmode', 'agent'].includes(type));
+                expect(!['prompt', 'instructions', 'chatmode', 'agent'].includes(type)).toBeTruthy();
             });
         });
 
-        test('should handle undefined type (defaults to prompt)', () => {
+        it('should handle undefined type (defaults to prompt)', () => {
             const prompt: any = {
                 id: 'test',
                 name: 'Test',
@@ -573,117 +571,117 @@ suite('DeploymentManifestValidator - Resource Type Validation', () => {
             };
             
             const effectiveType = prompt.type || 'prompt';
-            assert.strictEqual(effectiveType, 'prompt');
+            expect(effectiveType).toBe('prompt');
         });
     });
 
-    suite('Directory Conventions', () => {
-        test('should validate prompts are in prompts/ directory', () => {
+    describe('Directory Conventions', () => {
+        it('should validate prompts are in prompts/ directory', () => {
             const validPaths = [
                 'prompts/test.prompt.md',
                 'prompts/subfolder/test.prompt.md'
             ];
             
             validPaths.forEach(path => {
-                assert.ok(path.startsWith('prompts/'));
+                expect(path.startsWith('prompts/')).toBeTruthy();
             });
         });
 
-        test('should validate instructions are in instructions/ directory', () => {
+        it('should validate instructions are in instructions/ directory', () => {
             const validPaths = [
                 'instructions/test.instructions.md',
                 'instructions/subfolder/test.instructions.md'
             ];
             
             validPaths.forEach(path => {
-                assert.ok(path.startsWith('instructions/'));
+                expect(path.startsWith('instructions/')).toBeTruthy();
             });
         });
 
-        test('should validate chatmodes are in chatmodes/ directory', () => {
+        it('should validate chatmodes are in chatmodes/ directory', () => {
             const validPaths = [
                 'chatmodes/test.chatmode.md',
                 'chatmodes/subfolder/test.chatmode.md'
             ];
             
             validPaths.forEach(path => {
-                assert.ok(path.startsWith('chatmodes/'));
+                expect(path.startsWith('chatmodes/')).toBeTruthy();
             });
         });
 
-        test('should validate agents are in agents/ directory', () => {
+        it('should validate agents are in agents/ directory', () => {
             const validPaths = [
                 'agents/test.agent.md',
                 'agents/subfolder/test.agent.md'
             ];
             
             validPaths.forEach(path => {
-                assert.ok(path.startsWith('agents/'));
+                expect(path.startsWith('agents/')).toBeTruthy();
             });
         });
     });
 });
 
-suite('DeploymentManifestValidator - Integration with Real Fixtures', () => {
+describe('DeploymentManifestValidator - Integration with Real Fixtures', () => {
     const fixturesDir = path.join(__dirname, '..', 'fixtures', 'local-library');
     
-    suite('Validate Existing Fixture Manifests', () => {
-        test('should validate bundle1 manifest', () => {
+    describe('Validate Existing Fixture Manifests', () => {
+        it('should validate bundle1 manifest', () => {
             const manifestPath = path.join(fixturesDir, 'bundle1', 'deployment-manifest.yml');
             
             if (!fs.existsSync(manifestPath)) {
-                assert.fail('bundle1 manifest not found');
+                expect.fail('bundle1 manifest not found');
             }
             
             const content = fs.readFileSync(manifestPath, 'utf-8');
             const manifest = yaml.load(content) as any;
             
             // Verify required fields
-            assert.ok(manifest.id, 'id is required');
-            assert.ok(manifest.name, 'name is required');
-            assert.ok(manifest.version, 'version is required');
+            expect(manifest.id, 'id is required').toBeTruthy();
+            expect(manifest.name, 'name is required').toBeTruthy();
+            expect(manifest.version, 'version is required').toBeTruthy();
         });
 
-        test('should validate example-bundle manifest', () => {
+        it('should validate example-bundle manifest', () => {
             const manifestPath = path.join(fixturesDir, 'example-bundle', 'deployment-manifest.yml');
             
             if (!fs.existsSync(manifestPath)) {
-                assert.fail('example-bundle manifest not found');
+                expect.fail('example-bundle manifest not found');
             }
             
             const content = fs.readFileSync(manifestPath, 'utf-8');
             const manifest = yaml.load(content) as any;
             
             // Verify required fields
-            assert.ok(manifest.id);
-            assert.ok(manifest.name);
-            assert.ok(manifest.version);
+            expect(manifest.id).toBeTruthy();
+            expect(manifest.name).toBeTruthy();
+            expect(manifest.version).toBeTruthy();
             
             // Verify prompts section if present
             if (manifest.prompts) {
-                assert.ok(Array.isArray(manifest.prompts));
+                expect(Array.isArray(manifest.prompts)).toBeTruthy();
                 manifest.prompts.forEach((prompt: any) => {
-                    assert.ok(prompt.id, 'prompt id is required');
-                    assert.ok(prompt.name, 'prompt name is required');
-                    assert.ok(prompt.file, 'prompt file is required');
+                    expect(prompt.id, 'prompt id is required').toBeTruthy();
+                    expect(prompt.name, 'prompt name is required').toBeTruthy();
+                    expect(prompt.file, 'prompt file is required').toBeTruthy();
                 });
             }
         });
 
-        test('should validate testing-bundle manifest', () => {
+        it('should validate testing-bundle manifest', () => {
             const manifestPath = path.join(fixturesDir, 'testing-bundle', 'deployment-manifest.yml');
             
             if (!fs.existsSync(manifestPath)) {
-                assert.fail('testing-bundle manifest not found');
+                expect.fail('testing-bundle manifest not found');
             }
             
             const content = fs.readFileSync(manifestPath, 'utf-8');
             const manifest = yaml.load(content) as any;
             
             // Verify required fields
-            assert.ok(manifest.id);
-            assert.ok(manifest.name);
-            assert.ok(manifest.version);
+            expect(manifest.id).toBeTruthy();
+            expect(manifest.name).toBeTruthy();
+            expect(manifest.version).toBeTruthy();
             
             // Verify prompts with different types
             if (manifest.prompts) {
@@ -691,17 +689,16 @@ suite('DeploymentManifestValidator - Integration with Real Fixtures', () => {
                 
                 // Check if types are valid
                 types.forEach((type: string) => {
-                    assert.ok(['prompt', 'instructions', 'chatmode', 'agent'].includes(type),
-                        `Invalid type: ${type}`);
+                    expect(['prompt', 'instructions', 'chatmode', 'agent'].includes(type), `Invalid type: ${type}`).toBeTruthy();
                 });
             }
         });
     });
 
-    suite('Validate All Fixtures in Directory', () => {
-        test('should find and validate all deployment manifests', () => {
+    describe('Validate All Fixtures in Directory', () => {
+        it('should find and validate all deployment manifests', () => {
             if (!fs.existsSync(fixturesDir)) {
-                assert.fail('Fixtures directory not found');
+                expect.fail('Fixtures directory not found');
             }
             
             const bundles = fs.readdirSync(fixturesDir, { withFileTypes: true })
@@ -734,7 +731,7 @@ suite('DeploymentManifestValidator - Integration with Real Fixtures', () => {
                 }
             });
             
-            assert.ok(validCount > 0, 'Should have at least one valid manifest');
+            expect(validCount > 0, 'Should have at least one valid manifest').toBeTruthy();
             
             if (errors.length > 0) {
                 console.log('Validation errors:', errors);
@@ -742,10 +739,10 @@ suite('DeploymentManifestValidator - Integration with Real Fixtures', () => {
         });
     });
 
-    suite('Validate Resource Type Usage in Fixtures', () => {
-        test('should check if fixtures use all 4 resource types', function() {
+    describe('Validate Resource Type Usage in Fixtures', () => {
+        it('should check if fixtures use all 4 resource types', ({ skip }: any) => {
             if (!fs.existsSync(fixturesDir)) {
-                this.skip();
+                skip();
                 return;
             }
             
@@ -776,7 +773,7 @@ suite('DeploymentManifestValidator - Integration with Real Fixtures', () => {
             console.log('Resource types found in fixtures:', Array.from(typesFound));
             
             // At least some types should be present
-            assert.ok(typesFound.size > 0, 'Should find at least one resource type');
+            expect(typesFound.size > 0, 'Should find at least one resource type').toBeTruthy();
         });
     });
 });

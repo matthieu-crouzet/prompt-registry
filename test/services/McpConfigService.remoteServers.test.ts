@@ -4,7 +4,6 @@
  * TDD tests for remote MCP server (HTTP/SSE) handling and type discrimination.
  * These tests verify the refactored type system and processing logic.
  */
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as fs from 'fs-extra';
@@ -18,96 +17,96 @@ import {
     isRemoteServerConfig
 } from '../../src/types/mcp';
 
-suite('McpConfigService - Remote Server Support', () => {
+describe('McpConfigService - Remote Server Support', () => {
     let sandbox: sinon.SinonSandbox;
     let configService: McpConfigService;
     let testDir: string;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         configService = new McpConfigService();
         testDir = path.join(os.tmpdir(), 'mcp-remote-test-' + Date.now());
         fs.ensureDirSync(testDir);
     });
 
-    teardown(async () => {
+    afterEach(async () => {
         sandbox.restore();
         if (fs.existsSync(testDir)) {
             await fs.remove(testDir);
         }
     });
 
-    suite('Type Guards', () => {
-        suite('isStdioServerConfig()', () => {
-            test('should return true for explicit stdio type', () => {
+    describe('Type Guards', () => {
+        describe('isStdioServerConfig()', () => {
+            it('should return true for explicit stdio type', () => {
                 const config: McpServerConfig = {
                     type: 'stdio',
                     command: 'node',
                     args: ['server.js']
                 };
-                assert.strictEqual(isStdioServerConfig(config), true);
+                expect(isStdioServerConfig(config)).toBe(true);
             });
 
-            test('should return true for config without type (backward compatibility)', () => {
+            it('should return true for config without type (backward compatibility)', () => {
                 const config: McpServerConfig = {
                     command: 'node',
                     args: ['server.js']
                 } as McpStdioServerConfig;
-                assert.strictEqual(isStdioServerConfig(config), true);
+                expect(isStdioServerConfig(config)).toBe(true);
             });
 
-            test('should return false for http type', () => {
+            it('should return false for http type', () => {
                 const config: McpServerConfig = {
                     type: 'http',
                     url: 'https://api.example.com/mcp'
                 };
-                assert.strictEqual(isStdioServerConfig(config), false);
+                expect(isStdioServerConfig(config)).toBe(false);
             });
 
-            test('should return false for sse type', () => {
+            it('should return false for sse type', () => {
                 const config: McpServerConfig = {
                     type: 'sse',
                     url: 'https://api.example.com/mcp/sse'
                 };
-                assert.strictEqual(isStdioServerConfig(config), false);
+                expect(isStdioServerConfig(config)).toBe(false);
             });
         });
 
-        suite('isRemoteServerConfig()', () => {
-            test('should return true for http type with url', () => {
+        describe('isRemoteServerConfig()', () => {
+            it('should return true for http type with url', () => {
                 const config: McpServerConfig = {
                     type: 'http',
                     url: 'https://api.example.com/mcp'
                 };
-                assert.strictEqual(isRemoteServerConfig(config), true);
+                expect(isRemoteServerConfig(config)).toBe(true);
             });
 
-            test('should return true for sse type with url', () => {
+            it('should return true for sse type with url', () => {
                 const config: McpServerConfig = {
                     type: 'sse',
                     url: 'https://api.example.com/mcp/sse'
                 };
-                assert.strictEqual(isRemoteServerConfig(config), true);
+                expect(isRemoteServerConfig(config)).toBe(true);
             });
 
-            test('should return false for stdio type', () => {
+            it('should return false for stdio type', () => {
                 const config: McpServerConfig = {
                     type: 'stdio',
                     command: 'node',
                     args: ['server.js']
                 };
-                assert.strictEqual(isRemoteServerConfig(config), false);
+                expect(isRemoteServerConfig(config)).toBe(false);
             });
 
-            test('should return false for config without type (defaults to stdio)', () => {
+            it('should return false for config without type (defaults to stdio)', () => {
                 const config: McpServerConfig = {
                     command: 'node',
                     args: ['server.js']
                 } as McpStdioServerConfig;
-                assert.strictEqual(isRemoteServerConfig(config), false);
+                expect(isRemoteServerConfig(config)).toBe(false);
             });
 
-            test('should return true for http type with headers', () => {
+            it('should return true for http type with headers', () => {
                 const config: McpServerConfig = {
                     type: 'http',
                     url: 'https://api.example.com/mcp',
@@ -115,16 +114,16 @@ suite('McpConfigService - Remote Server Support', () => {
                         'Authorization': 'Bearer token123'
                     }
                 };
-                assert.strictEqual(isRemoteServerConfig(config), true);
+                expect(isRemoteServerConfig(config)).toBe(true);
             });
         });
     });
 
-    suite('processServerDefinition() - Remote Servers', () => {
+    describe('processServerDefinition() - Remote Servers', () => {
         const bundleId = 'test-bundle';
         const bundleVersion = '1.0.0';
 
-        test('should process HTTP server with URL', () => {
+        it('should process HTTP server with URL', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'https://api.example.com/mcp'
@@ -138,13 +137,13 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isRemoteServerConfig(result), true);
+            expect(isRemoteServerConfig(result)).toBe(true);
             const remoteResult = result as McpRemoteServerConfig;
-            assert.strictEqual(remoteResult.type, 'http');
-            assert.strictEqual(remoteResult.url, 'https://api.example.com/mcp');
+            expect(remoteResult.type).toBe('http');
+            expect(remoteResult.url).toBe('https://api.example.com/mcp');
         });
 
-        test('should process SSE server with URL', () => {
+        it('should process SSE server with URL', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'sse',
                 url: 'https://api.example.com/mcp/events'
@@ -158,13 +157,13 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isRemoteServerConfig(result), true);
+            expect(isRemoteServerConfig(result)).toBe(true);
             const remoteResult = result as McpRemoteServerConfig;
-            assert.strictEqual(remoteResult.type, 'sse');
-            assert.strictEqual(remoteResult.url, 'https://api.example.com/mcp/events');
+            expect(remoteResult.type).toBe('sse');
+            expect(remoteResult.url).toBe('https://api.example.com/mcp/events');
         });
 
-        test('should substitute bundlePath variable in URL', () => {
+        it('should substitute bundlePath variable in URL', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'file://${bundlePath}/local-server'
@@ -178,12 +177,12 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isRemoteServerConfig(result), true);
+            expect(isRemoteServerConfig(result)).toBe(true);
             const remoteResult = result as McpRemoteServerConfig;
-            assert.strictEqual(remoteResult.url, `file://${testDir}/local-server`);
+            expect(remoteResult.url).toBe(`file://${testDir}/local-server`);
         });
 
-        test('should substitute environment variables in URL', () => {
+        it('should substitute environment variables in URL', () => {
             const originalEnv = process.env.TEST_MCP_HOST;
             process.env.TEST_MCP_HOST = 'mcp.example.com';
 
@@ -201,9 +200,9 @@ suite('McpConfigService - Remote Server Support', () => {
                     testDir
                 );
 
-                assert.strictEqual(isRemoteServerConfig(result), true);
+                expect(isRemoteServerConfig(result)).toBe(true);
                 const remoteResult = result as McpRemoteServerConfig;
-                assert.strictEqual(remoteResult.url, 'https://mcp.example.com/api/mcp');
+                expect(remoteResult.url).toBe('https://mcp.example.com/api/mcp');
             } finally {
                 if (originalEnv === undefined) {
                     delete process.env.TEST_MCP_HOST;
@@ -213,7 +212,7 @@ suite('McpConfigService - Remote Server Support', () => {
             }
         });
 
-        test('should process headers with variable substitution', () => {
+        it('should process headers with variable substitution', () => {
             const originalEnv = process.env.TEST_API_TOKEN;
             process.env.TEST_API_TOKEN = 'secret-token-123';
 
@@ -235,10 +234,10 @@ suite('McpConfigService - Remote Server Support', () => {
                     testDir
                 );
 
-                assert.strictEqual(isRemoteServerConfig(result), true);
+                expect(isRemoteServerConfig(result)).toBe(true);
                 const remoteResult = result as McpRemoteServerConfig;
-                assert.strictEqual(remoteResult.headers?.['Authorization'], 'Bearer secret-token-123');
-                assert.strictEqual(remoteResult.headers?.['X-Bundle-Id'], bundleId);
+                expect(remoteResult.headers?.['Authorization']).toBe('Bearer secret-token-123');
+                expect(remoteResult.headers?.['X-Bundle-Id']).toBe(bundleId);
             } finally {
                 if (originalEnv === undefined) {
                     delete process.env.TEST_API_TOKEN;
@@ -248,7 +247,7 @@ suite('McpConfigService - Remote Server Support', () => {
             }
         });
 
-        test('should preserve disabled field for remote servers', () => {
+        it('should preserve disabled field for remote servers', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'https://api.example.com/mcp',
@@ -263,10 +262,10 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(result.disabled, true);
+            expect(result.disabled).toBe(true);
         });
 
-        test('should preserve description field for remote servers', () => {
+        it('should preserve description field for remote servers', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'sse',
                 url: 'https://api.example.com/mcp/sse',
@@ -281,10 +280,10 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(result.description, 'My SSE MCP server');
+            expect(result.description).toBe('My SSE MCP server');
         });
 
-        test('should handle Unix socket URL', () => {
+        it('should handle Unix socket URL', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'unix:///tmp/mcp.sock'
@@ -298,12 +297,12 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isRemoteServerConfig(result), true);
+            expect(isRemoteServerConfig(result)).toBe(true);
             const remoteResult = result as McpRemoteServerConfig;
-            assert.strictEqual(remoteResult.url, 'unix:///tmp/mcp.sock');
+            expect(remoteResult.url).toBe('unix:///tmp/mcp.sock');
         });
 
-        test('should handle Windows named pipe URL', () => {
+        it('should handle Windows named pipe URL', () => {
             const definition: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'pipe:///pipe/mcp-server'
@@ -317,17 +316,17 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isRemoteServerConfig(result), true);
+            expect(isRemoteServerConfig(result)).toBe(true);
             const remoteResult = result as McpRemoteServerConfig;
-            assert.strictEqual(remoteResult.url, 'pipe:///pipe/mcp-server');
+            expect(remoteResult.url).toBe('pipe:///pipe/mcp-server');
         });
     });
 
-    suite('processServerDefinition() - Stdio Servers (Enhanced)', () => {
+    describe('processServerDefinition() - Stdio Servers (Enhanced)', () => {
         const bundleId = 'test-bundle';
         const bundleVersion = '1.0.0';
 
-        test('should preserve explicit stdio type', () => {
+        it('should preserve explicit stdio type', () => {
             const definition: McpStdioServerConfig = {
                 type: 'stdio',
                 command: 'node',
@@ -342,12 +341,12 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isStdioServerConfig(result), true);
+            expect(isStdioServerConfig(result)).toBe(true);
             const stdioResult = result as McpStdioServerConfig;
-            assert.strictEqual(stdioResult.type, 'stdio');
+            expect(stdioResult.type).toBe('stdio');
         });
 
-        test('should handle config without type (backward compatibility)', () => {
+        it('should handle config without type (backward compatibility)', () => {
             const definition: McpStdioServerConfig = {
                 command: 'python',
                 args: ['mcp_server.py']
@@ -361,12 +360,12 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isStdioServerConfig(result), true);
+            expect(isStdioServerConfig(result)).toBe(true);
             const stdioResult = result as McpStdioServerConfig;
-            assert.strictEqual(stdioResult.command, 'python');
+            expect(stdioResult.command).toBe('python');
         });
 
-        test('should substitute envFile path', () => {
+        it('should substitute envFile path', () => {
             const definition: McpStdioServerConfig = {
                 command: 'node',
                 args: ['server.js'],
@@ -381,14 +380,14 @@ suite('McpConfigService - Remote Server Support', () => {
                 testDir
             );
 
-            assert.strictEqual(isStdioServerConfig(result), true);
+            expect(isStdioServerConfig(result)).toBe(true);
             const stdioResult = result as McpStdioServerConfig;
-            assert.strictEqual(stdioResult.envFile, `${testDir}/.env`);
+            expect(stdioResult.envFile).toBe(`${testDir}/.env`);
         });
     });
 
-    suite('Mixed Server Types', () => {
-        test('should correctly discriminate between stdio and remote in same manifest', () => {
+    describe('Mixed Server Types', () => {
+        it('should correctly discriminate between stdio and remote in same manifest', () => {
             const stdioConfig: McpStdioServerConfig = {
                 command: 'node',
                 args: ['local-server.js']
@@ -404,14 +403,14 @@ suite('McpConfigService - Remote Server Support', () => {
                 url: 'https://api.example.com/mcp/events'
             };
 
-            assert.strictEqual(isStdioServerConfig(stdioConfig), true);
-            assert.strictEqual(isRemoteServerConfig(stdioConfig), false);
+            expect(isStdioServerConfig(stdioConfig)).toBe(true);
+            expect(isRemoteServerConfig(stdioConfig)).toBe(false);
 
-            assert.strictEqual(isStdioServerConfig(httpConfig), false);
-            assert.strictEqual(isRemoteServerConfig(httpConfig), true);
+            expect(isStdioServerConfig(httpConfig)).toBe(false);
+            expect(isRemoteServerConfig(httpConfig)).toBe(true);
 
-            assert.strictEqual(isStdioServerConfig(sseConfig), false);
-            assert.strictEqual(isRemoteServerConfig(sseConfig), true);
+            expect(isStdioServerConfig(sseConfig)).toBe(false);
+            expect(isRemoteServerConfig(sseConfig)).toBe(true);
         });
     });
 });

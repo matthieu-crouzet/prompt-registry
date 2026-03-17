@@ -9,12 +9,12 @@
  * - Property 2: Combined Scope Queries Both Sources (Requirements 1.2)
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { vi } from 'vitest';
 import { RegistryManager } from '../../src/services/RegistryManager';
 import { RegistryStorage } from '../../src/storage/RegistryStorage';
 import { LockfileManager } from '../../src/services/LockfileManager';
@@ -23,13 +23,18 @@ import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { createMockLockfile } from '../helpers/lockfileTestHelpers';
 import { createTestWorkspace, cleanupTestWorkspace } from '../helpers/mockData';
 
-suite('RegistryManager.listInstalledBundles Property Tests', () => {
+// Mock scopeSelectionUI at module level for ESM compatibility
+const mockGetWorkspaceRoot = vi.fn();
+vi.mock('../../src/utils/scopeSelectionUI', () => ({
+    getWorkspaceRoot: (...args: any[]) => mockGetWorkspaceRoot(...args),
+}));
+
+describe('RegistryManager.listInstalledBundles Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let manager: RegistryManager;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let tempDir: string;
-    let getWorkspaceRootStub: sinon.SinonStub;
 
     /**
      * Create a mock VS Code ExtensionContext for testing.
@@ -73,7 +78,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
         }
     });
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         tempDir = createTestWorkspace();
         mockContext = createMockContext(sandbox);
@@ -89,15 +94,14 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
         mockStorage.getInstalledBundles.resolves([]);
         (manager as any).storage = mockStorage;
 
-        // Stub getWorkspaceRoot to return our temp directory
-        const scopeSelectionUI = require('../../src/utils/scopeSelectionUI');
-        getWorkspaceRootStub = sandbox.stub(scopeSelectionUI, 'getWorkspaceRoot').returns(tempDir);
+        // Mock getWorkspaceRoot to return our temp directory
+        mockGetWorkspaceRoot.mockReturnValue(tempDir);
 
         // Reset LockfileManager instances
         LockfileManager.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         cleanupTestWorkspace(tempDir);
         LockfileManager.resetInstance();
@@ -113,8 +117,8 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
      * **Validates: Requirements 1.1**
      * **Feature: lockfile-source-of-truth, Property 1: Repository Scope Queries Lockfile**
      */
-    suite('Property 1: Repository Scope Queries Lockfile', () => {
-        test('repository scope should return bundles from lockfile only', async () => {
+    describe('Property 1: Repository Scope Queries Lockfile', () => {
+        it('repository scope should return bundles from lockfile only', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 5 }),
@@ -147,28 +151,16 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         const result = await manager.listInstalledBundles('repository');
                         
                         // Assert: Should return only lockfile bundles
-                        assert.strictEqual(
-                            result.length,
-                            bundleCount,
-                            `Should return ${bundleCount} bundles from lockfile`
-                        );
+                        expect(result.length, `Should return ${bundleCount} bundles from lockfile`).toBe(bundleCount);
                         
                         // All returned bundles should have scope 'repository'
                         for (const bundle of result) {
-                            assert.strictEqual(
-                                bundle.scope,
-                                'repository',
-                                'All bundles should have repository scope'
-                            );
+                            expect(bundle.scope, 'All bundles should have repository scope').toBe('repository');
                         }
                         
                         // Should NOT include user bundles
                         const hasUserBundle = result.some(b => b.bundleId === 'user-bundle-1');
-                        assert.strictEqual(
-                            hasUserBundle,
-                            false,
-                            'Should not include user bundles when querying repository scope'
-                        );
+                        expect(hasUserBundle, 'Should not include user bundles when querying repository scope').toBe(false);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -183,7 +175,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('repository scope should return empty array when lockfile does not exist', async () => {
+        it('repository scope should return empty array when lockfile does not exist', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.constant(true), // Dummy property to run the test
@@ -197,11 +189,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         const result = await manager.listInstalledBundles('repository');
                         
                         // Assert: Should return empty array
-                        assert.strictEqual(
-                            result.length,
-                            0,
-                            'Should return empty array when lockfile does not exist'
-                        );
+                        expect(result.length, 'Should return empty array when lockfile does not exist').toBe(0);
                         
                         return true;
                     }
@@ -213,7 +201,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('repository scope should not call RegistryStorage.getInstalledBundles with repository scope', async () => {
+        it('repository scope should not call RegistryStorage.getInstalledBundles with repository scope', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 0, max: 3 }),
@@ -230,11 +218,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         await manager.listInstalledBundles('repository');
                         
                         // Assert: RegistryStorage should NOT be called for repository scope
-                        assert.strictEqual(
-                            mockStorage.getInstalledBundles.called,
-                            false,
-                            'RegistryStorage.getInstalledBundles should not be called for repository scope'
-                        );
+                        expect(mockStorage.getInstalledBundles.called, 'RegistryStorage.getInstalledBundles should not be called for repository scope').toBe(false);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -261,8 +245,8 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
      * **Validates: Requirements 1.2**
      * **Feature: lockfile-source-of-truth, Property 2: Combined Scope Queries Both Sources**
      */
-    suite('Property 2: Combined Scope Queries Both Sources', () => {
-        test('no scope filter should return bundles from both sources', async () => {
+    describe('Property 2: Combined Scope Queries Both Sources', () => {
+        it('no scope filter should return bundles from both sources', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 3 }),
@@ -289,26 +273,14 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         
                         // Assert: Should return bundles from both sources
                         const expectedTotal = lockfileBundleCount + userBundleCount;
-                        assert.strictEqual(
-                            result.length,
-                            expectedTotal,
-                            `Should return ${expectedTotal} bundles (${lockfileBundleCount} from lockfile + ${userBundleCount} from storage)`
-                        );
+                        expect(result.length, `Should return ${expectedTotal} bundles (${lockfileBundleCount} from lockfile + ${userBundleCount} from storage)`).toBe(expectedTotal);
                         
                         // Verify we have both repository and user scope bundles
                         const repoBundles = result.filter(b => b.scope === 'repository');
                         const userScopeBundles = result.filter(b => b.scope === 'user');
                         
-                        assert.strictEqual(
-                            repoBundles.length,
-                            lockfileBundleCount,
-                            `Should have ${lockfileBundleCount} repository bundles`
-                        );
-                        assert.strictEqual(
-                            userScopeBundles.length,
-                            userBundleCount,
-                            `Should have ${userBundleCount} user bundles`
-                        );
+                        expect(repoBundles.length, `Should have ${lockfileBundleCount} repository bundles`).toBe(lockfileBundleCount);
+                        expect(userScopeBundles.length, `Should have ${userBundleCount} user bundles`).toBe(userBundleCount);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -323,7 +295,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('no scope filter should call both RegistryStorage and LockfileManager', async () => {
+        it('no scope filter should call both RegistryStorage and LockfileManager', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 0, max: 3 }),
@@ -340,11 +312,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         await manager.listInstalledBundles();
                         
                         // Assert: RegistryStorage should be called (for user/workspace bundles)
-                        assert.strictEqual(
-                            mockStorage.getInstalledBundles.called,
-                            true,
-                            'RegistryStorage.getInstalledBundles should be called for combined query'
-                        );
+                        expect(mockStorage.getInstalledBundles.called, 'RegistryStorage.getInstalledBundles should be called for combined query').toBe(true);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -359,7 +327,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('user scope should only query RegistryStorage, not lockfile', async () => {
+        it('user scope should only query RegistryStorage, not lockfile', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 3 }),
@@ -377,24 +345,12 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         const result = await manager.listInstalledBundles('user');
                         
                         // Assert: Should return only user bundles, not lockfile bundles
-                        assert.strictEqual(
-                            result.length,
-                            1,
-                            'Should return only user bundles'
-                        );
-                        assert.strictEqual(
-                            result[0].scope,
-                            'user',
-                            'Returned bundle should have user scope'
-                        );
+                        expect(result.length, 'Should return only user bundles').toBe(1);
+                        expect(result[0].scope, 'Returned bundle should have user scope').toBe('user');
                         
                         // Should NOT include repository bundles
                         const hasRepoBundles = result.some(b => b.scope === 'repository');
-                        assert.strictEqual(
-                            hasRepoBundles,
-                            false,
-                            'Should not include repository bundles when querying user scope'
-                        );
+                        expect(hasRepoBundles, 'Should not include repository bundles when querying user scope').toBe(false);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -409,7 +365,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('workspace scope should only query RegistryStorage, not lockfile', async () => {
+        it('workspace scope should only query RegistryStorage, not lockfile', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 3 }),
@@ -440,24 +396,12 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         const result = await manager.listInstalledBundles('workspace');
                         
                         // Assert: Should return only workspace bundles, not lockfile bundles
-                        assert.strictEqual(
-                            result.length,
-                            1,
-                            'Should return only workspace bundles'
-                        );
-                        assert.strictEqual(
-                            result[0].scope,
-                            'workspace',
-                            'Returned bundle should have workspace scope'
-                        );
+                        expect(result.length, 'Should return only workspace bundles').toBe(1);
+                        expect(result[0].scope, 'Returned bundle should have workspace scope').toBe('workspace');
                         
                         // Should NOT include repository bundles
                         const hasRepoBundles = result.some(b => b.scope === 'repository');
-                        assert.strictEqual(
-                            hasRepoBundles,
-                            false,
-                            'Should not include repository bundles when querying workspace scope'
-                        );
+                        expect(hasRepoBundles, 'Should not include repository bundles when querying workspace scope').toBe(false);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -472,7 +416,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('combined query should handle empty lockfile gracefully', async () => {
+        it('combined query should handle empty lockfile gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 3 }),
@@ -489,11 +433,7 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         const result = await manager.listInstalledBundles();
                         
                         // Assert: Should return only user bundles
-                        assert.strictEqual(
-                            result.length,
-                            userBundleCount,
-                            `Should return ${userBundleCount} user bundles when lockfile doesn't exist`
-                        );
+                        expect(result.length, `Should return ${userBundleCount} user bundles when lockfile doesn't exist`).toBe(userBundleCount);
                         
                         return true;
                     }
@@ -505,13 +445,13 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
             );
         });
 
-        test('combined query should handle no workspace gracefully', async () => {
+        it('combined query should handle no workspace gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 3 }),
                     async (userBundleCount: number) => {
                         // Arrange: No workspace open
-                        getWorkspaceRootStub.returns(undefined);
+                        mockGetWorkspaceRoot.mockReturnValue(undefined);
                         
                         // Create user bundles
                         const userBundles: InstalledBundle[] = [];
@@ -524,14 +464,10 @@ suite('RegistryManager.listInstalledBundles Property Tests', () => {
                         const result = await manager.listInstalledBundles();
                         
                         // Assert: Should return only user bundles (no repository bundles without workspace)
-                        assert.strictEqual(
-                            result.length,
-                            userBundleCount,
-                            `Should return ${userBundleCount} user bundles when no workspace is open`
-                        );
+                        expect(result.length, `Should return ${userBundleCount} user bundles when no workspace is open`).toBe(userBundleCount);
                         
                         // Restore workspace root for other tests
-                        getWorkspaceRootStub.returns(tempDir);
+                        mockGetWorkspaceRoot.mockReturnValue(tempDir);
                         
                         return true;
                     }

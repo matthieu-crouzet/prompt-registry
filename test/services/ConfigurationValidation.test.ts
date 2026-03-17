@@ -3,20 +3,19 @@
  * Validates: Requirements 6.3
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { UpdateScheduler } from '../../src/services/UpdateScheduler';
 import { UpdateChecker } from '../../src/services/UpdateChecker';
 import { Logger } from '../../src/utils/logger';
 
-suite('Configuration Validation', () => {
+describe('Configuration Validation', () => {
     let sandbox: sinon.SinonSandbox;
     let mockUpdateChecker: sinon.SinonStubbedInstance<UpdateChecker>;
     let mockContext: sinon.SinonStubbedInstance<vscode.ExtensionContext>;
     let loggerWarnStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockUpdateChecker = sandbox.createStubInstance(UpdateChecker);
         mockContext = {
@@ -33,12 +32,12 @@ suite('Configuration Validation', () => {
         loggerWarnStub = sandbox.stub(Logger.prototype, 'warn');
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('UpdateScheduler Configuration Validation', () => {
-        test('should accept valid frequency values', async () => {
+    describe('UpdateScheduler Configuration Validation', () => {
+        it('should accept valid frequency values', async () => {
             const validFrequencies = ['daily', 'weekly', 'manual'];
             
             for (const frequency of validFrequencies) {
@@ -55,13 +54,9 @@ suite('Configuration Validation', () => {
                 await scheduler.initialize();
 
                 // Should not log any warnings for valid values
-                assert.strictEqual(
-                    loggerWarnStub.getCalls().filter(call => 
+                expect(loggerWarnStub.getCalls().filter(call => 
                         call.args[0].includes('Invalid update check frequency')
-                    ).length,
-                    0,
-                    `Should not warn for valid frequency "${frequency}"`
-                );
+                    ).length, `Should not warn for valid frequency "${frequency}"`).toBe(0);
 
                 // Cleanup scheduler to prevent timer leaks
                 scheduler.dispose();
@@ -70,7 +65,7 @@ suite('Configuration Validation', () => {
             }
         });
 
-        test('should fallback to default for invalid frequency', async () => {
+        it('should fallback to default for invalid frequency', async () => {
             const invalidFrequency = 'hourly';
             
             // Mock configuration with invalid frequency
@@ -89,22 +84,16 @@ suite('Configuration Validation', () => {
                 call.args[0].includes('Invalid update check frequency')
             );
             
-            assert.strictEqual(warningCalls.length, 1, 'Should log warning for invalid frequency');
-            assert.ok(
-                warningCalls[0].args[0].includes(invalidFrequency),
-                'Warning should mention the invalid value'
-            );
-            assert.ok(
-                warningCalls[0].args[0].includes('daily'),
-                'Warning should mention the default value'
-            );
+            expect(warningCalls.length, 'Should log warning for invalid frequency').toBe(1);
+            expect(warningCalls[0].args[0].includes(invalidFrequency), 'Warning should mention the invalid value').toBeTruthy();
+            expect(warningCalls[0].args[0].includes('daily'), 'Warning should mention the default value').toBeTruthy();
 
             // Cleanup scheduler to prevent timer leaks
             scheduler.dispose();
             configStub.restore();
         });
 
-        test('should accept valid notification preferences', async () => {
+        it('should accept valid notification preferences', async () => {
             const validPreferences = ['all', 'critical', 'none'];
             
             for (const preference of validPreferences) {
@@ -127,13 +116,9 @@ suite('Configuration Validation', () => {
                 await scheduler.checkNow();
 
                 // Should not log any warnings for valid values
-                assert.strictEqual(
-                    loggerWarnStub.getCalls().filter(call => 
+                expect(loggerWarnStub.getCalls().filter(call => 
                         call.args[0].includes('Invalid notification preference')
-                    ).length,
-                    0,
-                    `Should not warn for valid preference "${preference}"`
-                );
+                    ).length, `Should not warn for valid preference "${preference}"`).toBe(0);
 
                 // Cleanup scheduler to prevent timer leaks
                 scheduler.dispose();
@@ -142,7 +127,7 @@ suite('Configuration Validation', () => {
             }
         });
 
-        test('should fallback to default for invalid notification preference', async () => {
+        it('should fallback to default for invalid notification preference', async () => {
             const invalidPreference = 'some';
             
             // Mock configuration with invalid preference
@@ -177,15 +162,9 @@ suite('Configuration Validation', () => {
                 call.args[0].includes('Invalid notification preference')
             );
             
-            assert.ok(warningCalls.length >= 1, 'Should log warning for invalid preference');
-            assert.ok(
-                warningCalls[0].args[0].includes(invalidPreference),
-                'Warning should mention the invalid value'
-            );
-            assert.ok(
-                warningCalls[0].args[0].includes('all'),
-                'Warning should mention the default value'
-            );
+            expect(warningCalls.length >= 1, 'Should log warning for invalid preference').toBeTruthy();
+            expect(warningCalls[0].args[0].includes(invalidPreference), 'Warning should mention the invalid value').toBeTruthy();
+            expect(warningCalls[0].args[0].includes('all'), 'Warning should mention the default value').toBeTruthy();
 
             // Cleanup scheduler to prevent timer leaks
             scheduler.dispose();
@@ -193,8 +172,8 @@ suite('Configuration Validation', () => {
         });
     });
 
-    suite('Type Safety', () => {
-        test('should handle non-string frequency values', async () => {
+    describe('Type Safety', () => {
+        it('should handle non-string frequency values', async () => {
             // Mock configuration with non-string frequency
             const configStub = sandbox.stub(vscode.workspace, 'getConfiguration');
             configStub.withArgs('promptregistry.updateCheck').returns({
@@ -211,14 +190,14 @@ suite('Configuration Validation', () => {
                 call.args[0].includes('Invalid update check frequency')
             );
             
-            assert.ok(warningCalls.length >= 1, 'Should log warning for non-string value');
+            expect(warningCalls.length >= 1, 'Should log warning for non-string value').toBeTruthy();
 
             // Cleanup scheduler to prevent timer leaks
             scheduler.dispose();
             configStub.restore();
         });
 
-        test('should handle null/undefined configuration values', async () => {
+        it('should handle null/undefined configuration values', async () => {
             // Mock configuration with null values
             const configStub = sandbox.stub(vscode.workspace, 'getConfiguration');
             configStub.withArgs('promptregistry.updateCheck').returns({
@@ -235,7 +214,7 @@ suite('Configuration Validation', () => {
                 call.args[0].includes('Invalid update check frequency')
             );
             
-            assert.ok(warningCalls.length >= 1, 'Should log warning for null value');
+            expect(warningCalls.length >= 1, 'Should log warning for null value').toBeTruthy();
 
             // Cleanup scheduler to prevent timer leaks
             scheduler.dispose();

@@ -1,5 +1,4 @@
 
-import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { HubCommands } from '../../src/commands/HubCommands';
@@ -57,7 +56,7 @@ class MockHubManager {
     async setActiveHub(hubId: string) { }
 }
 
-suite('HubCommands Source Sync', () => {
+describe('HubCommands Source Sync', () => {
     let commands: HubCommands;
     let mockHubManager: any;
     let mockRegistryManager: any;
@@ -68,7 +67,7 @@ suite('HubCommands Source Sync', () => {
     let withProgressStub: sinon.SinonStub;
     let showErrorMessageStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         // Stub vscode.window methods
         showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick');
         showOpenDialogStub = sinon.stub(vscode.window, 'showOpenDialog');
@@ -138,11 +137,11 @@ suite('HubCommands Source Sync', () => {
         commands = new HubCommands(mockHubManager, mockRegistryManager, context);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sinon.restore();
     });
 
-    test('should sync sources when importing a hub', async () => {
+    it('should sync sources when importing a hub', async () => {
         // Mock user input to select 'local' and provide a file
         showQuickPickStub.resolves({ value: 'local' });
         showOpenDialogStub.resolves([vscode.Uri.file('/tmp/hub-config.yml')]);
@@ -150,10 +149,10 @@ suite('HubCommands Source Sync', () => {
 
         const result = await commands.importHub();
 
-        assert.strictEqual(result, 'test-hub-id', 'Import should succeed and return ID');
+        expect(result, 'Import should succeed and return ID').toBe('test-hub-id');
 
         // Verify sources were added to registry (now with new format IDs from HubManager.loadHubSources)
-        assert.strictEqual(mockRegistryManager.sources.length, 2, 'Should have added 2 sources');
+        expect(mockRegistryManager.sources.length, 'Should have added 2 sources').toBe(2);
         
         // Compute expected sourceIds using the new format
         const expectedSource1Id = generateHubSourceId('github', 'https://github.com/owner/repo1');
@@ -161,15 +160,15 @@ suite('HubCommands Source Sync', () => {
         
         // Sources now have new format IDs: {type}-{12-char-hash}
         const source1 = mockRegistryManager.sources.find((s: any) => s.id === expectedSource1Id);
-        assert.ok(source1, `Source 1 should be present with new format ID: ${expectedSource1Id}`);
-        assert.strictEqual(source1.hubId, 'test-hub-id', 'Source should have hubId injected');
+        expect(source1, `Source 1 should be present with new format ID: ${expectedSource1Id}`).toBeTruthy();
+        expect(source1.hubId, 'Source should have hubId injected').toBe('test-hub-id');
         
         const source2 = mockRegistryManager.sources.find((s: any) => s.id === expectedSource2Id);
-        assert.ok(source2, `Source 2 should be present with new format ID: ${expectedSource2Id}`);
-        assert.strictEqual(source2.hubId, 'test-hub-id', 'Source should have hubId injected');
+        expect(source2, `Source 2 should be present with new format ID: ${expectedSource2Id}`).toBeTruthy();
+        expect(source2.hubId, 'Source should have hubId injected').toBe('test-hub-id');
     });
 
-    test('should skip existing sources when importing a hub', async () => {
+    it('should skip existing sources when importing a hub', async () => {
         // Compute expected sourceIds using the new format
         const expectedSource1Id = generateHubSourceId('github', 'https://github.com/owner/repo1');
         const expectedSource2Id = generateHubSourceId('http', 'https://example.com/source2');
@@ -193,14 +192,14 @@ suite('HubCommands Source Sync', () => {
         await commands.importHub();
 
         // Verify total sources (1 existing + 1 new = 2)
-        assert.strictEqual(mockRegistryManager.sources.length, 2, 'Should have 2 sources total');
+        expect(mockRegistryManager.sources.length, 'Should have 2 sources total').toBe(2);
         
         // Verify source-2 was added with new format ID
         const source2 = mockRegistryManager.sources.find((s: any) => s.id === expectedSource2Id);
-        assert.ok(source2, `Source 2 should be added with new format ID: ${expectedSource2Id}`);
+        expect(source2, `Source 2 should be added with new format ID: ${expectedSource2Id}`).toBeTruthy();
     });
 
-    test('should not create local profile copies when importing a hub', async () => {
+    it('should not create local profile copies when importing a hub', async () => {
         // Mock user input
         showQuickPickStub.resolves({ value: 'local' });
         showOpenDialogStub.resolves([vscode.Uri.file('/tmp/hub-config.yml')]);
@@ -209,6 +208,6 @@ suite('HubCommands Source Sync', () => {
         await commands.importHub();
 
         // Verify profiles were added to registry
-        assert.strictEqual(mockRegistryManager.profiles.length, 0, 'Should not create local profile copies');
+        expect(mockRegistryManager.profiles.length, 'Should not create local profile copies').toBe(0);
     });
 });

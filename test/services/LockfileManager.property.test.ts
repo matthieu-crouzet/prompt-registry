@@ -12,7 +12,6 @@
  * - Property 15: Atomic Lockfile Write (Requirements 15.6)
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -27,7 +26,7 @@ import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { Lockfile } from '../../src/types/lockfile';
 import { SchemaValidator } from '../../src/services/SchemaValidator';
 
-suite('LockfileManager Property Tests', () => {
+describe('LockfileManager Property Tests', () => {
     let tempDir: string;
     let schemaValidator: SchemaValidator;
     const lockfileSchemaPath = path.join(process.cwd(), 'schemas', 'lockfile.schema.json');
@@ -45,12 +44,12 @@ suite('LockfileManager Property Tests', () => {
         }
     };
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = createTempDir();
         schemaValidator = new SchemaValidator(process.cwd());
     });
 
-    teardown(() => {
+    afterEach(() => {
         cleanupTempDir(tempDir);
         schemaValidator.clearCache();
     });
@@ -64,8 +63,8 @@ suite('LockfileManager Property Tests', () => {
      * 
      * **Validates: Requirements 4.2-4.7, 11.1-11.4, 15.1-15.2**
      */
-    suite('Property 2: Lockfile Schema Validation', () => {
-        test('generated lockfiles should be valid against JSON schema', async () => {
+    describe('Property 2: Lockfile Schema Validation', () => {
+        it('generated lockfiles should be valid against JSON schema', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
@@ -74,11 +73,7 @@ suite('LockfileManager Property Tests', () => {
                         const result = await schemaValidator.validate(lockfile, lockfileSchemaPath);
                         
                         // Property: All generated lockfiles should be schema-valid
-                        assert.strictEqual(
-                            result.valid,
-                            true,
-                            `Schema validation failed: ${result.errors.join(', ')}`
-                        );
+                        expect(result.valid, `Schema validation failed: ${result.errors.join(', ')}`).toBe(true);
                         return true;
                     }
                 ),
@@ -89,18 +84,18 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('lockfiles should have all required fields', async () => {
+        it('lockfiles should have all required fields', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.lockfile({ minBundles: 0, maxBundles: 3 }),
                     async (lockfile: Lockfile) => {
                         // Property: All required fields must be present
-                        assert.ok(lockfile.$schema, 'Missing $schema field');
-                        assert.ok(lockfile.version, 'Missing version field');
-                        assert.ok(lockfile.generatedAt, 'Missing generatedAt field');
-                        assert.ok(lockfile.generatedBy, 'Missing generatedBy field');
-                        assert.ok(lockfile.bundles !== undefined, 'Missing bundles field');
-                        assert.ok(lockfile.sources !== undefined, 'Missing sources field');
+                        expect(lockfile.$schema, 'Missing $schema field').toBeTruthy();
+                        expect(lockfile.version, 'Missing version field').toBeTruthy();
+                        expect(lockfile.generatedAt, 'Missing generatedAt field').toBeTruthy();
+                        expect(lockfile.generatedBy, 'Missing generatedBy field').toBeTruthy();
+                        expect(lockfile.bundles !== undefined, 'Missing bundles field').toBeTruthy();
+                        expect(lockfile.sources !== undefined, 'Missing sources field').toBeTruthy();
                         return true;
                     }
                 ),
@@ -111,17 +106,14 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('version field should be semver-compatible', async () => {
+        it('version field should be semver-compatible', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.lockfile(),
                     async (lockfile: Lockfile) => {
                         // Property: Version should match semver pattern
                         const semverPattern = /^\d+\.\d+\.\d+$/;
-                        assert.ok(
-                            semverPattern.test(lockfile.version),
-                            `Version "${lockfile.version}" is not semver-compatible`
-                        );
+                        expect(semverPattern.test(lockfile.version), `Version "${lockfile.version}" is not semver-compatible`).toBeTruthy();
                         return true;
                     }
                 ),
@@ -132,17 +124,14 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('generatedAt should be valid ISO timestamp', async () => {
+        it('generatedAt should be valid ISO timestamp', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.lockfile(),
                     async (lockfile: Lockfile) => {
                         // Property: generatedAt should be parseable as ISO date
                         const date = new Date(lockfile.generatedAt);
-                        assert.ok(
-                            !isNaN(date.getTime()),
-                            `generatedAt "${lockfile.generatedAt}" is not a valid ISO timestamp`
-                        );
+                        expect(!isNaN(date.getTime()), `generatedAt "${lockfile.generatedAt}" is not a valid ISO timestamp`).toBeTruthy();
                         return true;
                     }
                 ),
@@ -153,19 +142,19 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('bundle entries should have all required fields', async () => {
+        it('bundle entries should have all required fields', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
                     async (lockfile: Lockfile) => {
                         // Property: Each bundle entry must have required fields
                         for (const [bundleId, entry] of Object.entries(lockfile.bundles)) {
-                            assert.ok(entry.version, `Bundle ${bundleId} missing version`);
-                            assert.ok(entry.sourceId, `Bundle ${bundleId} missing sourceId`);
-                            assert.ok(entry.sourceType, `Bundle ${bundleId} missing sourceType`);
-                            assert.ok(entry.installedAt, `Bundle ${bundleId} missing installedAt`);
-                            assert.ok(entry.commitMode, `Bundle ${bundleId} missing commitMode`);
-                            assert.ok(Array.isArray(entry.files), `Bundle ${bundleId} files should be array`);
+                            expect(entry.version, `Bundle ${bundleId} missing version`).toBeTruthy();
+                            expect(entry.sourceId, `Bundle ${bundleId} missing sourceId`).toBeTruthy();
+                            expect(entry.sourceType, `Bundle ${bundleId} missing sourceType`).toBeTruthy();
+                            expect(entry.installedAt, `Bundle ${bundleId} missing installedAt`).toBeTruthy();
+                            expect(entry.commitMode, `Bundle ${bundleId} missing commitMode`).toBeTruthy();
+                            expect(Array.isArray(entry.files), `Bundle ${bundleId} files should be array`).toBeTruthy();
                         }
                         return true;
                     }
@@ -177,7 +166,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('file checksums should be valid SHA256 format', async () => {
+        it('file checksums should be valid SHA256 format', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 2 }),
@@ -186,10 +175,7 @@ suite('LockfileManager Property Tests', () => {
                         const sha256Pattern = /^[a-f0-9]{64}$/;
                         for (const [bundleId, entry] of Object.entries(lockfile.bundles)) {
                             for (const file of entry.files) {
-                                assert.ok(
-                                    sha256Pattern.test(file.checksum),
-                                    `File ${file.path} in bundle ${bundleId} has invalid checksum format`
-                                );
+                                expect(sha256Pattern.test(file.checksum), `File ${file.path} in bundle ${bundleId} has invalid checksum format`).toBeTruthy();
                             }
                         }
                         return true;
@@ -211,13 +197,13 @@ suite('LockfileManager Property Tests', () => {
      * 
      * **Validates: Requirements 4.1, 5.2, 5.5**
      */
-    suite('Property 3: Lockfile Round-Trip Consistency', () => {
+    describe('Property 3: Lockfile Round-Trip Consistency', () => {
         // Helper to normalize lockfile by removing undefined values (JSON doesn't preserve them)
         const normalizeLockfile = (lockfile: Lockfile): Lockfile => {
             return JSON.parse(JSON.stringify(lockfile));
         };
 
-        test('JSON stringify then parse should preserve lockfile structure', async () => {
+        it('JSON stringify then parse should preserve lockfile structure', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
@@ -229,11 +215,7 @@ suite('LockfileManager Property Tests', () => {
                         const normalized = normalizeLockfile(lockfile);
                         
                         // Deep equality check (comparing normalized versions)
-                        assert.deepStrictEqual(
-                            deserialized,
-                            normalized,
-                            'Round-trip should preserve lockfile structure'
-                        );
+                        expect(deserialized, 'Round-trip should preserve lockfile structure').toEqual(normalized);
                         return true;
                     }
                 ),
@@ -244,7 +226,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('file write then read should preserve lockfile content', async () => {
+        it('file write then read should preserve lockfile content', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 2 }),
@@ -261,11 +243,7 @@ suite('LockfileManager Property Tests', () => {
                         const readLockfile = JSON.parse(content) as Lockfile;
                         
                         // Verify equality (comparing normalized versions)
-                        assert.deepStrictEqual(
-                            readLockfile,
-                            normalized,
-                            'File round-trip should preserve lockfile content'
-                        );
+                        expect(readLockfile, 'File round-trip should preserve lockfile content').toEqual(normalized);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -279,7 +257,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('2-space indentation should be preserved', async () => {
+        it('2-space indentation should be preserved', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 2 }),
@@ -293,10 +271,7 @@ suite('LockfileManager Property Tests', () => {
                         
                         // Should have indented lines if there's content
                         if (Object.keys(lockfile.bundles).length > 0 || Object.keys(lockfile.sources).length > 0) {
-                            assert.ok(
-                                indentedLines.length > 0,
-                                'Should have 2-space indented lines'
-                            );
+                            expect(indentedLines.length > 0, 'Should have 2-space indented lines').toBeTruthy();
                         }
                         return true;
                     }
@@ -318,13 +293,13 @@ suite('LockfileManager Property Tests', () => {
      * 
      * **Validates: Requirements 15.6**
      */
-    suite('Property 15: Atomic Lockfile Write', () => {
+    describe('Property 15: Atomic Lockfile Write', () => {
         // Helper to normalize lockfile by removing undefined values (JSON doesn't preserve them)
         const normalizeLockfile = (lockfile: Lockfile): Lockfile => {
             return JSON.parse(JSON.stringify(lockfile));
         };
 
-        test('atomic write pattern should not corrupt existing lockfile on failure', async () => {
+        it('atomic write pattern should not corrupt existing lockfile on failure', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 2 }),
@@ -350,11 +325,7 @@ suite('LockfileManager Property Tests', () => {
                         const content = fs.readFileSync(lockfilePath, 'utf8');
                         const readLockfile = JSON.parse(content) as Lockfile;
                         
-                        assert.deepStrictEqual(
-                            readLockfile,
-                            normalizedNew,
-                            'Atomic write should result in new lockfile content'
-                        );
+                        expect(readLockfile, 'Atomic write should result in new lockfile content').toEqual(normalizedNew);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -368,7 +339,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('temp file should not exist after successful atomic write', async () => {
+        it('temp file should not exist after successful atomic write', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 2 }),
@@ -381,11 +352,7 @@ suite('LockfileManager Property Tests', () => {
                         fs.renameSync(tempPath, lockfilePath);
                         
                         // Property: Temp file should not exist after rename
-                        assert.strictEqual(
-                            fs.existsSync(tempPath),
-                            false,
-                            'Temp file should not exist after atomic write'
-                        );
+                        expect(fs.existsSync(tempPath), 'Temp file should not exist after atomic write').toBe(false);
                         
                         // Cleanup
                         fs.unlinkSync(lockfilePath);
@@ -408,8 +375,8 @@ suite('LockfileManager Property Tests', () => {
      * 
      * **Validates: Requirements 14.1-14.3**
      */
-    suite('Property 7: Checksum Modification Detection', () => {
-        test('identical content should produce identical checksums', async () => {
+    describe('Property 7: Checksum Modification Detection', () => {
+        it('identical content should produce identical checksums', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.string({ minLength: 1, maxLength: 1000 }),
@@ -418,11 +385,7 @@ suite('LockfileManager Property Tests', () => {
                         const checksum1 = crypto.createHash('sha256').update(content).digest('hex');
                         const checksum2 = crypto.createHash('sha256').update(content).digest('hex');
                         
-                        assert.strictEqual(
-                            checksum1,
-                            checksum2,
-                            'Identical content should produce identical checksums'
-                        );
+                        expect(checksum1, 'Identical content should produce identical checksums').toBe(checksum2);
                         return true;
                     }
                 ),
@@ -433,7 +396,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('different content should produce different checksums', async () => {
+        it('different content should produce different checksums', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.string({ minLength: 1, maxLength: 500 }),
@@ -446,11 +409,7 @@ suite('LockfileManager Property Tests', () => {
                         const checksum1 = crypto.createHash('sha256').update(content1).digest('hex');
                         const checksum2 = crypto.createHash('sha256').update(content2).digest('hex');
                         
-                        assert.notStrictEqual(
-                            checksum1,
-                            checksum2,
-                            'Different content should produce different checksums'
-                        );
+                        expect(checksum1, 'Different content should produce different checksums').not.toBe(checksum2);
                         return true;
                     }
                 ),
@@ -461,7 +420,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('file modification should be detectable via checksum comparison', async () => {
+        it('file modification should be detectable via checksum comparison', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.string({ minLength: 1, maxLength: 500 }),
@@ -486,11 +445,7 @@ suite('LockfileManager Property Tests', () => {
                         
                         // Property: Modification should be detectable
                         const isModified = originalChecksum !== currentChecksum;
-                        assert.strictEqual(
-                            isModified,
-                            true,
-                            'File modification should be detectable via checksum'
-                        );
+                        expect(isModified, 'File modification should be detectable via checksum').toBe(true);
                         
                         // Cleanup
                         fs.unlinkSync(filePath);
@@ -504,7 +459,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('missing file should be detectable', async () => {
+        it('missing file should be detectable', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.string({ minLength: 1, maxLength: 100 }),
@@ -522,11 +477,7 @@ suite('LockfileManager Property Tests', () => {
                         
                         // Property: Missing file should be detectable
                         const fileExists = fs.existsSync(filePath);
-                        assert.strictEqual(
-                            fileExists,
-                            false,
-                            'Missing file should be detectable'
-                        );
+                        expect(fileExists, 'Missing file should be detectable').toBe(false);
                         
                         return true;
                     }
@@ -547,18 +498,15 @@ suite('LockfileManager Property Tests', () => {
      * 
      * **Validates: Requirements 12.1-12.6**
      */
-    suite('Property 12: Source and Hub Configuration Completeness', () => {
-        test('all bundle sourceIds should reference existing sources', async () => {
+    describe('Property 12: Source and Hub Configuration Completeness', () => {
+        it('all bundle sourceIds should reference existing sources', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 5 }),
                     async (lockfile: Lockfile) => {
                         // Property: Every bundle's sourceId should exist in sources
                         for (const [bundleId, entry] of Object.entries(lockfile.bundles)) {
-                            assert.ok(
-                                lockfile.sources[entry.sourceId],
-                                `Bundle ${bundleId} references non-existent source ${entry.sourceId}`
-                            );
+                            expect(lockfile.sources[entry.sourceId], `Bundle ${bundleId} references non-existent source ${entry.sourceId}`).toBeTruthy();
                         }
                         return true;
                     }
@@ -570,21 +518,15 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('source entries should have required type and url fields', async () => {
+        it('source entries should have required type and url fields', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
                     async (lockfile: Lockfile) => {
                         // Property: All sources should have type and url
                         for (const [sourceId, source] of Object.entries(lockfile.sources)) {
-                            assert.ok(
-                                source.type,
-                                `Source ${sourceId} missing type field`
-                            );
-                            assert.ok(
-                                source.url,
-                                `Source ${sourceId} missing url field`
-                            );
+                            expect(source.type, `Source ${sourceId} missing type field`).toBeTruthy();
+                            expect(source.url, `Source ${sourceId} missing url field`).toBeTruthy();
                         }
                         return true;
                     }
@@ -596,7 +538,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('hub entries should have required name and url fields', async () => {
+        it('hub entries should have required name and url fields', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 2, includeHubs: true }),
@@ -604,14 +546,8 @@ suite('LockfileManager Property Tests', () => {
                         // Property: All hubs should have name and url
                         if (lockfile.hubs) {
                             for (const [hubId, hub] of Object.entries(lockfile.hubs)) {
-                                assert.ok(
-                                    hub.name,
-                                    `Hub ${hubId} missing name field`
-                                );
-                                assert.ok(
-                                    hub.url,
-                                    `Hub ${hubId} missing url field`
-                                );
+                                expect(hub.name, `Hub ${hubId} missing name field`).toBeTruthy();
+                                expect(hub.url, `Hub ${hubId} missing url field`).toBeTruthy();
                             }
                         }
                         return true;
@@ -624,7 +560,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('profile entries should have required name and bundleIds fields', async () => {
+        it('profile entries should have required name and bundleIds fields', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 2, includeProfiles: true }),
@@ -632,14 +568,8 @@ suite('LockfileManager Property Tests', () => {
                         // Property: All profiles should have name and bundleIds
                         if (lockfile.profiles) {
                             for (const [profileId, profile] of Object.entries(lockfile.profiles)) {
-                                assert.ok(
-                                    profile.name,
-                                    `Profile ${profileId} missing name field`
-                                );
-                                assert.ok(
-                                    Array.isArray(profile.bundleIds),
-                                    `Profile ${profileId} bundleIds should be array`
-                                );
+                                expect(profile.name, `Profile ${profileId} missing name field`).toBeTruthy();
+                                expect(Array.isArray(profile.bundleIds), `Profile ${profileId} bundleIds should be array`).toBeTruthy();
                             }
                         }
                         return true;
@@ -652,7 +582,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('source types should be valid known types', async () => {
+        it('source types should be valid known types', async () => {
             const validSourceTypes = [
                 'github', 'gitlab', 'http', 'local',
                 'awesome-copilot', 'local-awesome-copilot',
@@ -665,10 +595,7 @@ suite('LockfileManager Property Tests', () => {
                     async (lockfile: Lockfile) => {
                         // Property: All source types should be valid
                         for (const [sourceId, source] of Object.entries(lockfile.sources)) {
-                            assert.ok(
-                                validSourceTypes.includes(source.type),
-                                `Source ${sourceId} has invalid type: ${source.type}`
-                            );
+                            expect(validSourceTypes.includes(source.type), `Source ${sourceId} has invalid type: ${source.type}`).toBeTruthy();
                         }
                         return true;
                     }
@@ -692,8 +619,8 @@ suite('LockfileManager Property Tests', () => {
      * 
      * Feature: lockfile-source-of-truth, Property 3: LockfileBundleEntry to InstalledBundle Conversion
      */
-    suite('Property 3: LockfileBundleEntry to InstalledBundle Conversion', () => {
-        test('converted InstalledBundle should have all required fields', async () => {
+    describe('Property 3: LockfileBundleEntry to InstalledBundle Conversion', () => {
+        it('converted InstalledBundle should have all required fields', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 5 }),
@@ -711,14 +638,14 @@ suite('LockfileManager Property Tests', () => {
 
                         // Property: Each converted bundle should have all required fields
                         for (const bundle of installedBundles) {
-                            assert.ok(bundle.bundleId, 'Missing bundleId field');
-                            assert.ok(bundle.version, 'Missing version field');
-                            assert.ok(bundle.sourceId, 'Missing sourceId field');
-                            assert.ok(bundle.sourceType, 'Missing sourceType field');
-                            assert.ok(bundle.installedAt, 'Missing installedAt field');
-                            assert.ok(bundle.scope, 'Missing scope field');
-                            assert.ok(bundle.installPath, 'Missing installPath field');
-                            assert.ok(bundle.manifest, 'Missing manifest field');
+                            expect(bundle.bundleId, 'Missing bundleId field').toBeTruthy();
+                            expect(bundle.version, 'Missing version field').toBeTruthy();
+                            expect(bundle.sourceId, 'Missing sourceId field').toBeTruthy();
+                            expect(bundle.sourceType, 'Missing sourceType field').toBeTruthy();
+                            expect(bundle.installedAt, 'Missing installedAt field').toBeTruthy();
+                            expect(bundle.scope, 'Missing scope field').toBeTruthy();
+                            expect(bundle.installPath, 'Missing installPath field').toBeTruthy();
+                            expect(bundle.manifest, 'Missing manifest field').toBeTruthy();
                         }
 
                         // Cleanup
@@ -734,7 +661,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('scope should always be repository for lockfile bundles', async () => {
+        it('scope should always be repository for lockfile bundles', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
@@ -752,11 +679,7 @@ suite('LockfileManager Property Tests', () => {
 
                         // Property: All bundles from lockfile should have scope 'repository'
                         for (const bundle of installedBundles) {
-                            assert.strictEqual(
-                                bundle.scope,
-                                'repository',
-                                `Bundle ${bundle.bundleId} should have scope 'repository', got '${bundle.scope}'`
-                            );
+                            expect(bundle.scope, `Bundle ${bundle.bundleId} should have scope 'repository', got '${bundle.scope}'`).toBe('repository');
                         }
 
                         // Cleanup
@@ -772,7 +695,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('installPath should be constructed from workspace root + .github', async () => {
+        it('installPath should be constructed from workspace root + .github', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
@@ -791,11 +714,7 @@ suite('LockfileManager Property Tests', () => {
                         // Property: installPath should end with .github
                         const expectedPath = path.join(tempDir, '.github');
                         for (const bundle of installedBundles) {
-                            assert.strictEqual(
-                                bundle.installPath,
-                                expectedPath,
-                                `Bundle ${bundle.bundleId} installPath should be '${expectedPath}', got '${bundle.installPath}'`
-                            );
+                            expect(bundle.installPath, `Bundle ${bundle.bundleId} installPath should be '${expectedPath}', got '${bundle.installPath}'`).toBe(expectedPath);
                         }
 
                         // Cleanup
@@ -811,7 +730,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('version and sourceId should match lockfile entry', async () => {
+        it('version and sourceId should match lockfile entry', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.consistentLockfile({ minBundles: 1, maxBundles: 3 }),
@@ -830,30 +749,14 @@ suite('LockfileManager Property Tests', () => {
                         // Property: version and sourceId should match lockfile entry
                         for (const bundle of installedBundles) {
                             const lockfileEntry = lockfile.bundles[bundle.bundleId];
-                            assert.ok(lockfileEntry, `Bundle ${bundle.bundleId} not found in lockfile`);
-                            assert.strictEqual(
-                                bundle.version,
-                                lockfileEntry.version,
-                                `Version mismatch for ${bundle.bundleId}`
-                            );
-                            assert.strictEqual(
-                                bundle.sourceId,
-                                lockfileEntry.sourceId,
-                                `SourceId mismatch for ${bundle.bundleId}`
-                            );
-                            assert.strictEqual(
-                                bundle.sourceType,
-                                lockfileEntry.sourceType,
-                                `SourceType mismatch for ${bundle.bundleId}`
-                            );
+                            expect(lockfileEntry, `Bundle ${bundle.bundleId} not found in lockfile`).toBeTruthy();
+                            expect(bundle.version, `Version mismatch for ${bundle.bundleId}`).toBe(lockfileEntry.version);
+                            expect(bundle.sourceId, `SourceId mismatch for ${bundle.bundleId}`).toBe(lockfileEntry.sourceId);
+                            expect(bundle.sourceType, `SourceType mismatch for ${bundle.bundleId}`).toBe(lockfileEntry.sourceType);
                             // Note: commitMode is now determined by which lockfile the bundle comes from,
                             // not by the commitMode field in the entry (AD-1: Implicit Commit Mode Based on File Location)
                             // Bundles from main lockfile (prompt-registry.lock.json) always have commitMode: 'commit'
-                            assert.strictEqual(
-                                bundle.commitMode,
-                                'commit',
-                                `CommitMode for ${bundle.bundleId} should be 'commit' when read from main lockfile`
-                            );
+                            expect(bundle.commitMode, `CommitMode for ${bundle.bundleId} should be 'commit' when read from main lockfile`).toBe('commit');
                         }
 
                         // Cleanup
@@ -869,7 +772,7 @@ suite('LockfileManager Property Tests', () => {
             );
         });
 
-        test('empty lockfile should return empty array', async () => {
+        it('empty lockfile should return empty array', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.constant(null), // No lockfile
@@ -885,11 +788,7 @@ suite('LockfileManager Property Tests', () => {
                         const installedBundles = await manager.getInstalledBundles();
 
                         // Property: No lockfile should return empty array
-                        assert.strictEqual(
-                            installedBundles.length,
-                            0,
-                            'Should return empty array when lockfile does not exist'
-                        );
+                        expect(installedBundles.length, 'Should return empty array when lockfile does not exist').toBe(0);
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -922,7 +821,7 @@ suite('LockfileManager Property Tests', () => {
  * 
  * **Validates: Design Properties 1-5**
  */
-suite('Lockfile Separation Properties', () => {
+describe('Lockfile Separation Properties', () => {
     let tempDir: string;
     const MAIN_LOCKFILE_NAME = 'prompt-registry.lock.json';
     const LOCAL_LOCKFILE_NAME = 'prompt-registry.local.lock.json';
@@ -958,11 +857,11 @@ suite('Lockfile Separation Properties', () => {
         return fs.existsSync(path.join(repoPath, lockfileName));
     };
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = createTempDir();
     });
 
-    teardown(async () => {
+    afterEach(async () => {
         // Reset LockfileManager instances
         const { LockfileManager } = await import('../../src/services/LockfileManager');
         LockfileManager.resetInstance(tempDir);
@@ -978,8 +877,8 @@ suite('Lockfile Separation Properties', () => {
      * 
      * **Validates: Requirements 1.1, 1.2**
      */
-    suite('Property 1: Lockfile Separation', () => {
-        test('bundles with commit mode should be written to main lockfile only', async () => {
+    describe('Property 1: Lockfile Separation', () => {
+        it('bundles with commit mode should be written to main lockfile only', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1010,22 +909,13 @@ suite('Lockfile Separation Properties', () => {
                         const mainLockfilePath = path.join(uniqueDir, MAIN_LOCKFILE_NAME);
                         const localLockfilePath = path.join(uniqueDir, LOCAL_LOCKFILE_NAME);
 
-                        assert.ok(
-                            fs.existsSync(mainLockfilePath),
-                            'Main lockfile should exist after creating commit bundle'
-                        );
+                        expect(fs.existsSync(mainLockfilePath), 'Main lockfile should exist after creating commit bundle').toBeTruthy();
 
                         const mainLockfile = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
-                        assert.ok(
-                            mainLockfile.bundles[bundleId],
-                            `Bundle ${bundleId} should be in main lockfile`
-                        );
+                        expect(mainLockfile.bundles[bundleId], `Bundle ${bundleId} should be in main lockfile`).toBeTruthy();
 
                         // Property: Bundle should NOT be in local lockfile
-                        assert.ok(
-                            !fs.existsSync(localLockfilePath),
-                            'Local lockfile should not exist for commit bundles'
-                        );
+                        expect(!fs.existsSync(localLockfilePath), 'Local lockfile should not exist for commit bundles').toBeTruthy();
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1040,7 +930,7 @@ suite('Lockfile Separation Properties', () => {
             );
         });
 
-        test('bundles with local-only mode should be written to local lockfile only', async () => {
+        it('bundles with local-only mode should be written to local lockfile only', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1071,22 +961,13 @@ suite('Lockfile Separation Properties', () => {
                         const mainLockfilePath = path.join(uniqueDir, MAIN_LOCKFILE_NAME);
                         const localLockfilePath = path.join(uniqueDir, LOCAL_LOCKFILE_NAME);
 
-                        assert.ok(
-                            fs.existsSync(localLockfilePath),
-                            'Local lockfile should exist after creating local-only bundle'
-                        );
+                        expect(fs.existsSync(localLockfilePath), 'Local lockfile should exist after creating local-only bundle').toBeTruthy();
 
                         const localLockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
-                        assert.ok(
-                            localLockfile.bundles[bundleId],
-                            `Bundle ${bundleId} should be in local lockfile`
-                        );
+                        expect(localLockfile.bundles[bundleId], `Bundle ${bundleId} should be in local lockfile`).toBeTruthy();
 
                         // Property: Bundle should NOT be in main lockfile
-                        assert.ok(
-                            !fs.existsSync(mainLockfilePath),
-                            'Main lockfile should not exist when only local-only bundles are installed'
-                        );
+                        expect(!fs.existsSync(mainLockfilePath), 'Main lockfile should not exist when only local-only bundles are installed').toBeTruthy();
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1111,8 +992,8 @@ suite('Lockfile Separation Properties', () => {
      * 
      * **Validates: Requirement 3.4**
      */
-    suite('Property 2: No Duplicate Bundle IDs', () => {
-        test('bundle ID can only exist in one lockfile at a time after mode switch', async () => {
+    describe('Property 2: No Duplicate Bundle IDs', () => {
+        it('bundle ID can only exist in one lockfile at a time after mode switch', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1165,10 +1046,7 @@ suite('Lockfile Separation Properties', () => {
                         }
 
                         // Property: Bundle should be in exactly one lockfile (XOR)
-                        assert.ok(
-                            (inMain && !inLocal) || (!inMain && inLocal),
-                            `Bundle ${bundleId} should exist in exactly one lockfile. In main: ${inMain}, In local: ${inLocal}`
-                        );
+                        expect((inMain && !inLocal) || (!inMain && inLocal), `Bundle ${bundleId} should exist in exactly one lockfile. In main: ${inMain}, In local: ${inLocal}`).toBeTruthy();
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1192,8 +1070,8 @@ suite('Lockfile Separation Properties', () => {
      * 
      * **Validates: Requirement 3.3**
      */
-    suite('Property 3: Commit Mode Annotation from Main Lockfile', () => {
-        test('bundles from main lockfile always have commitMode commit when listed', async () => {
+    describe('Property 3: Commit Mode Annotation from Main Lockfile', () => {
+        it('bundles from main lockfile always have commitMode commit when listed', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1225,12 +1103,8 @@ suite('Lockfile Separation Properties', () => {
 
                         // Property: Bundle from main lockfile should have commitMode 'commit'
                         const bundle = installedBundles.find(b => b.bundleId === bundleId);
-                        assert.ok(bundle, `Bundle ${bundleId} should be in installed bundles`);
-                        assert.strictEqual(
-                            bundle!.commitMode,
-                            'commit',
-                            `Bundle ${bundleId} from main lockfile should have commitMode 'commit'`
-                        );
+                        expect(bundle, `Bundle ${bundleId} should be in installed bundles`).toBeTruthy();
+                        expect(bundle!.commitMode, `Bundle ${bundleId} from main lockfile should have commitMode 'commit'`).toBe('commit');
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1254,8 +1128,8 @@ suite('Lockfile Separation Properties', () => {
      * 
      * **Validates: Requirement 3.2**
      */
-    suite('Property 4: Commit Mode Annotation from Local Lockfile', () => {
-        test('bundles from local lockfile always have commitMode local-only when listed', async () => {
+    describe('Property 4: Commit Mode Annotation from Local Lockfile', () => {
+        it('bundles from local lockfile always have commitMode local-only when listed', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1287,12 +1161,8 @@ suite('Lockfile Separation Properties', () => {
 
                         // Property: Bundle from local lockfile should have commitMode 'local-only'
                         const bundle = installedBundles.find(b => b.bundleId === bundleId);
-                        assert.ok(bundle, `Bundle ${bundleId} should be in installed bundles`);
-                        assert.strictEqual(
-                            bundle!.commitMode,
-                            'local-only',
-                            `Bundle ${bundleId} from local lockfile should have commitMode 'local-only'`
-                        );
+                        expect(bundle, `Bundle ${bundleId} should be in installed bundles`).toBeTruthy();
+                        expect(bundle!.commitMode, `Bundle ${bundleId} from local lockfile should have commitMode 'local-only'`).toBe('local-only');
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1320,8 +1190,8 @@ suite('Lockfile Separation Properties', () => {
      * 
      * **Validates: Requirement 4.3**
      */
-    suite('Property 5: Mode Switching Preserves Metadata', () => {
-        test('mode switching preserves all bundle metadata', async () => {
+    describe('Property 5: Mode Switching Preserves Metadata', () => {
+        it('mode switching preserves all bundle metadata', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1353,7 +1223,7 @@ suite('Lockfile Separation Properties', () => {
                         // Get original bundle data
                         const originalBundles = await manager.getInstalledBundles();
                         const originalBundle = originalBundles.find(b => b.bundleId === bundleId);
-                        assert.ok(originalBundle, 'Original bundle should exist');
+                        expect(originalBundle, 'Original bundle should exist').toBeTruthy();
 
                         // Switch to opposite mode
                         const newMode = initialMode === 'commit' ? 'local-only' : 'commit';
@@ -1362,31 +1232,15 @@ suite('Lockfile Separation Properties', () => {
                         // Get bundle after mode switch
                         const updatedBundles = await manager.getInstalledBundles();
                         const updatedBundle = updatedBundles.find(b => b.bundleId === bundleId);
-                        assert.ok(updatedBundle, 'Updated bundle should exist');
+                        expect(updatedBundle, 'Updated bundle should exist').toBeTruthy();
 
                         // Property: All metadata should be preserved
-                        assert.strictEqual(
-                            updatedBundle!.version,
-                            originalBundle!.version,
-                            'Version should be preserved after mode switch'
-                        );
-                        assert.strictEqual(
-                            updatedBundle!.sourceId,
-                            originalBundle!.sourceId,
-                            'SourceId should be preserved after mode switch'
-                        );
-                        assert.strictEqual(
-                            updatedBundle!.sourceType,
-                            originalBundle!.sourceType,
-                            'SourceType should be preserved after mode switch'
-                        );
+                        expect(updatedBundle!.version, 'Version should be preserved after mode switch').toBe(originalBundle!.version);
+                        expect(updatedBundle!.sourceId, 'SourceId should be preserved after mode switch').toBe(originalBundle!.sourceId);
+                        expect(updatedBundle!.sourceType, 'SourceType should be preserved after mode switch').toBe(originalBundle!.sourceType);
 
                         // Property: Commit mode should be updated
-                        assert.strictEqual(
-                            updatedBundle!.commitMode,
-                            newMode,
-                            `CommitMode should be updated to ${newMode}`
-                        );
+                        expect(updatedBundle!.commitMode, `CommitMode should be updated to ${newMode}`).toBe(newMode);
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1412,8 +1266,8 @@ suite('Lockfile Separation Properties', () => {
      * 
      * **Validates: Requirements 5.3, 5.5**
      */
-    suite('Property 6: Empty Lockfile Cleanup', () => {
-        test('empty lockfile is deleted after removing last bundle', async () => {
+    describe('Property 6: Empty Lockfile Cleanup', () => {
+        it('empty lockfile is deleted after removing last bundle', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1444,19 +1298,13 @@ suite('Lockfile Separation Properties', () => {
                         // Verify lockfile exists
                         const lockfileName = commitMode === 'local-only' ? LOCAL_LOCKFILE_NAME : MAIN_LOCKFILE_NAME;
                         const lockfilePath = path.join(uniqueDir, lockfileName);
-                        assert.ok(
-                            fs.existsSync(lockfilePath),
-                            `Lockfile ${lockfileName} should exist after creating bundle`
-                        );
+                        expect(fs.existsSync(lockfilePath), `Lockfile ${lockfileName} should exist after creating bundle`).toBeTruthy();
 
                         // Remove the bundle
                         await manager.remove(bundleId);
 
                         // Property: Empty lockfile should be deleted
-                        assert.ok(
-                            !fs.existsSync(lockfilePath),
-                            `Lockfile ${lockfileName} should be deleted after removing last bundle`
-                        );
+                        expect(!fs.existsSync(lockfilePath), `Lockfile ${lockfileName} should be deleted after removing last bundle`).toBeTruthy();
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);
@@ -1471,7 +1319,7 @@ suite('Lockfile Separation Properties', () => {
             );
         });
 
-        test('lockfile with remaining bundles is not deleted', async () => {
+        it('lockfile with remaining bundles is not deleted', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     LockfileGenerators.bundleId(),
@@ -1519,20 +1367,11 @@ suite('Lockfile Separation Properties', () => {
                         // Property: Lockfile should still exist with remaining bundle
                         const lockfileName = commitMode === 'local-only' ? LOCAL_LOCKFILE_NAME : MAIN_LOCKFILE_NAME;
                         const lockfilePath = path.join(uniqueDir, lockfileName);
-                        assert.ok(
-                            fs.existsSync(lockfilePath),
-                            `Lockfile ${lockfileName} should still exist with remaining bundle`
-                        );
+                        expect(fs.existsSync(lockfilePath), `Lockfile ${lockfileName} should still exist with remaining bundle`).toBeTruthy();
 
                         const lockfile = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
-                        assert.ok(
-                            lockfile.bundles[bundleId2],
-                            `Bundle ${bundleId2} should still be in lockfile`
-                        );
-                        assert.ok(
-                            !lockfile.bundles[bundleId1],
-                            `Bundle ${bundleId1} should be removed from lockfile`
-                        );
+                        expect(lockfile.bundles[bundleId2], `Bundle ${bundleId2} should still be in lockfile`).toBeTruthy();
+                        expect(!lockfile.bundles[bundleId1], `Bundle ${bundleId1} should be removed from lockfile`).toBeTruthy();
 
                         // Cleanup
                         LockfileManager.resetInstance(uniqueDir);

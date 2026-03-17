@@ -8,7 +8,6 @@
  * - Property 9: Workspace Change Triggers Refresh (Requirements 4.3)
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -16,7 +15,7 @@ import { RegistryManager } from '../../src/services/RegistryManager';
 import { RegistryStorage } from '../../src/storage/RegistryStorage';
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 
-suite('RegistryManager Workspace Change Property Tests', () => {
+describe('RegistryManager Workspace Change Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
@@ -59,7 +58,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
         return manager;
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockContext = createMockContext(sandbox);
         
@@ -70,7 +69,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
         mockStorage.getInstalledBundles.resolves([]);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         // Reset singleton to ensure clean state for next test
         (RegistryManager as any).instance = undefined;
@@ -88,8 +87,8 @@ suite('RegistryManager Workspace Change Property Tests', () => {
      * **Validates: Requirements 4.3**
      * **Feature: lockfile-source-of-truth, Property 9: Workspace Change Triggers Refresh**
      */
-    suite('Property 9: Workspace Change Triggers Refresh', () => {
-        test('handleWorkspaceFoldersChanged should fire onRepositoryBundlesChanged event', async () => {
+    describe('Property 9: Workspace Change Triggers Refresh', () => {
+        it('handleWorkspaceFoldersChanged should fire onRepositoryBundlesChanged event', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 10 }),
@@ -110,11 +109,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
                             }
 
                             // Assert: Event should be fired exactly once per call
-                            assert.strictEqual(
-                                eventFiredCount,
-                                callCount,
-                                `Event should be fired ${callCount} times, but was fired ${eventFiredCount} times`
-                            );
+                            expect(eventFiredCount, `Event should be fired ${callCount} times, but was fired ${eventFiredCount} times`).toBe(callCount);
 
                             return true;
                         } finally {
@@ -131,7 +126,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
             );
         });
 
-        test('onRepositoryBundlesChanged event should be subscribable by multiple listeners', async () => {
+        it('onRepositoryBundlesChanged event should be subscribable by multiple listeners', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.integer({ min: 1, max: 5 }),
@@ -157,11 +152,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
 
                             // Assert: All listeners should receive the event
                             for (let i = 0; i < listenerCount; i++) {
-                                assert.strictEqual(
-                                    eventCounts[i],
-                                    1,
-                                    `Listener ${i} should receive exactly 1 event`
-                                );
+                                expect(eventCounts[i], `Listener ${i} should receive exactly 1 event`).toBe(1);
                             }
 
                             return true;
@@ -179,7 +170,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
             );
         });
 
-        test('disposed listener should not receive events', async () => {
+        it('disposed listener should not receive events', async () => {
             // Create fresh manager for this test
             const manager = createFreshManager();
             
@@ -204,22 +195,14 @@ suite('RegistryManager Workspace Change Property Tests', () => {
                 manager.handleWorkspaceFoldersChanged();
 
                 // Assert: Should only count events before dispose
-                assert.strictEqual(
-                    eventFiredCount,
-                    countBeforeDispose,
-                    `Should not receive events after dispose (count should remain ${countBeforeDispose})`
-                );
-                assert.strictEqual(
-                    countBeforeDispose,
-                    2,
-                    'Should have received 2 events before dispose'
-                );
+                expect(eventFiredCount, `Should not receive events after dispose (count should remain ${countBeforeDispose})`).toBe(countBeforeDispose);
+                expect(countBeforeDispose, 'Should have received 2 events before dispose').toBe(2);
             } finally {
                 manager.dispose();
             }
         });
 
-        test('event should fire synchronously when handleWorkspaceFoldersChanged is called', async () => {
+        it('event should fire synchronously when handleWorkspaceFoldersChanged is called', async () => {
             // Create fresh manager for this test
             const manager = createFreshManager();
             
@@ -237,11 +220,7 @@ suite('RegistryManager Workspace Change Property Tests', () => {
                 eventFiredBeforeReturn = eventFired;
 
                 // Assert: Event should fire synchronously
-                assert.strictEqual(
-                    eventFiredBeforeReturn,
-                    true,
-                    'Event should fire synchronously during handleWorkspaceFoldersChanged call'
-                );
+                expect(eventFiredBeforeReturn, 'Event should fire synchronously during handleWorkspaceFoldersChanged call').toBe(true);
 
                 // Cleanup
                 disposable.dispose();

@@ -17,7 +17,6 @@
  * - Property 3: Repository Scope Menu Options
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { RegistryTreeProvider, TreeItemType, RegistryTreeItem } from '../../src/ui/RegistryTreeProvider';
@@ -48,7 +47,7 @@ const SCOPE_SUFFIXES = [
     '_repository_local_only'
 ] as const;
 
-suite('E2E: Context Menu Regression Prevention', () => {
+describe('E2E: Context Menu Regression Prevention', () => {
     let provider: RegistryTreeProvider;
     let registryManagerStub: sinon.SinonStubbedInstance<RegistryManager>;
     let hubManagerStub: sinon.SinonStubbedInstance<HubManager>;
@@ -100,11 +99,11 @@ suite('E2E: Context Menu Regression Prevention', () => {
         );
         
         const items = await provider.getChildren(createInstalledRoot());
-        assert.strictEqual(items.length, 1, 'Should have one installed bundle');
+        expect(items.length, 'Should have one installed bundle').toBe(1);
         return items[0];
     }
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         registryManagerStub = sandbox.createStubInstance(RegistryManager);
         hubManagerStub = sandbox.createStubInstance(HubManager);
@@ -113,76 +112,61 @@ suite('E2E: Context Menu Regression Prevention', () => {
         provider = new RegistryTreeProvider(registryManagerStub as any, hubManagerStub as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Property 1: Context Value Regex Matching', () => {
+    describe('Property 1: Context Value Regex Matching', () => {
         /**
          * Validates: Requirements 1.1-1.4, 2.1-2.2, 3.1-3.4, 4.1-4.4, 6.2
          * 
          * For any base context value and any valid scope suffix,
          * the regex pattern in package.json should match the combined context value.
          */
-        test('Requirement 6.2: all base context values with all scope suffixes should match valid patterns', () => {
+        it('Requirement 6.2: all base context values with all scope suffixes should match valid patterns', () => {
             for (const baseValue of BASE_CONTEXT_VALUES) {
                 for (const suffix of SCOPE_SUFFIXES) {
                     const contextValue = `${baseValue}${suffix}`;
                     
-                    assert.ok(
-                        isValidContextValue(contextValue),
-                        `Context value '${contextValue}' should match a valid pattern in package.json. ` +
-                        `This means menu items won't appear for bundles with this context value.`
-                    );
+                    expect(isValidContextValue(contextValue), `Context value '${contextValue}' should match a valid pattern in package.json. ` +
+                        `This means menu items won't appear for bundles with this context value.`).toBeTruthy();
                 }
             }
         });
 
-        test('Requirement 6.2: base context values without suffix should match base patterns', () => {
+        it('Requirement 6.2: base context values without suffix should match base patterns', () => {
             // Base values without scope suffix should match the base patterns
             // (which use ^ anchor without $ anchor)
             for (const baseValue of BASE_CONTEXT_VALUES) {
-                assert.ok(
-                    isValidContextValue(baseValue),
-                    `Base context value '${baseValue}' should match base patterns`
-                );
+                expect(isValidContextValue(baseValue), `Base context value '${baseValue}' should match base patterns`).toBeTruthy();
             }
         });
     });
 
-    suite('Property 2: User Scope Menu Options', () => {
+    describe('Property 2: User Scope Menu Options', () => {
         /**
          * Validates: Requirement 5.1
          * 
          * For any installed bundle with user scope, the context value should
          * match the patterns for scope-related menu options.
          */
-        test('Requirement 7.2: user-scoped bundle should have valid context value for all menu options', async () => {
+        it('Requirement 7.2: user-scoped bundle should have valid context value for all menu options', async () => {
             const userBundle = createMockInstalledBundle('user-bundle-1', 'user');
             const item = await setupBundleAndGetTreeItem(userBundle);
             const contextValue = item.contextValue as string;
             
             // Verify context value is valid for menus
-            assert.ok(
-                isValidContextValue(contextValue),
-                `User bundle context value '${contextValue}' should be valid for menu items`
-            );
+            expect(isValidContextValue(contextValue), `User bundle context value '${contextValue}' should be valid for menu items`).toBeTruthy();
             
             // Verify it ends with _user suffix for scope-specific menus
-            assert.ok(
-                contextValue.endsWith('_user'),
-                `User bundle context value '${contextValue}' should end with '_user'`
-            );
+            expect(contextValue.endsWith('_user'), `User bundle context value '${contextValue}' should end with '_user'`).toBeTruthy();
             
             // Verify scope-specific pattern matches (for "Move to Repository" options)
             const userScopePattern = /^installed_bundle.*_user$/;
-            assert.ok(
-                userScopePattern.test(contextValue),
-                `User bundle context value '${contextValue}' should match user scope pattern for "Move to Repository" menu options`
-            );
+            expect(userScopePattern.test(contextValue), `User bundle context value '${contextValue}' should match user scope pattern for "Move to Repository" menu options`).toBeTruthy();
         });
 
-        test('Requirement 7.2: user-scoped bundle with update available should have valid context value', async () => {
+        it('Requirement 7.2: user-scoped bundle with update available should have valid context value', async () => {
             const userBundle = createMockInstalledBundle('user-bundle-updatable', 'user');
             
             registryManagerStub.listInstalledBundles.resolves([userBundle]);
@@ -198,71 +182,50 @@ suite('E2E: Context Menu Regression Prevention', () => {
             const items = await provider.getChildren(createInstalledRoot());
             const contextValue = items[0].contextValue as string;
             
-            assert.ok(
-                isValidContextValue(contextValue),
-                `Updatable user bundle context value '${contextValue}' should be valid for menu items`
-            );
+            expect(isValidContextValue(contextValue), `Updatable user bundle context value '${contextValue}' should be valid for menu items`).toBeTruthy();
         });
     });
 
-    suite('Property 3: Repository Scope Menu Options', () => {
+    describe('Property 3: Repository Scope Menu Options', () => {
         /**
          * Validates: Requirements 5.2, 5.3, 5.4
          * 
          * For any installed bundle with repository scope, the context value should
          * match the patterns for scope-related menu options based on commit mode.
          */
-        test('Requirement 7.3: repository-scoped bundle (commit mode) should have valid context value', async () => {
+        it('Requirement 7.3: repository-scoped bundle (commit mode) should have valid context value', async () => {
             const repoBundle = createMockInstalledBundle('repo-bundle-commit', 'repository', 'commit');
             const item = await setupBundleAndGetTreeItem(repoBundle);
             const contextValue = item.contextValue as string;
             
             // Verify context value is valid for menus
-            assert.ok(
-                isValidContextValue(contextValue),
-                `Repository commit bundle context value '${contextValue}' should be valid for menu items`
-            );
+            expect(isValidContextValue(contextValue), `Repository commit bundle context value '${contextValue}' should be valid for menu items`).toBeTruthy();
             
             // Verify it ends with _repository_commit suffix
-            assert.ok(
-                contextValue.endsWith('_repository_commit'),
-                `Repository commit bundle context value '${contextValue}' should end with '_repository_commit'`
-            );
+            expect(contextValue.endsWith('_repository_commit'), `Repository commit bundle context value '${contextValue}' should end with '_repository_commit'`).toBeTruthy();
             
             // Verify pattern for "Move to User" and "Switch to Local Only" options
             const repoCommitPattern = /^installed_bundle.*_repository_commit$/;
-            assert.ok(
-                repoCommitPattern.test(contextValue),
-                `Repository commit bundle context value '${contextValue}' should match commit mode pattern`
-            );
+            expect(repoCommitPattern.test(contextValue), `Repository commit bundle context value '${contextValue}' should match commit mode pattern`).toBeTruthy();
         });
 
-        test('Requirement 7.3: repository-scoped bundle (local-only mode) should have valid context value', async () => {
+        it('Requirement 7.3: repository-scoped bundle (local-only mode) should have valid context value', async () => {
             const repoBundle = createMockInstalledBundle('repo-bundle-local', 'repository', 'local-only');
             const item = await setupBundleAndGetTreeItem(repoBundle);
             const contextValue = item.contextValue as string;
             
             // Verify context value is valid for menus
-            assert.ok(
-                isValidContextValue(contextValue),
-                `Repository local-only bundle context value '${contextValue}' should be valid for menu items`
-            );
+            expect(isValidContextValue(contextValue), `Repository local-only bundle context value '${contextValue}' should be valid for menu items`).toBeTruthy();
             
             // Verify it ends with _repository_local_only suffix (note: 'local-only' becomes 'local_only')
-            assert.ok(
-                contextValue.endsWith('_repository_local_only'),
-                `Repository local-only bundle context value '${contextValue}' should end with '_repository_local_only'`
-            );
+            expect(contextValue.endsWith('_repository_local_only'), `Repository local-only bundle context value '${contextValue}' should end with '_repository_local_only'`).toBeTruthy();
             
             // Verify pattern for "Move to User" and "Switch to Commit" options
             const repoLocalOnlyPattern = /^installed_bundle.*_repository_local_only$/;
-            assert.ok(
-                repoLocalOnlyPattern.test(contextValue),
-                `Repository local-only bundle context value '${contextValue}' should match local-only mode pattern`
-            );
+            expect(repoLocalOnlyPattern.test(contextValue), `Repository local-only bundle context value '${contextValue}' should match local-only mode pattern`).toBeTruthy();
         });
 
-        test('Requirement 7.3: repository-scoped bundles should match combined repository pattern', async () => {
+        it('Requirement 7.3: repository-scoped bundles should match combined repository pattern', async () => {
             const commitBundle = createMockInstalledBundle('repo-commit', 'repository', 'commit');
             const localOnlyBundle = createMockInstalledBundle('repo-local', 'repository', 'local-only');
             
@@ -275,29 +238,26 @@ suite('E2E: Context Menu Regression Prevention', () => {
             );
 
             const items = await provider.getChildren(createInstalledRoot());
-            assert.strictEqual(items.length, 2, 'Should have two installed bundles');
+            expect(items.length, 'Should have two installed bundles').toBe(2);
             
             // Both should match the combined repository pattern for "Move to User" option
             const combinedRepoPattern = /^installed_bundle.*_repository_(commit|local_only)$/;
             
             for (const item of items) {
                 const contextValue = item.contextValue as string;
-                assert.ok(
-                    combinedRepoPattern.test(contextValue),
-                    `Repository bundle context value '${contextValue}' should match combined repository pattern`
-                );
+                expect(combinedRepoPattern.test(contextValue), `Repository bundle context value '${contextValue}' should match combined repository pattern`).toBeTruthy();
             }
         });
     });
 
-    suite('Regression Detection', () => {
+    describe('Regression Detection', () => {
         /**
          * Validates: Requirement 7.4
          * 
          * If a future change breaks the context menu configuration,
          * these tests should fail and alert developers to the regression.
          */
-        test('Requirement 7.4: all scope combinations should produce valid context values', async () => {
+        it('Requirement 7.4: all scope combinations should produce valid context values', async () => {
             const testCases: Array<{ scope: 'user' | 'repository'; commitMode?: 'commit' | 'local-only' }> = [
                 { scope: 'user' },
                 { scope: 'repository', commitMode: 'commit' },
@@ -310,21 +270,15 @@ suite('E2E: Context Menu Regression Prevention', () => {
                 const item = await setupBundleAndGetTreeItem(bundle);
                 const contextValue = item.contextValue as string;
                 
-                assert.ok(
-                    isValidContextValue(contextValue),
-                    `REGRESSION DETECTED: Context value '${contextValue}' for ${testCase.scope} scope ` +
+                expect(isValidContextValue(contextValue), `REGRESSION DETECTED: Context value '${contextValue}' for ${testCase.scope} scope ` +
                     `${testCase.commitMode ? `(${testCase.commitMode} mode)` : ''} ` +
-                    `is not recognized by package.json. Menu items will not appear!`
-                );
+                    `is not recognized by package.json. Menu items will not appear!`).toBeTruthy();
             }
         });
 
-        test('Requirement 7.4: valid patterns array should include all necessary patterns', () => {
+        it('Requirement 7.4: valid patterns array should include all necessary patterns', () => {
             // Check that we have at least the minimum number of patterns
-            assert.ok(
-                VALID_CONTEXT_PATTERNS_FOR_MENUS.length >= 5,
-                `Should have at least 5 patterns for all menu scenarios, got ${VALID_CONTEXT_PATTERNS_FOR_MENUS.length}`
-            );
+            expect(VALID_CONTEXT_PATTERNS_FOR_MENUS.length >= 5, `Should have at least 5 patterns for all menu scenarios, got ${VALID_CONTEXT_PATTERNS_FOR_MENUS.length}`).toBeTruthy();
             
             // Verify specific patterns exist for each menu scenario
             const hasBasePatterns = VALID_CONTEXT_PATTERNS_FOR_MENUS.some(p => 
@@ -340,14 +294,14 @@ suite('E2E: Context Menu Regression Prevention', () => {
                 p.source.includes('_repository_local_only$')
             );
             
-            assert.ok(hasBasePatterns, 'Should have base context value patterns (for Update, Check Updates, Auto-Update, Uninstall menus)');
-            assert.ok(hasUserPattern, 'Should have user scope pattern (for Move to Repository menus)');
-            assert.ok(hasRepoCommitPattern, 'Should have repository commit pattern (for Switch to Local Only menu)');
-            assert.ok(hasRepoLocalOnlyPattern, 'Should have repository local-only pattern (for Switch to Commit menu)');
+            expect(hasBasePatterns, 'Should have base context value patterns (for Update, Check Updates, Auto-Update, Uninstall menus)').toBeTruthy();
+            expect(hasUserPattern, 'Should have user scope pattern (for Move to Repository menus)').toBeTruthy();
+            expect(hasRepoCommitPattern, 'Should have repository commit pattern (for Switch to Local Only menu)').toBeTruthy();
+            expect(hasRepoLocalOnlyPattern, 'Should have repository local-only pattern (for Switch to Commit menu)').toBeTruthy();
         });
     });
 
-    suite('Package.json Pattern Synchronization', () => {
+    describe('Package.json Pattern Synchronization', () => {
         /**
          * Validates: Requirements 1.2, 1.3, 1.4, 1.5 from e2e-test-quality-fixes spec
          * 
@@ -357,7 +311,7 @@ suite('E2E: Context Menu Regression Prevention', () => {
          * If someone updates package.json and forgets to update the test helper,
          * this test will fail with a descriptive error message.
          */
-        test('VALID_CONTEXT_PATTERNS_FOR_MENUS should match package.json when clauses', () => {
+        it('VALID_CONTEXT_PATTERNS_FOR_MENUS should match package.json when clauses', () => {
             const result = validateContextPatterns();
             
             if (!result.valid) {
@@ -379,12 +333,10 @@ suite('E2E: Context Menu Regression Prevention', () => {
                     );
                 }
                 
-                assert.fail(
-                    `PATTERN SYNCHRONIZATION FAILURE\n\n` +
+                expect.fail(`PATTERN SYNCHRONIZATION FAILURE\n\n` +
                     `The test helper patterns don't match package.json when clauses.\n` +
                     `This means context menu tests may pass even when actual menus are broken.\n\n` +
-                    messages.join('\n\n')
-                );
+                    messages.join('\n\n'));
             }
         });
     });

@@ -9,7 +9,6 @@
  * - 8.3-8.4: Update Detection Across Scopes
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -25,7 +24,7 @@ import { IScopeService, ScopeStatus } from '../../src/services/IScopeService';
 import { BundleBuilder, createMockInstalledBundle } from '../helpers/bundleTestHelpers';
 import { LockfileBuilder, createMockLockfile } from '../helpers/lockfileTestHelpers';
 
-suite('BundleInstaller - Repository Scope', () => {
+describe('BundleInstaller - Repository Scope', () => {
     let sandbox: sinon.SinonSandbox;
     let installer: BundleInstaller;
     let mockContext: vscode.ExtensionContext;
@@ -41,9 +40,9 @@ suite('BundleInstaller - Repository Scope', () => {
         .withDescription('Test bundle for repository scope')
         .build();
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
-        tempDir = path.join(__dirname, '..', '..', '..', 'test-temp-repo-scope');
+        tempDir = path.join(__dirname, '..', '..', 'test-temp-repo-scope-installer');
 
         // Create mock context
         mockContext = {
@@ -123,7 +122,7 @@ suite('BundleInstaller - Repository Scope', () => {
         installer = new BundleInstaller(mockContext);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         
         // Cleanup temp directories
@@ -132,8 +131,8 @@ suite('BundleInstaller - Repository Scope', () => {
         }
     });
 
-    suite('getInstallDirectory() - Repository Scope Support', () => {
-        test('should return .github-based path for repository scope', async () => {
+    describe('getInstallDirectory() - Repository Scope Support', () => {
+        it('should return .github-based path for repository scope', async () => {
             // This test verifies that getInstallDirectory returns a path
             // within the workspace .github directory for repository scope
             // Requirements: 1.2-1.7
@@ -163,39 +162,39 @@ prompts: []
             try {
                 await installer.installFromBuffer(testBundle, bundleBuffer, options, 'github', 'test-source');
                 // If we get here, repository scope is supported
-                assert.ok(true, 'Repository scope installation should be supported');
+                expect(true, 'Repository scope installation should be supported').toBeTruthy();
             } catch (error: any) {
                 // Currently expected to fail until implementation is complete
                 if (error.message.includes('Repository scope installation is not yet implemented')) {
-                    assert.ok(true, 'Repository scope not yet implemented - test will pass after implementation');
+                    expect(true, 'Repository scope not yet implemented - test will pass after implementation').toBeTruthy();
                 } else {
                     throw error;
                 }
             }
         });
 
-        test('should continue to support user scope', async () => {
+        it('should continue to support user scope', async () => {
             // Requirements: 9.1-9.5 - Backward compatibility
             const options: InstallOptions = {
                 scope: 'user'
             };
 
             // User scope should continue to work
-            assert.strictEqual(options.scope, 'user');
+            expect(options.scope).toBe('user');
         });
 
-        test('should continue to support workspace scope', async () => {
+        it('should continue to support workspace scope', async () => {
             // Requirements: 9.1-9.5 - Backward compatibility
             const options: InstallOptions = {
                 scope: 'workspace'
             };
 
-            assert.strictEqual(options.scope, 'workspace');
+            expect(options.scope).toBe('workspace');
         });
     });
 
-    suite('Repository Scope Installation Flow', () => {
-        test('should use ScopeServiceFactory to get RepositoryScopeService', async () => {
+    describe('Repository Scope Installation Flow', () => {
+        it('should use ScopeServiceFactory to get RepositoryScopeService', async () => {
             // Requirements: 1.1, 1.8
             // Verify that installation uses ScopeServiceFactory for repository scope
             
@@ -224,10 +223,10 @@ prompts: []
             }
 
             // After implementation, this should verify factory was called
-            // assert.ok(factoryStub.calledWith('repository'), 'Should use ScopeServiceFactory for repository scope');
+            // expect(factoryStub.calledWith('repository'), 'Should use ScopeServiceFactory for repository scope').toBeTruthy();
         });
 
-        test('should route skills bundle at repository scope through RepositoryScopeService', async () => {
+        it('should route skills bundle at repository scope through RepositoryScopeService', async () => {
             const options: InstallOptions = {
                 scope: 'repository',
                 commitMode: 'commit'
@@ -255,11 +254,11 @@ prompts:
 
             await installer.installFromBuffer(testBundle, zip.toBuffer(), options, 'skills', 'test-skills-source');
 
-            assert.ok(mockRepositoryScopeService.syncBundle.calledOnce, 'Repository scope should sync via RepositoryScopeService for skills');
-            assert.ok(!mockUserScopeService.syncBundle.called, 'User scope sync should not be used for repository-scoped skills');
+            expect(mockRepositoryScopeService.syncBundle.calledOnce, 'Repository scope should sync via RepositoryScopeService for skills').toBeTruthy();
+            expect(!mockUserScopeService.syncBundle.called, 'User scope sync should not be used for repository-scoped skills').toBeTruthy();
         });
 
-        test('should call LockfileManager.createOrUpdate for repository scope installation', async () => {
+        it('should call LockfileManager.createOrUpdate for repository scope installation', async () => {
             // Requirements: 4.1
             // Verify lockfile is updated when installing at repository scope
             
@@ -282,13 +281,13 @@ prompts: []
                 await installer.installFromBuffer(testBundle, zip.toBuffer(), options, 'github', 'test-source');
                 
                 // After implementation, verify lockfile was updated
-                // assert.ok(mockLockfileManager.createOrUpdate.called, 'Should update lockfile for repository scope');
+                // expect(mockLockfileManager.createOrUpdate.called, 'Should update lockfile for repository scope').toBeTruthy();
             } catch {
                 // Expected until implementation
             }
         });
 
-        test('should NOT call LockfileManager for user scope installation', async () => {
+        it('should NOT call LockfileManager for user scope installation', async () => {
             // Requirements: 8.4
             // Verify lockfile is NOT modified for user scope installations
             
@@ -316,10 +315,10 @@ prompts: []
             }
 
             // Lockfile should not be touched for user scope
-            assert.ok(!mockLockfileManager.createOrUpdate.called, 'Should NOT update lockfile for user scope');
+            expect(!mockLockfileManager.createOrUpdate.called, 'Should NOT update lockfile for user scope').toBeTruthy();
         });
 
-        test('should sync bundle using RepositoryScopeService for repository scope', async () => {
+        it('should sync bundle using RepositoryScopeService for repository scope', async () => {
             // Requirements: 1.2-1.7
             // Verify files are synced to .github directories
             
@@ -342,15 +341,15 @@ prompts: []
                 await installer.installFromBuffer(testBundle, zip.toBuffer(), options, 'github', 'test-source');
                 
                 // After implementation, verify RepositoryScopeService.syncBundle was called
-                // assert.ok(mockRepositoryScopeService.syncBundle.called, 'Should sync using RepositoryScopeService');
+                // expect(mockRepositoryScopeService.syncBundle.called, 'Should sync using RepositoryScopeService').toBeTruthy();
             } catch {
                 // Expected until implementation
             }
         });
     });
 
-    suite('Repository Scope Uninstallation', () => {
-        test('should call LockfileManager.remove when uninstalling repository scope bundle', async () => {
+    describe('Repository Scope Uninstallation', () => {
+        it('should call LockfileManager.remove when uninstalling repository scope bundle', async () => {
             // Requirements: 4.8
             const installed = createMockInstalledBundle(testBundle.id, '1.0.0', {
                 scope: 'repository',
@@ -365,13 +364,13 @@ prompts: []
                 await installer.uninstall(installed);
                 
                 // After implementation, verify lockfile entry was removed
-                // assert.ok(mockLockfileManager.remove.calledWith(testBundle.id), 'Should remove from lockfile');
+                // expect(mockLockfileManager.remove.calledWith(testBundle.id), 'Should remove from lockfile').toBeTruthy();
             } catch {
                 // May fail for other reasons
             }
         });
 
-        test('should NOT call LockfileManager.remove when uninstalling user scope bundle', async () => {
+        it('should NOT call LockfileManager.remove when uninstalling user scope bundle', async () => {
             // Requirements: 8.4
             const installed = createMockInstalledBundle(testBundle.id, '1.0.0', {
                 scope: 'user',
@@ -389,10 +388,10 @@ prompts: []
                 // May fail for other reasons
             }
 
-            assert.ok(!mockLockfileManager.remove.called, 'Should NOT remove from lockfile for user scope');
+            expect(!mockLockfileManager.remove.called, 'Should NOT remove from lockfile for user scope').toBeTruthy();
         });
 
-        test('should unsync bundle using RepositoryScopeService for repository scope', async () => {
+        it('should unsync bundle using RepositoryScopeService for repository scope', async () => {
             // Requirements: 1.2-1.7
             const installed = createMockInstalledBundle(testBundle.id, '1.0.0', {
                 scope: 'repository',
@@ -406,15 +405,15 @@ prompts: []
                 await installer.uninstall(installed);
                 
                 // After implementation, verify RepositoryScopeService.unsyncBundle was called
-                // assert.ok(mockRepositoryScopeService.unsyncBundle.called, 'Should unsync using RepositoryScopeService');
+                // expect(mockRepositoryScopeService.unsyncBundle.called, 'Should unsync using RepositoryScopeService').toBeTruthy();
             } catch {
                 // May fail for other reasons
             }
         });
     });
 
-    suite('Commit Mode Handling', () => {
-        test('should pass commitMode to RepositoryScopeService', async () => {
+    describe('Commit Mode Handling', () => {
+        it('should pass commitMode to RepositoryScopeService', async () => {
             // Requirements: 3.1-3.2
             const options: InstallOptions = {
                 scope: 'repository',
@@ -440,7 +439,7 @@ prompts: []
             }
         });
 
-        test('should record commitMode in InstalledBundle', async () => {
+        it('should record commitMode in InstalledBundle', async () => {
             // Requirements: 3.1-3.2
             const options: InstallOptions = {
                 scope: 'repository',
@@ -461,15 +460,15 @@ prompts: []
                 const result = await installer.installFromBuffer(testBundle, zip.toBuffer(), options, 'github', 'test-source');
                 
                 // After implementation, verify commitMode is in the result
-                // assert.strictEqual(result.commitMode, 'commit', 'Should record commitMode in InstalledBundle');
+                // expect(result.commitMode, 'Should record commitMode in InstalledBundle').toBe('commit');
             } catch {
                 // Expected until implementation
             }
         });
     });
 
-    suite('Lockfile Integration', () => {
-        test('should include source information in lockfile entry', async () => {
+    describe('Lockfile Integration', () => {
+        it('should include source information in lockfile entry', async () => {
             // Requirements: 12.1-12.3
             const options: InstallOptions = {
                 scope: 'repository',
@@ -491,13 +490,13 @@ prompts: []
                 
                 // After implementation, verify source info was included
                 // const createOrUpdateCall = mockLockfileManager.createOrUpdate.firstCall;
-                // assert.ok(createOrUpdateCall.args[0].source, 'Should include source in lockfile');
+                // expect(createOrUpdateCall.args[0].source, 'Should include source in lockfile').toBeTruthy();
             } catch {
                 // Expected until implementation
             }
         });
 
-        test('should include file checksums in lockfile entry', async () => {
+        it('should include file checksums in lockfile entry', async () => {
             // Requirements: 15.1-15.2
             const options: InstallOptions = {
                 scope: 'repository',
@@ -524,15 +523,15 @@ prompts:
                 
                 // After implementation, verify files with checksums were included
                 // const createOrUpdateCall = mockLockfileManager.createOrUpdate.firstCall;
-                // assert.ok(createOrUpdateCall.args[0].files.length > 0, 'Should include files in lockfile');
+                // expect(createOrUpdateCall.args[0].files.length > 0, 'Should include files in lockfile').toBeTruthy();
             } catch {
                 // Expected until implementation
             }
         });
     });
 
-    suite('Error Handling', () => {
-        test('should throw error when repository scope requested but no workspace open', async () => {
+    describe('Error Handling', () => {
+        it('should throw error when repository scope requested but no workspace open', async () => {
             // Requirements: 1.8
             // Stub workspaceFolders to be empty
             sandbox.restore();
@@ -558,19 +557,16 @@ author: test
 prompts: []
 `));
                 await installer.installFromBuffer(testBundle, zip.toBuffer(), options, 'github', 'test-source');
-                assert.fail('Should have thrown error for repository scope without workspace');
+                expect.fail('Should have thrown error for repository scope without workspace');
             } catch (error: any) {
                 // Should throw an error about no workspace
-                assert.ok(
-                    error.message.includes('workspace') || 
+                expect(error.message.includes('workspace') || 
                     error.message.includes('Repository scope') ||
-                    error.message.includes('not yet implemented'),
-                    `Error should mention workspace requirement: ${error.message}`
-                );
+                    error.message.includes('not yet implemented'), `Error should mention workspace requirement: ${error.message}`).toBeTruthy();
             }
         });
 
-        test('should handle lockfile write failures gracefully', async () => {
+        it('should handle lockfile write failures gracefully', async () => {
             // Requirements: 15.6
             mockLockfileManager.createOrUpdate.rejects(new Error('Lockfile write failed'));
 
@@ -595,13 +591,13 @@ prompts: []
                 // After implementation, should either throw or handle gracefully
             } catch (error: any) {
                 // Expected - lockfile failure should propagate or be handled
-                assert.ok(true, 'Lockfile failure handled');
+                expect(true, 'Lockfile failure handled').toBeTruthy();
             }
         });
     });
 
-    suite('Scope-Specific Behavior', () => {
-        test('should use UserScopeService for user scope', async () => {
+    describe('Scope-Specific Behavior', () => {
+        it('should use UserScopeService for user scope', async () => {
             // Requirements: 9.1-9.5
             const factoryStub = ScopeServiceFactory.create as sinon.SinonStub;
             factoryStub.resetHistory();
@@ -630,7 +626,7 @@ prompts: []
             // After refactoring, should use ScopeServiceFactory
         });
 
-        test('should use RepositoryScopeService for repository scope', async () => {
+        it('should use RepositoryScopeService for repository scope', async () => {
             // Requirements: 1.1-1.8
             const factoryStub = ScopeServiceFactory.create as sinon.SinonStub;
             factoryStub.resetHistory();

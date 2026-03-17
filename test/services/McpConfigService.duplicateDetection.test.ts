@@ -3,7 +3,6 @@
  * 
  * TDD tests for detecting and disabling duplicate MCP servers across bundles.
  */
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as fs from 'fs-extra';
@@ -16,7 +15,7 @@ import {
     McpRemoteServerConfig
 } from '../../src/types/mcp';
 
-suite('McpConfigService - Duplicate Detection', () => {
+describe('McpConfigService - Duplicate Detection', () => {
     let sandbox: sinon.SinonSandbox;
     let configService: McpConfigService;
     let testDir: string;
@@ -37,7 +36,7 @@ suite('McpConfigService - Duplicate Detection', () => {
         return JSON.parse(content.toString());
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         configService = new McpConfigService();
         testDir = path.join(os.tmpdir(), 'mcp-duplicate-test-' + Date.now());
@@ -46,15 +45,15 @@ suite('McpConfigService - Duplicate Detection', () => {
         mockTrackingPath = path.join(testDir, 'mcp-tracking.json');
     });
 
-    teardown(async () => {
+    afterEach(async () => {
         sandbox.restore();
         if (fs.existsSync(testDir)) {
             await fs.remove(testDir);
         }
     });
 
-    suite('computeServerIdentity()', () => {
-        test('should compute identity for stdio server with command and args', () => {
+    describe('computeServerIdentity()', () => {
+        it('should compute identity for stdio server with command and args', () => {
             const config: McpStdioServerConfig = {
                 command: 'node',
                 args: ['server.js', '--port', '3000']
@@ -62,20 +61,20 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const identity = configService.computeServerIdentity(config);
             
-            assert.strictEqual(identity, 'stdio:node:server.js|--port|3000');
+            expect(identity).toBe('stdio:node:server.js|--port|3000');
         });
 
-        test('should compute identity for stdio server without args', () => {
+        it('should compute identity for stdio server without args', () => {
             const config: McpStdioServerConfig = {
                 command: 'my-mcp-server'
             };
 
             const identity = configService.computeServerIdentity(config);
             
-            assert.strictEqual(identity, 'stdio:my-mcp-server:');
+            expect(identity).toBe('stdio:my-mcp-server:');
         });
 
-        test('should compute identity for HTTP remote server', () => {
+        it('should compute identity for HTTP remote server', () => {
             const config: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'https://api.example.com/mcp'
@@ -83,10 +82,10 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const identity = configService.computeServerIdentity(config);
             
-            assert.strictEqual(identity, 'remote:https://api.example.com/mcp');
+            expect(identity).toBe('remote:https://api.example.com/mcp');
         });
 
-        test('should compute identity for SSE remote server', () => {
+        it('should compute identity for SSE remote server', () => {
             const config: McpRemoteServerConfig = {
                 type: 'sse',
                 url: 'https://api.example.com/mcp/events'
@@ -94,10 +93,10 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const identity = configService.computeServerIdentity(config);
             
-            assert.strictEqual(identity, 'remote:https://api.example.com/mcp/events');
+            expect(identity).toBe('remote:https://api.example.com/mcp/events');
         });
 
-        test('should not consider headers in remote server identity', () => {
+        it('should not consider headers in remote server identity', () => {
             const config1: McpRemoteServerConfig = {
                 type: 'http',
                 url: 'https://api.example.com/mcp',
@@ -113,10 +112,10 @@ suite('McpConfigService - Duplicate Detection', () => {
             const identity1 = configService.computeServerIdentity(config1);
             const identity2 = configService.computeServerIdentity(config2);
             
-            assert.strictEqual(identity1, identity2, 'Same URL should have same identity regardless of headers');
+            expect(identity1, 'Same URL should have same identity regardless of headers').toBe(identity2);
         });
 
-        test('should not consider env in stdio server identity', () => {
+        it('should not consider env in stdio server identity', () => {
             const config1: McpStdioServerConfig = {
                 command: 'node',
                 args: ['server.js'],
@@ -132,10 +131,10 @@ suite('McpConfigService - Duplicate Detection', () => {
             const identity1 = configService.computeServerIdentity(config1);
             const identity2 = configService.computeServerIdentity(config2);
             
-            assert.strictEqual(identity1, identity2, 'Same command+args should have same identity regardless of env');
+            expect(identity1, 'Same command+args should have same identity regardless of env').toBe(identity2);
         });
 
-        test('should differentiate stdio and remote servers with similar names', () => {
+        it('should differentiate stdio and remote servers with similar names', () => {
             const stdioConfig: McpStdioServerConfig = {
                 command: 'https://api.example.com/mcp'  // Unusual but valid command
             };
@@ -148,14 +147,14 @@ suite('McpConfigService - Duplicate Detection', () => {
             const stdioIdentity = configService.computeServerIdentity(stdioConfig);
             const remoteIdentity = configService.computeServerIdentity(remoteConfig);
             
-            assert.notStrictEqual(stdioIdentity, remoteIdentity, 'Stdio and remote should have different identities');
-            assert.ok(stdioIdentity.startsWith('stdio:'));
-            assert.ok(remoteIdentity.startsWith('remote:'));
+            expect(stdioIdentity, 'Stdio and remote should have different identities').not.toBe(remoteIdentity);
+            expect(stdioIdentity.startsWith('stdio:')).toBeTruthy();
+            expect(remoteIdentity.startsWith('remote:')).toBeTruthy();
         });
     });
 
-    suite('detectAndDisableDuplicates()', () => {
-        test('should detect duplicate stdio servers with same command and args', async () => {
+    describe('detectAndDisableDuplicates()', () => {
+        it('should detect duplicate stdio servers with same command and args', async () => {
             // Setup: Two servers from different bundles with same command+args
             const config: McpConfiguration = {
                 servers: {
@@ -202,18 +201,18 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const result = await configService.detectAndDisableDuplicates('user');
 
-            assert.strictEqual(result.duplicatesDisabled.length, 1);
-            assert.strictEqual(result.duplicatesDisabled[0].serverName, 'prompt-registry:bundle-b:server1');
-            assert.strictEqual(result.duplicatesDisabled[0].duplicateOf, 'prompt-registry:bundle-a:server1');
-            assert.strictEqual(result.duplicatesDisabled[0].originalBundleId, 'bundle-a');
+            expect(result.duplicatesDisabled.length).toBe(1);
+            expect(result.duplicatesDisabled[0].serverName).toBe('prompt-registry:bundle-b:server1');
+            expect(result.duplicatesDisabled[0].duplicateOf).toBe('prompt-registry:bundle-a:server1');
+            expect(result.duplicatesDisabled[0].originalBundleId).toBe('bundle-a');
             
             // Check that the duplicate is disabled in the returned config
             const duplicateServer = result.config.servers['prompt-registry:bundle-b:server1'];
-            assert.strictEqual(duplicateServer.disabled, true);
-            assert.ok(duplicateServer.description?.includes('Duplicate'));
+            expect(duplicateServer.disabled).toBe(true);
+            expect(duplicateServer.description?.includes('Duplicate')).toBeTruthy();
         });
 
-        test('should detect duplicate remote servers with same URL', async () => {
+        it('should detect duplicate remote servers with same URL', async () => {
             const config: McpConfiguration = {
                 servers: {
                     'prompt-registry:bundle-a:api-server': {
@@ -255,12 +254,12 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const result = await configService.detectAndDisableDuplicates('user');
 
-            assert.strictEqual(result.duplicatesDisabled.length, 1);
+            expect(result.duplicatesDisabled.length).toBe(1);
             const duplicateServer = result.config.servers['prompt-registry:bundle-b:api-server'] as McpRemoteServerConfig;
-            assert.strictEqual(duplicateServer.disabled, true);
+            expect(duplicateServer.disabled).toBe(true);
         });
 
-        test('should keep first server enabled and disable subsequent duplicates', async () => {
+        it('should keep first server enabled and disable subsequent duplicates', async () => {
             // Three servers with same identity - only first should remain enabled
             const config: McpConfiguration = {
                 servers: {
@@ -303,17 +302,17 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const result = await configService.detectAndDisableDuplicates('user');
 
-            assert.strictEqual(result.duplicatesDisabled.length, 2);
+            expect(result.duplicatesDisabled.length).toBe(2);
             
             // First server should remain enabled
-            assert.strictEqual(result.config.servers['prompt-registry:bundle-a:server'].disabled, undefined);
+            expect(result.config.servers['prompt-registry:bundle-a:server'].disabled).toBe(undefined);
             
             // Second and third should be disabled
-            assert.strictEqual(result.config.servers['prompt-registry:bundle-b:server'].disabled, true);
-            assert.strictEqual(result.config.servers['prompt-registry:bundle-c:server'].disabled, true);
+            expect(result.config.servers['prompt-registry:bundle-b:server'].disabled).toBe(true);
+            expect(result.config.servers['prompt-registry:bundle-c:server'].disabled).toBe(true);
         });
 
-        test('should not flag different servers as duplicates', async () => {
+        it('should not flag different servers as duplicates', async () => {
             const config: McpConfiguration = {
                 servers: {
                     'prompt-registry:bundle-a:server1': {
@@ -356,10 +355,10 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const result = await configService.detectAndDisableDuplicates('user');
 
-            assert.strictEqual(result.duplicatesDisabled.length, 0);
+            expect(result.duplicatesDisabled.length).toBe(0);
         });
 
-        test('should not flag already disabled servers as duplicates', async () => {
+        it('should not flag already disabled servers as duplicates', async () => {
             const config: McpConfiguration = {
                 servers: {
                     'prompt-registry:bundle-a:server': {
@@ -396,10 +395,10 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             // bundle-b:server should NOT be flagged as duplicate because bundle-a:server is disabled
             // bundle-b:server becomes the "first" enabled one
-            assert.strictEqual(result.duplicatesDisabled.length, 0);
+            expect(result.duplicatesDisabled.length).toBe(0);
         });
 
-        test('should handle empty server list', async () => {
+        it('should handle empty server list', async () => {
             const config: McpConfiguration = { servers: {} };
             const tracking: McpTrackingMetadata = {
                 managedServers: {},
@@ -412,11 +411,11 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const result = await configService.detectAndDisableDuplicates('user');
 
-            assert.strictEqual(result.duplicatesDisabled.length, 0);
-            assert.deepStrictEqual(result.config.servers, {});
+            expect(result.duplicatesDisabled.length).toBe(0);
+            expect(result.config.servers).toEqual({});
         });
 
-        test('should handle servers not in tracking metadata', async () => {
+        it('should handle servers not in tracking metadata', async () => {
             const config: McpConfiguration = {
                 servers: {
                     'untracked-server': {
@@ -447,11 +446,11 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             // The tracked server should be flagged as duplicate of the untracked one
             // (untracked comes first in iteration)
-            assert.strictEqual(result.duplicatesDisabled.length, 1);
-            assert.strictEqual(result.duplicatesDisabled[0].bundleId, 'bundle-a');
+            expect(result.duplicatesDisabled.length).toBe(1);
+            expect(result.duplicatesDisabled[0].bundleId).toBe('bundle-a');
         });
 
-        test('should not cross-detect stdio and remote as duplicates', async () => {
+        it('should not cross-detect stdio and remote as duplicates', async () => {
             // Even if URL looks like a command, they should not be considered duplicates
             const config: McpConfiguration = {
                 servers: {
@@ -487,13 +486,12 @@ suite('McpConfigService - Duplicate Detection', () => {
 
             const result = await configService.detectAndDisableDuplicates('user');
 
-            assert.strictEqual(result.duplicatesDisabled.length, 0, 
-                'Stdio and remote servers should not be considered duplicates');
+            expect(result.duplicatesDisabled.length, 'Stdio and remote servers should not be considered duplicates').toBe(0);
         });
     });
 
-    suite('Duplicate Description Format', () => {
-        test('should include original server name in duplicate description', async () => {
+    describe('Duplicate Description Format', () => {
+        it('should include original server name in duplicate description', async () => {
             const config: McpConfiguration = {
                 servers: {
                     'prompt-registry:bundle-a:my-server': {
@@ -528,8 +526,8 @@ suite('McpConfigService - Duplicate Detection', () => {
             const result = await configService.detectAndDisableDuplicates('user');
 
             const duplicateServer = result.config.servers['prompt-registry:bundle-b:my-server'];
-            assert.ok(duplicateServer.description?.includes('prompt-registry:bundle-a:my-server'));
-            assert.ok(duplicateServer.description?.includes('bundle-a'));
+            expect(duplicateServer.description?.includes('prompt-registry:bundle-a:my-server')).toBeTruthy();
+            expect(duplicateServer.description?.includes('bundle-a')).toBeTruthy();
         });
     });
 });

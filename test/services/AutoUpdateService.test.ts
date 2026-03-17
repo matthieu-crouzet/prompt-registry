@@ -2,7 +2,6 @@
  * Unit tests for AutoUpdateService
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { AutoUpdateService } from '../../src/services/AutoUpdateService';
 import { RegistryManager } from '../../src/services/RegistryManager';
@@ -11,7 +10,7 @@ import { RegistryStorage } from '../../src/storage/RegistryStorage';
 import { InstalledBundle } from '../../src/types/registry';
 import { Logger } from '../../src/utils/logger';
 
-suite('AutoUpdateService', () => {
+describe('AutoUpdateService', () => {
     let sandbox: sinon.SinonSandbox;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
     let mockBundleNotifications: sinon.SinonStubbedInstance<BundleUpdateNotifications>;
@@ -19,7 +18,7 @@ suite('AutoUpdateService', () => {
     let service: AutoUpdateService;
     let loggerStub: sinon.SinonStubbedInstance<Logger>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Stub logger
@@ -44,12 +43,12 @@ suite('AutoUpdateService', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('autoUpdateBundle()', () => {
-        test('should call updateBundle with correct parameters', async () => {
+    describe('autoUpdateBundle()', () => {
+        it('should call updateBundle with correct parameters', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const oldVersion = '1.0.0';
@@ -81,12 +80,12 @@ suite('AutoUpdateService', () => {
                 showProgress: false
             });
 
-            assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-            assert.strictEqual(mockRegistryManager.updateBundle.firstCall.args[0], bundleId);
-            assert.strictEqual(mockRegistryManager.updateBundle.firstCall.args[1], targetVersion);
+            expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+            expect(mockRegistryManager.updateBundle.firstCall.args[0]).toBe(bundleId);
+            expect(mockRegistryManager.updateBundle.firstCall.args[1]).toBe(targetVersion);
         });
 
-        test('should show completion notification on success', async () => {
+        it('should show completion notification on success', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const oldVersion = '1.0.0';
@@ -118,13 +117,13 @@ suite('AutoUpdateService', () => {
                 showProgress: false
             });
 
-            assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
-            assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.firstCall.args[0], bundleId);
-            assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.firstCall.args[1], oldVersion);
-            assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.firstCall.args[2], targetVersion);
+            expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
+            expect(mockBundleNotifications.showAutoUpdateComplete.firstCall.args[0]).toBe(bundleId);
+            expect(mockBundleNotifications.showAutoUpdateComplete.firstCall.args[1]).toBe(oldVersion);
+            expect(mockBundleNotifications.showAutoUpdateComplete.firstCall.args[2]).toBe(targetVersion);
         });
 
-        test('should show failure notification on error', async () => {
+        it('should show failure notification on error', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const errorMessage = 'Update failed';
@@ -149,22 +148,19 @@ suite('AutoUpdateService', () => {
                     targetVersion,
                     showProgress: false
                 });
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error) {
                 // Expected
             }
 
-            assert.strictEqual(mockBundleNotifications.showUpdateFailure.callCount, 1);
-            assert.strictEqual(mockBundleNotifications.showUpdateFailure.firstCall.args[0], bundleId);
+            expect(mockBundleNotifications.showUpdateFailure.callCount).toBe(1);
+            expect(mockBundleNotifications.showUpdateFailure.firstCall.args[0]).toBe(bundleId);
             // Error message now includes rollback failure message
             const failureMessage = mockBundleNotifications.showUpdateFailure.firstCall.args[1];
-            assert.ok(
-                failureMessage.includes(errorMessage) || failureMessage.includes('Rollback failed'),
-                'Error message should include original error or rollback failure'
-            );
+            expect(failureMessage.includes(errorMessage) || failureMessage.includes('Rollback failed'), 'Error message should include original error or rollback failure').toBeTruthy();
         });
 
-        test('should prevent concurrent updates for the same bundle', async () => {
+        it('should prevent concurrent updates for the same bundle', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
 
@@ -203,7 +199,7 @@ suite('AutoUpdateService', () => {
             });
 
             // Verify update is in progress
-            assert.strictEqual(service.isUpdateInProgress(bundleId), true);
+            expect(service.isUpdateInProgress(bundleId)).toBe(true);
 
             // Try second update
             try {
@@ -212,10 +208,10 @@ suite('AutoUpdateService', () => {
                     targetVersion,
                     showProgress: false
                 });
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error) {
-                assert.ok(error instanceof Error);
-                assert.ok(error.message.includes('already in progress'));
+                expect(error instanceof Error).toBeTruthy();
+                expect(error.message.includes('already in progress')).toBeTruthy();
             }
 
             // Complete first update
@@ -223,12 +219,12 @@ suite('AutoUpdateService', () => {
             await firstUpdate;
 
             // Verify update is no longer in progress
-            assert.strictEqual(service.isUpdateInProgress(bundleId), false);
+            expect(service.isUpdateInProgress(bundleId)).toBe(false);
         });
     });
 
-    suite('autoUpdateBundles()', () => {
-        test('should update only bundles with auto-update enabled', async () => {
+    describe('autoUpdateBundles()', () => {
+        it('should update only bundles with auto-update enabled', async () => {
             const updates = [
                 {
                     bundleId: 'bundle1',
@@ -282,11 +278,11 @@ suite('AutoUpdateService', () => {
             await service.autoUpdateBundles(updates);
 
             // Only bundle1 should be updated
-            assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-            assert.strictEqual(mockRegistryManager.updateBundle.firstCall.args[0], 'bundle1');
+            expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+            expect(mockRegistryManager.updateBundle.firstCall.args[0]).toBe('bundle1');
         });
 
-        test('should show batch summary after completion', async () => {
+        it('should show batch summary after completion', async () => {
             const updates = [
                 {
                     bundleId: 'bundle1',
@@ -322,48 +318,48 @@ suite('AutoUpdateService', () => {
 
             await service.autoUpdateBundles(updates);
 
-            assert.strictEqual(mockBundleNotifications.showBatchUpdateSummary.callCount, 1);
+            expect(mockBundleNotifications.showBatchUpdateSummary.callCount).toBe(1);
             const [successful, failed] = mockBundleNotifications.showBatchUpdateSummary.firstCall.args;
-            assert.deepStrictEqual(successful, ['bundle1']);
-            assert.deepStrictEqual(failed, []);
+            expect(successful).toEqual(['bundle1']);
+            expect(failed).toEqual([]);
         });
     });
 
-    suite('isAutoUpdateEnabled()', () => {
-        test('should return storage preference', async () => {
+    describe('isAutoUpdateEnabled()', () => {
+        it('should return storage preference', async () => {
             const bundleId = 'test-bundle';
             mockStorage.getUpdatePreference.resolves(true);
 
             const result = await service.isAutoUpdateEnabled(bundleId);
 
-            assert.strictEqual(result, true);
-            assert.strictEqual(mockStorage.getUpdatePreference.callCount, 1);
-            assert.strictEqual(mockStorage.getUpdatePreference.firstCall.args[0], bundleId);
+            expect(result).toBe(true);
+            expect(mockStorage.getUpdatePreference.callCount).toBe(1);
+            expect(mockStorage.getUpdatePreference.firstCall.args[0]).toBe(bundleId);
         });
     });
 
-    suite('setAutoUpdate()', () => {
-        test('should update storage preference', async () => {
+    describe('setAutoUpdate()', () => {
+        it('should update storage preference', async () => {
             const bundleId = 'test-bundle';
             mockStorage.setUpdatePreference.resolves();
 
             await service.setAutoUpdate(bundleId, true);
 
-            assert.strictEqual(mockStorage.setUpdatePreference.callCount, 1);
-            assert.strictEqual(mockStorage.setUpdatePreference.firstCall.args[0], bundleId);
-            assert.strictEqual(mockStorage.setUpdatePreference.firstCall.args[1], true);
+            expect(mockStorage.setUpdatePreference.callCount).toBe(1);
+            expect(mockStorage.setUpdatePreference.firstCall.args[0]).toBe(bundleId);
+            expect(mockStorage.setUpdatePreference.firstCall.args[1]).toBe(true);
         });
     });
 
-    suite('isUpdateInProgress()', () => {
-        test('should return false when no update in progress', () => {
+    describe('isUpdateInProgress()', () => {
+        it('should return false when no update in progress', () => {
             const result = service.isUpdateInProgress('test-bundle');
-            assert.strictEqual(result, false);
+            expect(result).toBe(false);
         });
     });
 
-    suite('syncSourceForBundle() - conditional source syncing', () => {
-        test('should sync source when bundle is from GitHub release source', async () => {
+    describe('syncSourceForBundle() - conditional source syncing', () => {
+        it('should sync source when bundle is from GitHub release source', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const sourceId = 'github-source';
@@ -424,11 +420,11 @@ suite('AutoUpdateService', () => {
             });
 
             // Verify syncSource was called for GitHub source
-            assert.strictEqual(mockRegistryManager.syncSource.callCount, 1);
-            assert.strictEqual(mockRegistryManager.syncSource.firstCall.args[0], sourceId);
+            expect(mockRegistryManager.syncSource.callCount).toBe(1);
+            expect(mockRegistryManager.syncSource.firstCall.args[0]).toBe(sourceId);
         });
 
-        test('should NOT sync source when bundle is from awesome-copilot source', async () => {
+        it('should NOT sync source when bundle is from awesome-copilot source', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const sourceId = 'awesome-copilot-source';
@@ -488,10 +484,10 @@ suite('AutoUpdateService', () => {
             });
 
             // Verify syncSource was NOT called for awesome-copilot source
-            assert.strictEqual(mockRegistryManager.syncSource.callCount, 0);
+            expect(mockRegistryManager.syncSource.callCount).toBe(0);
         });
 
-        test('should NOT sync source when bundle is from local source', async () => {
+        it('should NOT sync source when bundle is from local source', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const sourceId = 'local-source';
@@ -551,10 +547,10 @@ suite('AutoUpdateService', () => {
             });
 
             // Verify syncSource was NOT called for local source
-            assert.strictEqual(mockRegistryManager.syncSource.callCount, 0);
+            expect(mockRegistryManager.syncSource.callCount).toBe(0);
         });
 
-        test('should continue with update even if source sync fails', async () => {
+        it('should continue with update even if source sync fails', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const sourceId = 'github-source';
@@ -616,11 +612,11 @@ suite('AutoUpdateService', () => {
             });
 
             // Verify update was still called despite sync failure
-            assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-            assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
+            expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+            expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
         });
 
-        test('should continue with update if source is not found', async () => {
+        it('should continue with update if source is not found', async () => {
             const bundleId = 'test-bundle';
             const targetVersion = '2.0.0';
             const sourceId = 'missing-source';
@@ -672,8 +668,8 @@ suite('AutoUpdateService', () => {
             });
 
             // Verify update was still called despite missing source
-            assert.strictEqual(mockRegistryManager.updateBundle.callCount, 1);
-            assert.strictEqual(mockBundleNotifications.showAutoUpdateComplete.callCount, 1);
+            expect(mockRegistryManager.updateBundle.callCount).toBe(1);
+            expect(mockBundleNotifications.showAutoUpdateComplete.callCount).toBe(1);
         });
     });
 });

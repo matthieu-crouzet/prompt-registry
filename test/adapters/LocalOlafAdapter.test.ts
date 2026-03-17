@@ -2,19 +2,19 @@
  * Tests for LocalOlafAdapter
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as vscode from 'vscode';
 import { LocalOlafAdapter } from '../../src/adapters/LocalOlafAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('LocalOlafAdapter', () => {
+describe('LocalOlafAdapter', () => {
     let tempDir: string;
     let adapter: LocalOlafAdapter;
     let source: RegistrySource;
 
-    setup(async () => {
+    beforeEach(async () => {
         // Create temporary directory for testing
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'local-olaf-test-'));
         
@@ -28,57 +28,57 @@ suite('LocalOlafAdapter', () => {
         };
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Clean up temporary directory
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('constructor', () => {
-        test('should create adapter with valid local path', () => {
-            assert.doesNotThrow(() => new LocalOlafAdapter(source));
+    describe('constructor', () => {
+        it('should create adapter with valid local path', () => {
+            expect(() => new LocalOlafAdapter(source)).not.toThrow();
         });
 
-        test('should throw error with invalid path', () => {
+        it('should throw error with invalid path', () => {
             const invalidSource = { ...source, url: 'invalid://path' };
-            assert.throws(() => new LocalOlafAdapter(invalidSource), /Invalid local OLAF path/);
+            expect(() => new LocalOlafAdapter(invalidSource)).toThrow(/Invalid local OLAF path/);
         });
     });
 
-    suite('validate', () => {
-        test('should fail validation when directory does not exist', async () => {
+    describe('validate', () => {
+        it('should fail validation when directory does not exist', async () => {
             const nonExistentSource = { ...source, url: '/non/existent/path' };
             adapter = new LocalOlafAdapter(nonExistentSource);
             
             const result = await adapter.validate();
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
 
-        test('should fail validation when bundles directory is missing', async () => {
+        it('should fail validation when bundles directory is missing', async () => {
             // Create only skills directory
             fs.mkdirSync(path.join(tempDir, 'skills'));
             
             adapter = new LocalOlafAdapter(source);
             const result = await adapter.validate();
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(error => error.includes('bundles')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(error => error.includes('bundles'))).toBeTruthy();
         });
 
-        test('should fail validation when skills directory is missing', async () => {
+        it('should fail validation when skills directory is missing', async () => {
             // Create only bundles directory
             fs.mkdirSync(path.join(tempDir, 'bundles'));
             
             adapter = new LocalOlafAdapter(source);
             const result = await adapter.validate();
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(error => error.includes('skills')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(error => error.includes('skills'))).toBeTruthy();
         });
 
-        test('should pass validation when both directories exist', async () => {
+        it('should pass validation when both directories exist', async () => {
             // Create required directories
             fs.mkdirSync(path.join(tempDir, 'bundles'));
             fs.mkdirSync(path.join(tempDir, 'skills'));
@@ -86,20 +86,20 @@ suite('LocalOlafAdapter', () => {
             adapter = new LocalOlafAdapter(source);
             const result = await adapter.validate();
             
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
     });
 
-    suite('fetchMetadata', () => {
-        setup(() => {
+    describe('fetchMetadata', () => {
+        beforeEach(() => {
             // Create required directories
             fs.mkdirSync(path.join(tempDir, 'bundles'));
             fs.mkdirSync(path.join(tempDir, 'skills'));
             adapter = new LocalOlafAdapter(source);
         });
 
-        test('should return metadata with correct bundle count', async () => {
+        it('should return metadata with correct bundle count', async () => {
             // Create test bundle definition
             const bundleDefinition = {
                 metadata: {
@@ -116,28 +116,28 @@ suite('LocalOlafAdapter', () => {
             
             const metadata = await adapter.fetchMetadata();
             
-            assert.strictEqual(metadata.name, path.basename(tempDir));
-            assert.strictEqual(metadata.description, 'Local OLAF Skills Registry');
-            assert.strictEqual(metadata.bundleCount, 1);
-            assert.strictEqual(metadata.version, '1.0.0');
+            expect(metadata.name).toBe(path.basename(tempDir));
+            expect(metadata.description).toBe('Local OLAF Skills Registry');
+            expect(metadata.bundleCount).toBe(1);
+            expect(metadata.version).toBe('1.0.0');
         });
     });
 
-    suite('fetchBundles', () => {
-        setup(() => {
+    describe('fetchBundles', () => {
+        beforeEach(() => {
             // Create required directories
             fs.mkdirSync(path.join(tempDir, 'bundles'));
             fs.mkdirSync(path.join(tempDir, 'skills'));
             adapter = new LocalOlafAdapter(source);
         });
 
-        test('should return empty array when no bundles exist', async () => {
+        it('should return empty array when no bundles exist', async () => {
             const bundles = await adapter.fetchBundles();
-            assert.ok(Array.isArray(bundles));
-            assert.strictEqual(bundles.length, 0);
+            expect(Array.isArray(bundles)).toBeTruthy();
+            expect(bundles.length).toBe(0);
         });
 
-        test('should parse valid bundle with skills', async () => {
+        it('should parse valid bundle with skills', async () => {
             // Create skill directory and manifest
             const skillDir = path.join(tempDir, 'skills', 'test-skill');
             fs.mkdirSync(skillDir, { recursive: true });
@@ -185,18 +185,18 @@ suite('LocalOlafAdapter', () => {
             
             const bundles = await adapter.fetchBundles();
             
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].id, 'local-olaf-test');
-            assert.strictEqual(bundles[0].name, 'Test Bundle');
-            assert.strictEqual(bundles[0].description, 'A test bundle');
-            assert.strictEqual(bundles[0].version, '1.0.0');
-            assert.strictEqual(bundles[0].author, 'Test Author');
-            assert.ok(bundles[0].tags.includes('local-olaf'));
-            assert.ok(bundles[0].tags.includes('test'));
-            assert.strictEqual(bundles[0].size, '1 skill');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].id).toBe('local-olaf-test');
+            expect(bundles[0].name).toBe('Test Bundle');
+            expect(bundles[0].description).toBe('A test bundle');
+            expect(bundles[0].version).toBe('1.0.0');
+            expect(bundles[0].author).toBe('Test Author');
+            expect(bundles[0].tags.includes('local-olaf')).toBeTruthy();
+            expect(bundles[0].tags.includes('test')).toBeTruthy();
+            expect(bundles[0].size).toBe('1 skill');
         });
 
-        test('should skip invalid bundle definitions', async () => {
+        it('should skip invalid bundle definitions', async () => {
             // Create invalid bundle definition (missing metadata)
             const invalidBundle = {
                 skills: [],
@@ -208,20 +208,20 @@ suite('LocalOlafAdapter', () => {
             );
             
             const bundles = await adapter.fetchBundles();
-            assert.ok(Array.isArray(bundles));
-            assert.strictEqual(bundles.length, 0);
+            expect(Array.isArray(bundles)).toBeTruthy();
+            expect(bundles.length).toBe(0);
         });
     });
 
-    suite('competency index path consistency', () => {
-        setup(() => {
+    describe('competency index path consistency', () => {
+        beforeEach(() => {
             // Create required directories
             fs.mkdirSync(path.join(tempDir, 'bundles'));
             fs.mkdirSync(path.join(tempDir, 'skills'));
             adapter = new LocalOlafAdapter(source);
         });
 
-        test('should use consistent paths for installation and uninstallation', async () => {
+        it('should use consistent paths for installation and uninstallation', async () => {
             // Create skill directory and manifest
             const skillDir = path.join(tempDir, 'skills', 'test-skill');
             fs.mkdirSync(skillDir, { recursive: true });
@@ -271,9 +271,9 @@ suite('LocalOlafAdapter', () => {
             
             fs.mkdirSync(competencyIndexDir, { recursive: true });
             
-            // Mock vscode.workspace.workspaceFolders
-            const originalWorkspaceFolders = require('vscode').workspace.workspaceFolders;
-            require('vscode').workspace.workspaceFolders = [{ uri: { fsPath: mockWorkspace } }];
+            // Mock vscode.workspace.workspaceFolders via the ESM mock
+            const originalWorkspaceFolders = (vscode.workspace as any).workspaceFolders;
+            (vscode.workspace as any).workspaceFolders = [{ uri: { fsPath: mockWorkspace } }];
             
             // Mock the runtime manager methods to avoid initialization issues
             const originalEnsureRuntimeInstalled = adapter['ensureRuntimeInstalled'];
@@ -291,23 +291,22 @@ suite('LocalOlafAdapter', () => {
                 await adapter.postInstall('local-olaf-test', '/mock/install/path');
                 
                 // Verify competency index was created with correct path
-                assert.ok(fs.existsSync(competencyIndexPath), 'Competency index should be created');
+                expect(fs.existsSync(competencyIndexPath), 'Competency index should be created').toBeTruthy();
                 
                 const indexContent = JSON.parse(fs.readFileSync(competencyIndexPath, 'utf-8'));
-                assert.ok(Array.isArray(indexContent), 'Competency index should be an array');
-                assert.strictEqual(indexContent.length, 1, 'Should have one entry');
+                expect(Array.isArray(indexContent), 'Competency index should be an array').toBeTruthy();
+                expect(indexContent.length, 'Should have one entry').toBe(1);
                 
                 const entry = indexContent[0];
-                assert.strictEqual(entry.file, 'external-skills/Test Local OLAF/test-skill/prompts/test.md', 
-                    'Should use actual source name in path during installation');
+                expect(entry.file, 'Should use actual source name in path during installation').toBe('external-skills/Test Local OLAF/test-skill/prompts/test.md');
                 
                 // Test uninstallation - should remove entry using same "olaf-local" path
                 await adapter.postUninstall('local-olaf-test', '/mock/install/path');
                 
                 // Verify entry was removed
                 const updatedIndexContent = JSON.parse(fs.readFileSync(competencyIndexPath, 'utf-8'));
-                assert.ok(Array.isArray(updatedIndexContent), 'Competency index should still be an array');
-                assert.strictEqual(updatedIndexContent.length, 0, 'Entry should be removed during uninstallation');
+                expect(Array.isArray(updatedIndexContent), 'Competency index should still be an array').toBeTruthy();
+                expect(updatedIndexContent.length, 'Entry should be removed during uninstallation').toBe(0);
                 
             } finally {
                 // Restore original methods and workspace folders
@@ -315,7 +314,7 @@ suite('LocalOlafAdapter', () => {
                 adapter['createWorkspaceLinks'] = originalCreateWorkspaceLinks;
                 adapter['createSkillSymbolicLinks'] = originalCreateSkillSymbolicLinks;
                 adapter['removeSkillSymbolicLinks'] = originalRemoveSkillSymbolicLinks;
-                require('vscode').workspace.workspaceFolders = originalWorkspaceFolders;
+                (vscode.workspace as any).workspaceFolders = originalWorkspaceFolders;
             }
         });
     });

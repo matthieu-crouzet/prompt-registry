@@ -6,11 +6,6 @@ const Module = require('module');
 // Set test environment flag to prevent UpdateScheduler from running
 process.env.NODE_ENV = 'test';
 
-// Ensure this is running in Mocha context
-if (typeof global.suite === 'undefined' && typeof global.describe === 'undefined') {
-  console.warn('[mocha.setup.js] Warning: Mocha test functions not available yet. This file should be loaded via --require flag.');
-}
-
 // Clear module cache to ensure fresh mocks
 Object.keys(require.cache).forEach(key => {
   if (key.includes('vscode') || key.includes('logger')) {

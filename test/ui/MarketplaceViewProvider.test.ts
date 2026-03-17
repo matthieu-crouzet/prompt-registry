@@ -3,8 +3,6 @@
  * Focus on dynamic tag extraction and source filtering
  */
 
-import * as assert from 'assert';
-import { suite, test, beforeEach } from 'mocha';
 import { Bundle, RegistrySource } from '../../src/types/registry';
 import {
     extractAllTags,
@@ -16,7 +14,7 @@ import {
 } from '../../src/utils/filterUtils';
 import { determineButtonState, matchesBundleIdentity } from '../helpers/marketplaceTestHelpers';
 
-suite('MarketplaceViewProvider - Dynamic Filtering', () => {
+describe('MarketplaceViewProvider - Dynamic Filtering', () => {
     let mockBundles: Bundle[];
     let mockSources: RegistrySource[];
 
@@ -117,35 +115,34 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
         ];
     });
 
-    suite('Dynamic Tag Extraction', () => {
-        test('should extract all unique tags from bundles', () => {
+    describe('Dynamic Tag Extraction', () => {
+        it('should extract all unique tags from bundles', () => {
             const tags = extractAllTags(mockBundles);
             
             // Should have 10 unique tags
-            assert.strictEqual(tags.length, 10);
-            assert.ok(tags.includes('testing'));
-            assert.ok(tags.includes('automation'));
-            assert.ok(tags.includes('tdd'));
-            assert.ok(tags.includes('accessibility'));
-            assert.ok(tags.includes('a11y'));
-            assert.ok(tags.includes('agents'));
-            assert.ok(tags.includes('ai'));
-            assert.ok(tags.includes('angular'));
-            assert.ok(tags.includes('frontend'));
-            assert.ok(tags.includes('typescript'));
+            expect(tags.length).toBe(10);
+            expect(tags.includes('testing')).toBeTruthy();
+            expect(tags.includes('automation')).toBeTruthy();
+            expect(tags.includes('tdd')).toBeTruthy();
+            expect(tags.includes('accessibility')).toBeTruthy();
+            expect(tags.includes('a11y')).toBeTruthy();
+            expect(tags.includes('agents')).toBeTruthy();
+            expect(tags.includes('ai')).toBeTruthy();
+            expect(tags.includes('angular')).toBeTruthy();
+            expect(tags.includes('frontend')).toBeTruthy();
+            expect(tags.includes('typescript')).toBeTruthy();
         });
 
-        test('should sort tags alphabetically', () => {
+        it('should sort tags alphabetically', () => {
             const tags = extractAllTags(mockBundles);
             
             // Verify alphabetical order
             for (let i = 0; i < tags.length - 1; i++) {
-                assert.ok(tags[i].localeCompare(tags[i + 1]) <= 0, 
-                    `Tag "${tags[i]}" should come before "${tags[i + 1]}"`);
+                expect(tags[i].localeCompare(tags[i + 1]) <= 0, `Tag "${tags[i]}" should come before "${tags[i + 1]}"`).toBeTruthy();
             }
         });
 
-        test('should handle bundles with no tags', () => {
+        it('should handle bundles with no tags', () => {
             const bundleNoTags: Bundle = {
                 ...mockBundles[0],
                 id: 'bundle-no-tags',
@@ -153,269 +150,269 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             };
             
             const tags = extractAllTags([bundleNoTags]);
-            assert.strictEqual(tags.length, 0);
+            expect(tags.length).toBe(0);
         });
 
-        test('should handle empty bundle array', () => {
+        it('should handle empty bundle array', () => {
             const tags = extractAllTags([]);
-            assert.strictEqual(tags.length, 0);
+            expect(tags.length).toBe(0);
         });
 
-        test('should deduplicate tags across bundles', () => {
+        it('should deduplicate tags across bundles', () => {
             // 'testing' and 'automation' appear in multiple bundles
             const tags = extractAllTags(mockBundles);
             
             const testingCount = tags.filter(t => t === 'testing').length;
             const automationCount = tags.filter(t => t === 'automation').length;
             
-            assert.strictEqual(testingCount, 1, 'testing tag should appear only once');
-            assert.strictEqual(automationCount, 1, 'automation tag should appear only once');
+            expect(testingCount, 'testing tag should appear only once').toBe(1);
+            expect(automationCount, 'automation tag should appear only once').toBe(1);
         });
 
-        test('should count tag frequency', () => {
+        it('should count tag frequency', () => {
             const tagFrequency = getTagFrequency(mockBundles);
             
-            assert.strictEqual(tagFrequency.get('testing'), 2);
-            assert.strictEqual(tagFrequency.get('automation'), 2);
-            assert.strictEqual(tagFrequency.get('a11y'), 1);
-            assert.strictEqual(tagFrequency.get('agents'), 1);
-            assert.strictEqual(tagFrequency.get('angular'), 1);
+            expect(tagFrequency.get('testing')).toBe(2);
+            expect(tagFrequency.get('automation')).toBe(2);
+            expect(tagFrequency.get('a11y')).toBe(1);
+            expect(tagFrequency.get('agents')).toBe(1);
+            expect(tagFrequency.get('angular')).toBe(1);
         });
     });
 
-    suite('Source Filtering', () => {
-        test('should extract all sources from bundles', () => {
+    describe('Source Filtering', () => {
+        it('should extract all sources from bundles', () => {
             const sources = extractBundleSources(mockBundles, mockSources);
             
             // Should have 2 sources (source1 and source2 have bundles)
-            assert.strictEqual(sources.length, 2);
+            expect(sources.length).toBe(2);
             
             const sourceIds = sources.map(s => s.id);
-            assert.ok(sourceIds.includes('source1'));
-            assert.ok(sourceIds.includes('source2'));
+            expect(sourceIds.includes('source1')).toBeTruthy();
+            expect(sourceIds.includes('source2')).toBeTruthy();
         });
 
-        test('should include bundle count per source', () => {
+        it('should include bundle count per source', () => {
             const sources = extractBundleSources(mockBundles, mockSources);
             
             const source1 = sources.find(s => s.id === 'source1');
             const source2 = sources.find(s => s.id === 'source2');
             
-            assert.ok(source1);
-            assert.ok(source2);
-            assert.strictEqual(source1.bundleCount, 2); // bundle1 and bundle3
-            assert.strictEqual(source2.bundleCount, 2); // bundle2 and bundle4
+            expect(source1).toBeTruthy();
+            expect(source2).toBeTruthy();
+            expect(source1.bundleCount).toBe(2); // bundle1 and bundle3
+            expect(source2.bundleCount).toBe(2); // bundle2 and bundle4
         });
 
-        test('should not include sources with no bundles', () => {
+        it('should not include sources with no bundles', () => {
             const sources = extractBundleSources(mockBundles, mockSources);
             
             const source3 = sources.find(s => s.id === 'source3');
-            assert.strictEqual(source3, undefined);
+            expect(source3).toBe(undefined);
         });
 
-        test('should handle empty bundles array', () => {
+        it('should handle empty bundles array', () => {
             const sources = extractBundleSources([], mockSources);
-            assert.strictEqual(sources.length, 0);
+            expect(sources.length).toBe(0);
         });
 
-        test('should filter bundles by source', () => {
+        it('should filter bundles by source', () => {
             const filtered = filterBundlesBySource(mockBundles, 'source1');
             
-            assert.strictEqual(filtered.length, 2);
-            assert.ok(filtered.every(b => b.sourceId === 'source1'));
+            expect(filtered.length).toBe(2);
+            expect(filtered.every(b => b.sourceId === 'source1')).toBeTruthy();
         });
 
-        test('should return all bundles when source is "all"', () => {
+        it('should return all bundles when source is "all"', () => {
             const filtered = filterBundlesBySource(mockBundles, 'all');
             
-            assert.strictEqual(filtered.length, mockBundles.length);
+            expect(filtered.length).toBe(mockBundles.length);
         });
 
-        test('should return empty array for non-existent source', () => {
+        it('should return empty array for non-existent source', () => {
             const filtered = filterBundlesBySource(mockBundles, 'non-existent');
             
-            assert.strictEqual(filtered.length, 0);
+            expect(filtered.length).toBe(0);
         });
     });
 
-    suite('Tag Filtering', () => {
-        test('should filter bundles by single tag', () => {
+    describe('Tag Filtering', () => {
+        it('should filter bundles by single tag', () => {
             const filtered = filterBundlesByTags(mockBundles, ['testing']);
             
-            assert.strictEqual(filtered.length, 2);
+            expect(filtered.length).toBe(2);
             filtered.forEach(bundle => {
-                assert.ok(bundle.tags.some(t => t.toLowerCase() === 'testing'));
+                expect(bundle.tags.some(t => t.toLowerCase() === 'testing')).toBeTruthy();
             });
         });
 
-        test('should filter bundles by multiple tags (OR logic)', () => {
+        it('should filter bundles by multiple tags (OR logic)', () => {
             const filtered = filterBundlesByTags(mockBundles, ['agents', 'angular']);
             
             // Should match bundle3 (agents) and bundle4 (angular)
-            assert.strictEqual(filtered.length, 2);
+            expect(filtered.length).toBe(2);
             const ids = filtered.map(b => b.id);
-            assert.ok(ids.includes('bundle3'));
-            assert.ok(ids.includes('bundle4'));
+            expect(ids.includes('bundle3')).toBeTruthy();
+            expect(ids.includes('bundle4')).toBeTruthy();
         });
 
-        test('should return all bundles when tags array is empty', () => {
+        it('should return all bundles when tags array is empty', () => {
             const filtered = filterBundlesByTags(mockBundles, []);
             
-            assert.strictEqual(filtered.length, mockBundles.length);
+            expect(filtered.length).toBe(mockBundles.length);
         });
 
-        test('should return empty array when no bundles match tags', () => {
+        it('should return empty array when no bundles match tags', () => {
             const filtered = filterBundlesByTags(mockBundles, ['non-existent-tag']);
             
-            assert.strictEqual(filtered.length, 0);
+            expect(filtered.length).toBe(0);
         });
 
-        test('should be case-insensitive', () => {
+        it('should be case-insensitive', () => {
             const filtered = filterBundlesByTags(mockBundles, ['TESTING']);
             
-            assert.strictEqual(filtered.length, 2);
+            expect(filtered.length).toBe(2);
         });
     });
 
-    suite('Combined Filtering', () => {
-        test('should filter by both source and tags', () => {
+    describe('Combined Filtering', () => {
+        it('should filter by both source and tags', () => {
             // Filter source1 bundles with 'automation' tag
             let filtered = filterBundlesBySource(mockBundles, 'source1');
             filtered = filterBundlesByTags(filtered, ['automation']);
             
             // Should match bundle1 and bundle3
-            assert.strictEqual(filtered.length, 2);
+            expect(filtered.length).toBe(2);
             filtered.forEach(bundle => {
-                assert.strictEqual(bundle.sourceId, 'source1');
-                assert.ok(bundle.tags.some(t => t.toLowerCase() === 'automation'));
+                expect(bundle.sourceId).toBe('source1');
+                expect(bundle.tags.some(t => t.toLowerCase() === 'automation')).toBeTruthy();
             });
         });
 
-        test('should filter by source, tags, and search text', () => {
+        it('should filter by source, tags, and search text', () => {
             let filtered = filterBundlesBySource(mockBundles, 'source1');
             filtered = filterBundlesByTags(filtered, ['automation']);
             filtered = filterBundlesBySearch(filtered, 'testing');
             
             // Should match only bundle1
-            assert.strictEqual(filtered.length, 1);
-            assert.strictEqual(filtered[0].id, 'bundle1');
+            expect(filtered.length).toBe(1);
+            expect(filtered[0].id).toBe('bundle1');
         });
     });
 
-    suite('Button State Determination', () => {
+    describe('Button State Determination', () => {
 
-        test('should return "install" state when no version installed', () => {
+        it('should return "install" state when no version installed', () => {
             const buttonState = determineButtonState(undefined, '1.0.0');
-            assert.strictEqual(buttonState, 'install');
+            expect(buttonState).toBe('install');
         });
 
-        test('should return "update" state when older version installed', () => {
+        it('should return "update" state when older version installed', () => {
             const buttonState = determineButtonState('1.0.0', '2.0.0');
-            assert.strictEqual(buttonState, 'update');
+            expect(buttonState).toBe('update');
         });
 
-        test('should return "update" state for minor version difference', () => {
+        it('should return "update" state for minor version difference', () => {
             const buttonState = determineButtonState('1.0.0', '1.1.0');
-            assert.strictEqual(buttonState, 'update');
+            expect(buttonState).toBe('update');
         });
 
-        test('should return "update" state for patch version difference', () => {
+        it('should return "update" state for patch version difference', () => {
             const buttonState = determineButtonState('1.0.0', '1.0.1');
-            assert.strictEqual(buttonState, 'update');
+            expect(buttonState).toBe('update');
         });
 
-        test('should return "uninstall" state when latest version installed', () => {
+        it('should return "uninstall" state when latest version installed', () => {
             const buttonState = determineButtonState('2.0.0', '2.0.0');
-            assert.strictEqual(buttonState, 'uninstall');
+            expect(buttonState).toBe('uninstall');
         });
 
-        test('should return "uninstall" state when newer version installed', () => {
+        it('should return "uninstall" state when newer version installed', () => {
             // Edge case: user has a newer version than what's available
             const buttonState = determineButtonState('3.0.0', '2.0.0');
-            assert.strictEqual(buttonState, 'uninstall');
+            expect(buttonState).toBe('uninstall');
         });
 
-        test('should handle version prefixes correctly', () => {
+        it('should handle version prefixes correctly', () => {
             const buttonState1 = determineButtonState('v1.0.0', 'v2.0.0');
-            assert.strictEqual(buttonState1, 'update');
+            expect(buttonState1).toBe('update');
 
             const buttonState2 = determineButtonState('v2.0.0', 'v2.0.0');
-            assert.strictEqual(buttonState2, 'uninstall');
+            expect(buttonState2).toBe('uninstall');
         });
 
-        test('should match GitHub bundle identity without version suffix', () => {
+        it('should match GitHub bundle identity without version suffix', () => {
             const matches = matchesBundleIdentity(
                 'microsoft-vscode-1.0.0',
                 'microsoft-vscode-2.0.0',
                 'github'
             );
-            assert.strictEqual(matches, true);
+            expect(matches).toBe(true);
         });
 
-        test('should not match different GitHub repositories', () => {
+        it('should not match different GitHub repositories', () => {
             const matches = matchesBundleIdentity(
                 'microsoft-vscode-1.0.0',
                 'microsoft-copilot-1.0.0',
                 'github'
             );
-            assert.strictEqual(matches, false);
+            expect(matches).toBe(false);
         });
 
-        test('should match GitHub bundles with complex names', () => {
+        it('should match GitHub bundles with complex names', () => {
             const matches = matchesBundleIdentity(
                 'my-org-my-repo-123-v1.0.0',
                 'my-org-my-repo-123-v2.0.0',
                 'github'
             );
-            assert.strictEqual(matches, true);
+            expect(matches).toBe(true);
         });
 
-        test('should require exact match for non-GitHub bundles', () => {
+        it('should require exact match for non-GitHub bundles', () => {
             const matches1 = matchesBundleIdentity(
                 'local-bundle-1.0.0',
                 'local-bundle-1.0.0',
                 'local'
             );
-            assert.strictEqual(matches1, true);
+            expect(matches1).toBe(true);
 
             const matches2 = matchesBundleIdentity(
                 'local-bundle-1.0.0',
                 'local-bundle-2.0.0',
                 'local'
             );
-            assert.strictEqual(matches2, false);
+            expect(matches2).toBe(false);
         });
 
-        test('should require exact match for GitLab bundles', () => {
+        it('should require exact match for GitLab bundles', () => {
             const matches = matchesBundleIdentity(
                 'gitlab-bundle-1',
                 'gitlab-bundle-2',
                 'gitlab'
             );
-            assert.strictEqual(matches, false);
+            expect(matches).toBe(false);
         });
 
-        test('should require exact match for HTTP bundles', () => {
+        it('should require exact match for HTTP bundles', () => {
             const matches = matchesBundleIdentity(
                 'http-bundle-v1',
                 'http-bundle-v2',
                 'http'
             );
-            assert.strictEqual(matches, false);
+            expect(matches).toBe(false);
         });
 
-        test('should require exact match for awesome-copilot bundles', () => {
+        it('should require exact match for awesome-copilot bundles', () => {
             const matches = matchesBundleIdentity(
                 'awesome-bundle',
                 'awesome-bundle',
                 'awesome-copilot'
             );
-            assert.strictEqual(matches, true);
+            expect(matches).toBe(true);
         });
     });
 
-    suite('Update Action', () => {
+    describe('Update Action', () => {
         /**
          * Mock RegistryManager for testing update action
          */
@@ -460,7 +457,7 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             }
         }
 
-        test('should successfully update bundle from older to latest version', async () => {
+        it('should successfully update bundle from older to latest version', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             const oldVersion = '1.0.0';
@@ -475,19 +472,19 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             
             // Verify uninstall was called
             const uninstallCalls = mockManager.getUninstallCalls();
-            assert.strictEqual(uninstallCalls.length, 1);
-            assert.strictEqual(uninstallCalls[0].bundleId, bundleId);
-            assert.strictEqual(uninstallCalls[0].scope, 'user');
+            expect(uninstallCalls.length).toBe(1);
+            expect(uninstallCalls[0].bundleId).toBe(bundleId);
+            expect(uninstallCalls[0].scope).toBe('user');
             
             // Verify install was called with new version
             const installCalls = mockManager.getInstallCalls();
-            assert.strictEqual(installCalls.length, 1);
-            assert.strictEqual(installCalls[0].bundleId, bundleId);
-            assert.strictEqual(installCalls[0].options.version, newVersion);
-            assert.strictEqual(installCalls[0].options.scope, 'user');
+            expect(installCalls.length).toBe(1);
+            expect(installCalls[0].bundleId).toBe(bundleId);
+            expect(installCalls[0].options.version).toBe(newVersion);
+            expect(installCalls[0].options.scope).toBe('user');
         });
 
-        test('should handle update with uninstall failure', async () => {
+        it('should handle update with uninstall failure', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             
@@ -503,18 +500,18 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             // Attempt update - should fail at uninstall
             try {
                 await mockManager.uninstallBundle(bundleId, 'user');
-                assert.fail('Should have thrown error');
+                expect.fail('Should have thrown error');
             } catch (error) {
-                assert.ok(error instanceof Error);
-                assert.strictEqual((error as Error).message, 'Uninstall failed');
+                expect(error instanceof Error).toBeTruthy();
+                expect((error as Error).message).toBe('Uninstall failed');
             }
             
             // Verify install was not called (update should stop after uninstall failure)
             const installCalls = mockManager.getInstallCalls();
-            assert.strictEqual(installCalls.length, 0);
+            expect(installCalls.length).toBe(0);
         });
 
-        test('should handle update with install failure', async () => {
+        it('should handle update with install failure', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             
@@ -532,18 +529,18 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             // Attempt install - should fail
             try {
                 await mockManager.installBundle(bundleId, { scope: 'user', version: '2.0.0' });
-                assert.fail('Should have thrown error');
+                expect.fail('Should have thrown error');
             } catch (error) {
-                assert.ok(error instanceof Error);
-                assert.strictEqual((error as Error).message, 'Install failed');
+                expect(error instanceof Error).toBeTruthy();
+                expect((error as Error).message).toBe('Install failed');
             }
             
             // Verify uninstall was called (bundle is now uninstalled but new version not installed)
             const uninstallCalls = mockManager.getUninstallCalls();
-            assert.strictEqual(uninstallCalls.length, 1);
+            expect(uninstallCalls.length).toBe(1);
         });
 
-        test('should preserve bundle scope during update', async () => {
+        it('should preserve bundle scope during update', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             
@@ -556,11 +553,11 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             const uninstallCalls = mockManager.getUninstallCalls();
             const installCalls = mockManager.getInstallCalls();
             
-            assert.strictEqual(uninstallCalls[0].scope, 'workspace');
-            assert.strictEqual(installCalls[0].options.scope, 'workspace');
+            expect(uninstallCalls[0].scope).toBe('workspace');
+            expect(installCalls[0].options.scope).toBe('workspace');
         });
 
-        test('should handle update for GitHub bundles with version suffix', async () => {
+        it('should handle update for GitHub bundles with version suffix', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'microsoft-vscode-1.0.0';
             const newBundleId = 'microsoft-vscode-2.0.0';
@@ -575,11 +572,11 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             const uninstallCalls = mockManager.getUninstallCalls();
             const installCalls = mockManager.getInstallCalls();
             
-            assert.strictEqual(uninstallCalls[0].bundleId, bundleId);
-            assert.strictEqual(installCalls[0].bundleId, newBundleId);
+            expect(uninstallCalls[0].bundleId).toBe(bundleId);
+            expect(installCalls[0].bundleId).toBe(newBundleId);
         });
 
-        test('should handle multiple sequential updates', async () => {
+        it('should handle multiple sequential updates', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             
@@ -600,12 +597,12 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             const installCalls = mockManager.getInstallCalls();
             
             // Should have one uninstall and one install for the second update
-            assert.strictEqual(uninstallCalls.length, 1);
-            assert.strictEqual(installCalls.length, 1);
-            assert.strictEqual(installCalls[0].options.version, '2.0.0');
+            expect(uninstallCalls.length).toBe(1);
+            expect(installCalls.length).toBe(1);
+            expect(installCalls[0].options.version).toBe('2.0.0');
         });
 
-        test('should handle update when bundle is not installed', async () => {
+        it('should handle update when bundle is not installed', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             
@@ -618,7 +615,7 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             const installedBundles = await mockManager.listInstalledBundles();
             const isInstalled = installedBundles.some(b => b.bundleId === bundleId);
             
-            assert.strictEqual(isInstalled, false);
+            expect(isInstalled).toBe(false);
             
             // If not installed, update should just install
             if (!isInstalled) {
@@ -626,10 +623,10 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             }
             
             const installCalls = mockManager.getInstallCalls();
-            assert.strictEqual(installCalls.length, 1);
+            expect(installCalls.length).toBe(1);
         });
 
-        test('should handle installVersion with specific version', async () => {
+        it('should handle installVersion with specific version', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'test-bundle';
             const version = '1.5.0';
@@ -638,12 +635,12 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             await mockManager.installBundle(bundleId, { scope: 'user', version });
             
             const installCalls = mockManager.getInstallCalls();
-            assert.strictEqual(installCalls.length, 1);
-            assert.strictEqual(installCalls[0].bundleId, bundleId);
-            assert.strictEqual(installCalls[0].options.version, version);
+            expect(installCalls.length).toBe(1);
+            expect(installCalls[0].bundleId).toBe(bundleId);
+            expect(installCalls[0].options.version).toBe(version);
         });
 
-        test('should pass version parameter to RegistryManager.installBundle', async () => {
+        it('should pass version parameter to RegistryManager.installBundle', async () => {
             const mockManager = new MockRegistryManager();
             const bundleId = 'owner-repo-v2.0.0';
             const requestedVersion = '1.0.0';
@@ -655,13 +652,13 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             });
             
             const installCalls = mockManager.getInstallCalls();
-            assert.strictEqual(installCalls.length, 1);
-            assert.strictEqual(installCalls[0].options.version, requestedVersion);
+            expect(installCalls.length).toBe(1);
+            expect(installCalls[0].options.version).toBe(requestedVersion);
         });
     });
 
-    suite('Version Selection Backend Logic', () => {
-        test('should handle getVersions message and return available versions', () => {
+    describe('Version Selection Backend Logic', () => {
+        it('should handle getVersions message and return available versions', () => {
             // Mock bundle with multiple versions
             const bundle: Bundle = {
                 id: 'owner-repo-v2.0.0',
@@ -691,12 +688,12 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
             };
 
             // Verify versions are present
-            assert.ok(enhancedBundle.availableVersions);
-            assert.strictEqual(enhancedBundle.availableVersions.length, 3);
-            assert.strictEqual(enhancedBundle.availableVersions[0].version, '2.0.0');
+            expect(enhancedBundle.availableVersions).toBeTruthy();
+            expect(enhancedBundle.availableVersions.length).toBe(3);
+            expect(enhancedBundle.availableVersions[0].version).toBe('2.0.0');
         });
 
-        test('should include availableVersions in enhanced bundles', () => {
+        it('should include availableVersions in enhanced bundles', () => {
             const bundle: any = {
                 id: 'owner-repo-v2.0.0',
                 name: 'Test Bundle',
@@ -717,9 +714,9 @@ suite('MarketplaceViewProvider - Dynamic Filtering', () => {
                 }));
             }
 
-            assert.ok(availableVersions);
-            assert.strictEqual(availableVersions!.length, 3);
-            assert.deepStrictEqual(availableVersions, [
+            expect(availableVersions).toBeTruthy();
+            expect(availableVersions!.length).toBe(3);
+            expect(availableVersions).toEqual([
                 { version: '2.0.0' },
                 { version: '1.5.0' },
                 { version: '1.0.0' }

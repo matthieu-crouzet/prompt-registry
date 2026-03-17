@@ -13,7 +13,6 @@
  * - 3.4: Cleanup command for stale lockfile entries
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -35,7 +34,7 @@ import { LockfileManager } from '../../src/services/LockfileManager';
 import { BundleCommands } from '../../src/commands/BundleCommands';
 import { generateHubSourceId, isLegacyHubSourceId } from '../../src/utils/sourceIdUtils';
 
-suite('E2E: Lockfile as Single Source of Truth Tests', () => {
+describe('E2E: Lockfile as Single Source of Truth Tests', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -123,8 +122,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
         return { sourceId, bundle };
     }
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('lockfile-sot');
         sandbox = sinon.createSandbox();
         
@@ -154,8 +152,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         LockfileManager.resetInstance();
         await testContext.cleanup();
         sandbox.restore();
@@ -163,7 +160,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
     });
 
 
-    suite('11.1: Repository Bundle Listing from Lockfile', () => {
+    describe('11.1: Repository Bundle Listing from Lockfile', () => {
         /**
          * E2E Test: Install bundle at repository scope and verify listInstalledBundles returns it
          * 
@@ -171,9 +168,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
          * - 1.1: Repository scope queries lockfile
          * - 1.3: LockfileBundleEntry to InstalledBundle conversion
          */
-        test('Requirement 1.1, 1.3: listInstalledBundles(repository) returns bundles from lockfile', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 1.1, 1.3: listInstalledBundles(repository) returns bundles from lockfile', async function() {
             const { bundle } = await setupSourceAndGetBundle('listing-source', 'listing-test');
             
             // Install bundle at repository scope
@@ -183,12 +178,12 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             
             // Verify lockfile was created
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             // Read lockfile directly to get the actual bundle ID
             const lockfileContent = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const lockfileBundleIds = Object.keys(lockfileContent.bundles);
-            assert.ok(lockfileBundleIds.length > 0, 'Lockfile should have at least one bundle');
+            expect(lockfileBundleIds.length > 0, 'Lockfile should have at least one bundle').toBeTruthy();
             
             const actualBundleId = lockfileBundleIds[0];
             const lockfileEntry = lockfileContent.bundles[actualBundleId];
@@ -197,23 +192,21 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const installedBundles = await testContext.registryManager.listInstalledBundles('repository');
             
             // Verify bundle is returned
-            assert.ok(installedBundles.length > 0, 'listInstalledBundles should return at least one bundle');
+            expect(installedBundles.length > 0, 'listInstalledBundles should return at least one bundle').toBeTruthy();
             
             const installedBundle = installedBundles.find(b => b.bundleId === actualBundleId);
-            assert.ok(installedBundle, `Should find bundle ${actualBundleId} in installed bundles`);
+            expect(installedBundle, `Should find bundle ${actualBundleId} in installed bundles`).toBeTruthy();
             
             // Verify bundle data matches lockfile entry (Requirement 1.3)
-            assert.strictEqual(installedBundle!.version, lockfileEntry.version, 'Version should match lockfile entry');
-            assert.strictEqual(installedBundle!.sourceId, lockfileEntry.sourceId, 'SourceId should match lockfile entry');
-            assert.strictEqual(installedBundle!.sourceType, lockfileEntry.sourceType, 'SourceType should match lockfile entry');
-            assert.strictEqual(installedBundle!.scope, 'repository', 'Scope should be repository');
-            assert.ok(installedBundle!.installPath, 'InstallPath should be set');
-            assert.ok(installedBundle!.installPath!.includes('.github'), 'InstallPath should include .github');
+            expect(installedBundle!.version, 'Version should match lockfile entry').toBe(lockfileEntry.version);
+            expect(installedBundle!.sourceId, 'SourceId should match lockfile entry').toBe(lockfileEntry.sourceId);
+            expect(installedBundle!.sourceType, 'SourceType should match lockfile entry').toBe(lockfileEntry.sourceType);
+            expect(installedBundle!.scope, 'Scope should be repository').toBe('repository');
+            expect(installedBundle!.installPath, 'InstallPath should be set').toBeTruthy();
+            expect(installedBundle!.installPath!.includes('.github'), 'InstallPath should include .github').toBeTruthy();
         });
 
-        test('Requirement 1.1: listInstalledBundles without scope includes repository bundles', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 1.1: listInstalledBundles without scope includes repository bundles', async function() {
             const { bundle } = await setupSourceAndGetBundle('combined-source', 'combined-test');
             
             // Install bundle at repository scope
@@ -231,13 +224,11 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             
             // Verify repository bundle is included
             const repoBundle = allBundles.find(b => b.bundleId === actualBundleId);
-            assert.ok(repoBundle, 'Repository bundle should be included when querying without scope filter');
-            assert.strictEqual(repoBundle!.scope, 'repository', 'Bundle scope should be repository');
+            expect(repoBundle, 'Repository bundle should be included when querying without scope filter').toBeTruthy();
+            expect(repoBundle!.scope, 'Bundle scope should be repository').toBe('repository');
         });
 
-        test('Requirement 1.4: listInstalledBundles returns empty array when lockfile does not exist', async function() {
-            this.timeout(30000);
-            
+        it('Requirement 1.4: listInstalledBundles returns empty array when lockfile does not exist', async function() {
             // Ensure no lockfile exists
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
             if (fs.existsSync(lockfilePath)) {
@@ -253,12 +244,12 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const installedBundles = await testContext.registryManager.listInstalledBundles('repository');
             
             // Should return empty array
-            assert.strictEqual(installedBundles.length, 0, 'Should return empty array when lockfile does not exist');
+            expect(installedBundles.length, 'Should return empty array when lockfile does not exist').toBe(0);
         });
     });
 
 
-    suite('11.2: Stale Record Handling', () => {
+    describe('11.2: Stale Record Handling', () => {
         /**
          * E2E Test: Verify lockfile takes precedence over stale RegistryStorage records
          * 
@@ -266,9 +257,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
          * - 1.1: Repository scope queries lockfile
          * - 2.1: Repository scope operations don't modify RegistryStorage
          */
-        test('Requirement 1.1, 2.1: Lockfile takes precedence over stale RegistryStorage records', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 1.1, 2.1: Lockfile takes precedence over stale RegistryStorage records', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -327,18 +316,16 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const installedBundles = await testContext.registryManager.listInstalledBundles('repository');
             
             // Verify lockfile bundle is returned (not the stale record)
-            assert.strictEqual(installedBundles.length, 1, 'Should return exactly one bundle from lockfile');
-            assert.strictEqual(installedBundles[0].bundleId, lockfileBundleId, 'Should return bundle from lockfile');
-            assert.strictEqual(installedBundles[0].version, '2.0.0', 'Version should match lockfile');
+            expect(installedBundles.length, 'Should return exactly one bundle from lockfile').toBe(1);
+            expect(installedBundles[0].bundleId, 'Should return bundle from lockfile').toBe(lockfileBundleId);
+            expect(installedBundles[0].version, 'Version should match lockfile').toBe('2.0.0');
             
             // Verify stale record is NOT returned
             const staleBundle = installedBundles.find(b => b.bundleId === staleBundleId);
-            assert.ok(!staleBundle, 'Stale RegistryStorage record should NOT be returned');
+            expect(!staleBundle, 'Stale RegistryStorage record should NOT be returned').toBeTruthy();
         });
 
-        test('Requirement 2.1: Repository scope installation does not create RegistryStorage record', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 2.1: Repository scope installation does not create RegistryStorage record', async function() {
             const { bundle } = await setupSourceAndGetBundle('no-storage-source', 'no-storage-test');
             
             // Get RegistryStorage records before installation
@@ -352,34 +339,28 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             
             // Verify lockfile was created
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             // Verify RegistryStorage was NOT modified
             const storageBundlesAfter = await testContext.storage.getInstalledBundles('user');
-            assert.strictEqual(
-                storageBundlesAfter.length, 
-                storageCountBefore, 
-                'RegistryStorage should NOT have new records for repository scope installation'
-            );
+            expect(storageBundlesAfter.length, 'RegistryStorage should NOT have new records for repository scope installation').toBe(storageCountBefore);
             
             // Also check workspace scope
             const workspaceBundles = await testContext.storage.getInstalledBundles('workspace');
             const repoScopeInWorkspace = workspaceBundles.find(b => b.scope === 'repository');
-            assert.ok(!repoScopeInWorkspace, 'Repository scope bundle should NOT be in workspace storage');
+            expect(!repoScopeInWorkspace, 'Repository scope bundle should NOT be in workspace storage').toBeTruthy();
         });
     });
 
 
-    suite('11.3: Cleanup Command for Stale Lockfile Entries', () => {
+    describe('11.3: Cleanup Command for Stale Lockfile Entries', () => {
         /**
          * E2E Test: Verify cleanup command removes stale lockfile entries
          * 
          * Requirements covered:
          * - 3.4: Provide command to clean up stale lockfile entries
          */
-        test('Requirement 3.4: Cleanup command removes stale entries with missing files', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.4: Cleanup command removes stale entries with missing files', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -432,15 +413,15 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             // Verify initial state - should have 2 bundles, one with missing files
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const bundlesBefore = await lockfileManager.getInstalledBundles();
-            assert.strictEqual(bundlesBefore.length, 2, 'Should have 2 bundles initially');
+            expect(bundlesBefore.length, 'Should have 2 bundles initially').toBe(2);
             
             const staleBundle = bundlesBefore.find(b => b.bundleId === staleBundleId);
-            assert.ok(staleBundle, 'Should find stale bundle');
-            assert.ok(staleBundle!.filesMissing, 'Stale bundle should have filesMissing flag set');
+            expect(staleBundle, 'Should find stale bundle').toBeTruthy();
+            expect(staleBundle!.filesMissing, 'Stale bundle should have filesMissing flag set').toBeTruthy();
             
             const validBundle = bundlesBefore.find(b => b.bundleId === validBundleId);
-            assert.ok(validBundle, 'Should find valid bundle');
-            assert.ok(!validBundle!.filesMissing, 'Valid bundle should NOT have filesMissing flag set');
+            expect(validBundle, 'Should find valid bundle').toBeTruthy();
+            expect(!validBundle!.filesMissing, 'Valid bundle should NOT have filesMissing flag set').toBeTruthy();
             
             // Stub the confirmation dialog to auto-confirm
             const showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage');
@@ -455,23 +436,21 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             await bundleCommands.cleanupStaleLockfileEntries();
             
             // Verify confirmation dialog was shown
-            assert.ok(showWarningMessageStub.called, 'Should show confirmation dialog');
+            expect(showWarningMessageStub.called, 'Should show confirmation dialog').toBeTruthy();
             
             // Verify stale entry was removed from lockfile
             LockfileManager.resetInstance();
             const lockfileManagerAfter = LockfileManager.getInstance(workspaceRoot);
             const bundlesAfter = await lockfileManagerAfter.getInstalledBundles();
             
-            assert.strictEqual(bundlesAfter.length, 1, 'Should have 1 bundle after cleanup');
-            assert.strictEqual(bundlesAfter[0].bundleId, validBundleId, 'Valid bundle should remain');
+            expect(bundlesAfter.length, 'Should have 1 bundle after cleanup').toBe(1);
+            expect(bundlesAfter[0].bundleId, 'Valid bundle should remain').toBe(validBundleId);
             
             const staleBundleAfter = bundlesAfter.find(b => b.bundleId === staleBundleId);
-            assert.ok(!staleBundleAfter, 'Stale bundle should be removed');
+            expect(!staleBundleAfter, 'Stale bundle should be removed').toBeTruthy();
         });
 
-        test('Requirement 3.4: Cleanup command shows info message when no stale entries', async function() {
-            this.timeout(30000);
-            
+        it('Requirement 3.4: Cleanup command shows info message when no stale entries', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -520,17 +499,12 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             await bundleCommands.cleanupStaleLockfileEntries();
             
             // Verify info message was shown (no stale entries)
-            assert.ok(showInfoMessageStub.called, 'Should show info message');
+            expect(showInfoMessageStub.called, 'Should show info message').toBeTruthy();
             const infoMessage = showInfoMessageStub.firstCall.args[0];
-            assert.ok(
-                infoMessage.includes('No stale') || infoMessage.includes('no stale'),
-                `Info message should indicate no stale entries, got: ${infoMessage}`
-            );
+            expect(infoMessage.includes('No stale') || infoMessage.includes('no stale'), `Info message should indicate no stale entries, got: ${infoMessage}`).toBeTruthy();
         });
 
-        test('Requirement 3.4: Cleanup command respects user cancellation', async function() {
-            this.timeout(30000);
-            
+        it('Requirement 3.4: Cleanup command respects user cancellation', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -579,13 +553,13 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const lockfileManagerAfter = LockfileManager.getInstance(workspaceRoot);
             const bundlesAfter = await lockfileManagerAfter.getInstalledBundles();
             
-            assert.strictEqual(bundlesAfter.length, 1, 'Bundle should still exist after cancellation');
-            assert.strictEqual(bundlesAfter[0].bundleId, staleBundleId, 'Stale bundle should remain');
+            expect(bundlesAfter.length, 'Bundle should still exist after cancellation').toBe(1);
+            expect(bundlesAfter[0].bundleId, 'Stale bundle should remain').toBe(staleBundleId);
         });
     });
 
 
-    suite('11.4: Uninstall Scenarios', () => {
+    describe('11.4: Uninstall Scenarios', () => {
         /**
          * E2E Test: Uninstalling the last bundle deletes the lockfile and fires event
          * 
@@ -594,9 +568,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
          * - 3.2: onLockfileUpdated event fires with null
          * - 3.4: Complete uninstall workflow verification
          */
-        test('Requirement 3.1, 3.2, 3.4: Uninstalling last bundle deletes lockfile and fires event with null', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.1, 3.2, 3.4: Uninstalling last bundle deletes lockfile and fires event with null', async function() {
             const { bundle } = await setupSourceAndGetBundle('uninstall-last-source', 'uninstall-last-test');
             
             // Install single bundle at repository scope
@@ -606,12 +578,12 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             
             // Verify lockfile exists after installation
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             // Verify this is the only bundle in the lockfile
             const lockfileBefore = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const bundleCount = Object.keys(lockfileBefore.bundles).length;
-            assert.strictEqual(bundleCount, 1, 'Should have exactly one bundle in lockfile');
+            expect(bundleCount, 'Should have exactly one bundle in lockfile').toBe(1);
             
             // Get the actual bundle ID from the lockfile
             const actualBundleId = Object.keys(lockfileBefore.bundles)[0];
@@ -631,11 +603,11 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
                 await testContext.registryManager.uninstallBundle(actualBundleId, 'repository');
                 
                 // Verify lockfile is deleted
-                assert.ok(!fs.existsSync(lockfilePath), 'Lockfile should be deleted when last bundle is uninstalled');
+                expect(!fs.existsSync(lockfilePath), 'Lockfile should be deleted when last bundle is uninstalled').toBeTruthy();
                 
                 // Verify onLockfileUpdated event fired with null
-                assert.ok(eventFired, 'onLockfileUpdated event should fire');
-                assert.strictEqual(eventPayload, null, 'onLockfileUpdated event should fire with null when lockfile is deleted');
+                expect(eventFired, 'onLockfileUpdated event should fire').toBeTruthy();
+                expect(eventPayload, 'onLockfileUpdated event should fire with null when lockfile is deleted').toBe(null);
             } finally {
                 disposable.dispose();
             }
@@ -647,9 +619,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
          * Requirements covered:
          * - 3.3: Partial uninstall preserves other bundles
          */
-        test('Requirement 3.3: Uninstalling one bundle preserves other bundles in lockfile', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.3: Uninstalling one bundle preserves other bundles in lockfile', async function() {
             // Stub workspace folders once for both bundles
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -684,44 +654,44 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             
             // Verify lockfile has two bundles
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist').toBeTruthy();
             
             const lockfileBefore = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const bundleIdsBefore = Object.keys(lockfileBefore.bundles);
-            assert.strictEqual(bundleIdsBefore.length, 2, 'Should have two bundles in lockfile');
+            expect(bundleIdsBefore.length, 'Should have two bundles in lockfile').toBe(2);
             
             // Find the actual bundle IDs from lockfile
             const actualBundleId1 = bundleIdsBefore.find(id => id.includes('bundle-1'));
             const actualBundleId2 = bundleIdsBefore.find(id => id.includes('bundle-2'));
-            assert.ok(actualBundleId1, 'Should find bundle-1 in lockfile');
-            assert.ok(actualBundleId2, 'Should find bundle-2 in lockfile');
+            expect(actualBundleId1, 'Should find bundle-1 in lockfile').toBeTruthy();
+            expect(actualBundleId2, 'Should find bundle-2 in lockfile').toBeTruthy();
             
             // Uninstall first bundle
             await testContext.registryManager.uninstallBundle(actualBundleId1!, 'repository');
             
             // Verify lockfile still exists
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should still exist after partial uninstall');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should still exist after partial uninstall').toBeTruthy();
             
             // Verify second bundle remains in lockfile
             LockfileManager.resetInstance();
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const lockfileAfter = await lockfileManager.read();
             
-            assert.ok(lockfileAfter, 'Lockfile should exist');
+            expect(lockfileAfter, 'Lockfile should exist').toBeTruthy();
             const bundleIdsAfter = Object.keys(lockfileAfter!.bundles);
-            assert.strictEqual(bundleIdsAfter.length, 1, 'Should have one bundle remaining in lockfile');
-            assert.ok(bundleIdsAfter.includes(actualBundleId2!), 'Bundle-2 should remain in lockfile');
-            assert.ok(!bundleIdsAfter.includes(actualBundleId1!), 'Bundle-1 should be removed from lockfile');
+            expect(bundleIdsAfter.length, 'Should have one bundle remaining in lockfile').toBe(1);
+            expect(bundleIdsAfter.includes(actualBundleId2!), 'Bundle-2 should remain in lockfile').toBeTruthy();
+            expect(!bundleIdsAfter.includes(actualBundleId1!), 'Bundle-1 should be removed from lockfile').toBeTruthy();
             
             // Verify bundle-2 data is intact
             const remainingBundle = lockfileAfter!.bundles[actualBundleId2!];
-            assert.strictEqual(remainingBundle.version, '1.0.0', 'Remaining bundle version should be intact');
-            assert.strictEqual(remainingBundle.sourceId, sourceId2, 'Remaining bundle sourceId should be intact');
+            expect(remainingBundle.version, 'Remaining bundle version should be intact').toBe('1.0.0');
+            expect(remainingBundle.sourceId, 'Remaining bundle sourceId should be intact').toBe(sourceId2);
         });
     });
 
 
-    suite('12.2: Lockfile Portability - SourceId Format', () => {
+    describe('12.2: Lockfile Portability - SourceId Format', () => {
         /**
          * E2E Test: Verify lockfile with new sourceId format works across different hub configurations
          * 
@@ -733,9 +703,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
          * - Requirement 2: Remove Hub ID from SourceId Generation
          * - Requirement 3: Backward Compatibility for Legacy Lockfiles
          */
-        test('Requirement 2.1, 2.3: Lockfile with new sourceId format is portable across hub configurations', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 2.1, 2.3: Lockfile with new sourceId format is portable across hub configurations', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -746,10 +714,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const sourceType = 'github';
             const newFormatSourceId = generateHubSourceId(sourceType, sourceUrl);
             
-            assert.ok(
-                !isLegacyHubSourceId(newFormatSourceId),
-                'New format sourceId should NOT be detected as legacy format'
-            );
+            expect(!isLegacyHubSourceId(newFormatSourceId), 'New format sourceId should NOT be detected as legacy format').toBeTruthy();
 
             // Create a lockfile with the new sourceId format
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
@@ -793,17 +758,15 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const installedBundles = await testContext.registryManager.listInstalledBundles('repository');
             
             // Verify bundle is returned correctly
-            assert.strictEqual(installedBundles.length, 1, 'Should return exactly one bundle');
-            assert.strictEqual(installedBundles[0].bundleId, bundleId, 'Bundle ID should match');
-            assert.strictEqual(installedBundles[0].version, '1.0.0', 'Version should match');
-            assert.strictEqual(installedBundles[0].sourceId, newFormatSourceId, 'SourceId should use new format');
-            assert.strictEqual(installedBundles[0].sourceType, sourceType, 'SourceType should match');
-            assert.strictEqual(installedBundles[0].scope, 'repository', 'Scope should be repository');
+            expect(installedBundles.length, 'Should return exactly one bundle').toBe(1);
+            expect(installedBundles[0].bundleId, 'Bundle ID should match').toBe(bundleId);
+            expect(installedBundles[0].version, 'Version should match').toBe('1.0.0');
+            expect(installedBundles[0].sourceId, 'SourceId should use new format').toBe(newFormatSourceId);
+            expect(installedBundles[0].sourceType, 'SourceType should match').toBe(sourceType);
+            expect(installedBundles[0].scope, 'Scope should be repository').toBe('repository');
         });
 
-        test('Requirement 2.2, 2.3: Same source URL always produces same sourceId (deterministic)', async function() {
-            this.timeout(30000);
-            
+        it('Requirement 2.2, 2.3: Same source URL always produces same sourceId (deterministic)', async function() {
             const sourceUrl = 'https://github.com/owner/repo';
             const sourceType = 'github';
             
@@ -813,13 +776,11 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const sourceId3 = generateHubSourceId(sourceType, sourceUrl);
             
             // All should be identical (deterministic)
-            assert.strictEqual(sourceId1, sourceId2, 'SourceId should be deterministic (1 vs 2)');
-            assert.strictEqual(sourceId2, sourceId3, 'SourceId should be deterministic (2 vs 3)');
+            expect(sourceId1, 'SourceId should be deterministic (1 vs 2)').toBe(sourceId2);
+            expect(sourceId2, 'SourceId should be deterministic (2 vs 3)').toBe(sourceId3);
         });
 
-        test('Requirement 2.3: SourceId is URL-normalized (case-insensitive, protocol-agnostic)', async function() {
-            this.timeout(30000);
-            
+        it('Requirement 2.3: SourceId is URL-normalized (case-insensitive, protocol-agnostic)', async function() {
             const sourceType = 'github';
             
             // Different URL variations that should produce the same sourceId
@@ -834,14 +795,12 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const sourceId4 = generateHubSourceId(sourceType, url4);
             
             // All should produce the same sourceId due to URL normalization
-            assert.strictEqual(sourceId1, sourceId2, 'SourceId should be case-insensitive');
-            assert.strictEqual(sourceId2, sourceId3, 'SourceId should be protocol-agnostic');
-            assert.strictEqual(sourceId3, sourceId4, 'SourceId should ignore trailing slashes');
+            expect(sourceId1, 'SourceId should be case-insensitive').toBe(sourceId2);
+            expect(sourceId2, 'SourceId should be protocol-agnostic').toBe(sourceId3);
+            expect(sourceId3, 'SourceId should ignore trailing slashes').toBe(sourceId4);
         });
 
-        test('Requirement 3.1, 3.4: Legacy hub-prefixed sourceId still resolves correctly', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.1, 3.4: Legacy hub-prefixed sourceId still resolves correctly', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -852,10 +811,7 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const bundleId = 'legacy-bundle-v1.0.0';
             
             // Verify this is detected as legacy format
-            assert.ok(
-                isLegacyHubSourceId(legacySourceId),
-                'Legacy sourceId should be detected as legacy format'
-            );
+            expect(isLegacyHubSourceId(legacySourceId), 'Legacy sourceId should be detected as legacy format').toBeTruthy();
             
             const mockLockfile = {
                 $schema: 'https://github.com/AmadeusITGroup/prompt-registry/schemas/lockfile.schema.json',
@@ -895,15 +851,13 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const installedBundles = await testContext.registryManager.listInstalledBundles('repository');
             
             // Verify bundle is returned correctly (backward compatibility)
-            assert.strictEqual(installedBundles.length, 1, 'Should return exactly one bundle');
-            assert.strictEqual(installedBundles[0].bundleId, bundleId, 'Bundle ID should match');
-            assert.strictEqual(installedBundles[0].sourceId, legacySourceId, 'Legacy sourceId should be preserved');
-            assert.strictEqual(installedBundles[0].sourceType, 'github', 'SourceType should match');
+            expect(installedBundles.length, 'Should return exactly one bundle').toBe(1);
+            expect(installedBundles[0].bundleId, 'Bundle ID should match').toBe(bundleId);
+            expect(installedBundles[0].sourceId, 'Legacy sourceId should be preserved').toBe(legacySourceId);
+            expect(installedBundles[0].sourceType, 'SourceType should match').toBe('github');
         });
 
-        test('Requirement 2.5: Different source types with same URL produce different sourceIds', async function() {
-            this.timeout(30000);
-            
+        it('Requirement 2.5: Different source types with same URL produce different sourceIds', async function() {
             const url = 'https://example.com/repo';
             
             // Same URL but different source types
@@ -912,19 +866,17 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const httpSourceId = generateHubSourceId('http', url);
             
             // All should be different because source type is part of the hash input
-            assert.notStrictEqual(githubSourceId, gitlabSourceId, 'Different types should produce different sourceIds');
-            assert.notStrictEqual(gitlabSourceId, httpSourceId, 'Different types should produce different sourceIds');
-            assert.notStrictEqual(githubSourceId, httpSourceId, 'Different types should produce different sourceIds');
+            expect(githubSourceId, 'Different types should produce different sourceIds').not.toBe(gitlabSourceId);
+            expect(gitlabSourceId, 'Different types should produce different sourceIds').not.toBe(httpSourceId);
+            expect(githubSourceId, 'Different types should produce different sourceIds').not.toBe(httpSourceId);
             
             // Verify each has correct type prefix
-            assert.ok(githubSourceId.startsWith('github-'), 'GitHub sourceId should start with github-');
-            assert.ok(gitlabSourceId.startsWith('gitlab-'), 'GitLab sourceId should start with gitlab-');
-            assert.ok(httpSourceId.startsWith('http-'), 'HTTP sourceId should start with http-');
+            expect(githubSourceId.startsWith('github-'), 'GitHub sourceId should start with github-').toBeTruthy();
+            expect(gitlabSourceId.startsWith('gitlab-'), 'GitLab sourceId should start with gitlab-').toBeTruthy();
+            expect(httpSourceId.startsWith('http-'), 'HTTP sourceId should start with http-').toBeTruthy();
         });
 
-        test('Requirement 2: Lockfile with multiple bundles from different sources works correctly', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 2: Lockfile with multiple bundles from different sources works correctly', async function() {
             // Stub workspace folders
             sandbox.stub(vscode.workspace, 'workspaceFolders').value([
                 { uri: vscode.Uri.file(workspaceRoot), name: 'test-workspace', index: 0 }
@@ -989,18 +941,18 @@ suite('E2E: Lockfile as Single Source of Truth Tests', () => {
             const installedBundles = await testContext.registryManager.listInstalledBundles('repository');
             
             // Verify both bundles are returned correctly
-            assert.strictEqual(installedBundles.length, 2, 'Should return both bundles');
+            expect(installedBundles.length, 'Should return both bundles').toBe(2);
             
             const githubBundle = installedBundles.find(b => b.bundleId === bundle1Id);
             const gitlabBundle = installedBundles.find(b => b.bundleId === bundle2Id);
             
-            assert.ok(githubBundle, 'Should find GitHub bundle');
-            assert.strictEqual(githubBundle!.sourceId, githubSourceId, 'GitHub bundle sourceId should match');
-            assert.strictEqual(githubBundle!.sourceType, 'github', 'GitHub bundle sourceType should match');
+            expect(githubBundle, 'Should find GitHub bundle').toBeTruthy();
+            expect(githubBundle!.sourceId, 'GitHub bundle sourceId should match').toBe(githubSourceId);
+            expect(githubBundle!.sourceType, 'GitHub bundle sourceType should match').toBe('github');
             
-            assert.ok(gitlabBundle, 'Should find GitLab bundle');
-            assert.strictEqual(gitlabBundle!.sourceId, gitlabSourceId, 'GitLab bundle sourceId should match');
-            assert.strictEqual(gitlabBundle!.sourceType, 'gitlab', 'GitLab bundle sourceType should match');
+            expect(gitlabBundle, 'Should find GitLab bundle').toBeTruthy();
+            expect(gitlabBundle!.sourceId, 'GitLab bundle sourceId should match').toBe(gitlabSourceId);
+            expect(gitlabBundle!.sourceType, 'GitLab bundle sourceType should match').toBe('gitlab');
         });
     });
 });

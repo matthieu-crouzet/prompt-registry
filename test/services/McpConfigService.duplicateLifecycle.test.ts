@@ -7,7 +7,6 @@
  * 3. Remove bundles one by one
  * 4. Verify at least one instance remains active until all are removed
  */
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as fs from 'fs-extra';
@@ -20,7 +19,7 @@ import {
     McpRemoteServerConfig
 } from '../../src/types/mcp';
 
-suite('McpConfigService - Duplicate Server Lifecycle', () => {
+describe('McpConfigService - Duplicate Server Lifecycle', () => {
     let sandbox: sinon.SinonSandbox;
     let configService: McpConfigService;
     let testDir: string;
@@ -96,28 +95,28 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
         return result;
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         configService = new McpConfigService();
         testDir = path.join(os.tmpdir(), 'mcp-lifecycle-test-' + Date.now());
         fs.ensureDirSync(testDir);
     });
 
-    teardown(async () => {
+    afterEach(async () => {
         sandbox.restore();
         if (fs.existsSync(testDir)) {
             await fs.remove(testDir);
         }
     });
 
-    suite('Stdio Server Duplicate Lifecycle', () => {
+    describe('Stdio Server Duplicate Lifecycle', () => {
         const sharedServer: McpStdioServerConfig = {
             command: 'node',
             args: ['shared-mcp-server.js']
         };
         const sharedIdentity = 'stdio:node:shared-mcp-server.js';
 
-        test('should keep exactly one active server when multiple bundles install the same server', async () => {
+        it('should keep exactly one active server when multiple bundles install the same server', async () => {
             let config: McpConfiguration = { servers: {} };
             let tracking: McpTrackingMetadata = {
                 managedServers: {},
@@ -144,14 +143,14 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
 
             // Verify: exactly 1 active, 2 disabled
             const activeCount = countActiveServersWithIdentity(config, sharedIdentity);
-            assert.strictEqual(activeCount, 1, 'Should have exactly 1 active server');
+            expect(activeCount, 'Should have exactly 1 active server').toBe(1);
 
             const allServers = getServersWithIdentity(config, sharedIdentity);
-            assert.strictEqual(allServers.length, 3, 'Should have 3 total servers');
-            assert.strictEqual(allServers.filter(s => s.disabled).length, 2, 'Should have 2 disabled servers');
+            expect(allServers.length, 'Should have 3 total servers').toBe(3);
+            expect(allServers.filter(s => s.disabled).length, 'Should have 2 disabled servers').toBe(2);
         });
 
-        test('should re-enable a duplicate when the active server is removed', async () => {
+        it('should re-enable a duplicate when the active server is removed', async () => {
             // Setup: 3 bundles with same server, bundle-a is active
             let config: McpConfiguration = {
                 servers: {
@@ -192,13 +191,13 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
 
             // Verify: exactly 1 active server remains
             const activeCount = countActiveServersWithIdentity(config, sharedIdentity);
-            assert.strictEqual(activeCount, 1, 'Should have exactly 1 active server after removing the original active');
+            expect(activeCount, 'Should have exactly 1 active server after removing the original active').toBe(1);
 
             const allServers = getServersWithIdentity(config, sharedIdentity);
-            assert.strictEqual(allServers.length, 2, 'Should have 2 total servers remaining');
+            expect(allServers.length, 'Should have 2 total servers remaining').toBe(2);
         });
 
-        test('should maintain at least one active server until all bundles are removed', async () => {
+        it('should maintain at least one active server until all bundles are removed', async () => {
             // Setup: 3 bundles with same server
             let config: McpConfiguration = { servers: {} };
             let tracking: McpTrackingMetadata = {
@@ -221,8 +220,8 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
             sandbox = sinon.createSandbox();
 
             // Verify initial state: 1 active, 2 disabled
-            assert.strictEqual(countActiveServersWithIdentity(config, sharedIdentity), 1, 'Initial: 1 active');
-            assert.strictEqual(getServersWithIdentity(config, sharedIdentity).length, 3, 'Initial: 3 total');
+            expect(countActiveServersWithIdentity(config, sharedIdentity), 'Initial: 1 active').toBe(1);
+            expect(getServersWithIdentity(config, sharedIdentity).length, 'Initial: 3 total').toBe(3);
 
             // Remove bundle-a
             ({ config, tracking } = await uninstallBundleServers('bundle-a', config, tracking));
@@ -241,8 +240,8 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
             sandbox = sinon.createSandbox();
 
             // After removing bundle-a: 1 active, 1 disabled
-            assert.strictEqual(countActiveServersWithIdentity(config, sharedIdentity), 1, 'After removing bundle-a: 1 active');
-            assert.strictEqual(getServersWithIdentity(config, sharedIdentity).length, 2, 'After removing bundle-a: 2 total');
+            expect(countActiveServersWithIdentity(config, sharedIdentity), 'After removing bundle-a: 1 active').toBe(1);
+            expect(getServersWithIdentity(config, sharedIdentity).length, 'After removing bundle-a: 2 total').toBe(2);
 
             // Remove bundle-b
             ({ config, tracking } = await uninstallBundleServers('bundle-b', config, tracking));
@@ -260,26 +259,26 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
             sandbox = sinon.createSandbox();
 
             // After removing bundle-b: 1 active, 0 disabled
-            assert.strictEqual(countActiveServersWithIdentity(config, sharedIdentity), 1, 'After removing bundle-b: 1 active');
-            assert.strictEqual(getServersWithIdentity(config, sharedIdentity).length, 1, 'After removing bundle-b: 1 total');
+            expect(countActiveServersWithIdentity(config, sharedIdentity), 'After removing bundle-b: 1 active').toBe(1);
+            expect(getServersWithIdentity(config, sharedIdentity).length, 'After removing bundle-b: 1 total').toBe(1);
 
             // Remove bundle-c (last one)
             ({ config, tracking } = await uninstallBundleServers('bundle-c', config, tracking));
 
             // After removing all: 0 servers
-            assert.strictEqual(countActiveServersWithIdentity(config, sharedIdentity), 0, 'After removing all: 0 active');
-            assert.strictEqual(getServersWithIdentity(config, sharedIdentity).length, 0, 'After removing all: 0 total');
+            expect(countActiveServersWithIdentity(config, sharedIdentity), 'After removing all: 0 active').toBe(0);
+            expect(getServersWithIdentity(config, sharedIdentity).length, 'After removing all: 0 total').toBe(0);
         });
     });
 
-    suite('Remote Server Duplicate Lifecycle', () => {
+    describe('Remote Server Duplicate Lifecycle', () => {
         const sharedRemoteServer: McpRemoteServerConfig = {
             type: 'http',
             url: 'https://api.example.com/mcp'
         };
         const sharedIdentity = 'remote:https://api.example.com/mcp';
 
-        test('should handle remote server duplicates the same as stdio', async () => {
+        it('should handle remote server duplicates the same as stdio', async () => {
             let config: McpConfiguration = { servers: {} };
             let tracking: McpTrackingMetadata = {
                 managedServers: {},
@@ -300,16 +299,16 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
 
             // Verify: exactly 1 active
             const activeCount = countActiveServersWithIdentity(config, sharedIdentity);
-            assert.strictEqual(activeCount, 1, 'Should have exactly 1 active remote server');
+            expect(activeCount, 'Should have exactly 1 active remote server').toBe(1);
 
             const allServers = getServersWithIdentity(config, sharedIdentity);
-            assert.strictEqual(allServers.length, 3, 'Should have 3 total remote servers');
-            assert.strictEqual(allServers.filter(s => s.disabled).length, 2, 'Should have 2 disabled remote servers');
+            expect(allServers.length, 'Should have 3 total remote servers').toBe(3);
+            expect(allServers.filter(s => s.disabled).length, 'Should have 2 disabled remote servers').toBe(2);
         });
     });
 
-    suite('Mixed Server Types', () => {
-        test('should not cross-disable stdio and remote servers with similar identifiers', async () => {
+    describe('Mixed Server Types', () => {
+        it('should not cross-disable stdio and remote servers with similar identifiers', async () => {
             const stdioServer: McpStdioServerConfig = {
                 command: 'https://api.example.com/mcp' // Unusual but valid command
             };
@@ -338,8 +337,8 @@ suite('McpConfigService - Duplicate Server Lifecycle', () => {
             const stdioIdentity = 'stdio:https://api.example.com/mcp:';
             const remoteIdentity = 'remote:https://api.example.com/mcp';
 
-            assert.strictEqual(countActiveServersWithIdentity(config, stdioIdentity), 1, 'Stdio server should be active');
-            assert.strictEqual(countActiveServersWithIdentity(config, remoteIdentity), 1, 'Remote server should be active');
+            expect(countActiveServersWithIdentity(config, stdioIdentity), 'Stdio server should be active').toBe(1);
+            expect(countActiveServersWithIdentity(config, remoteIdentity), 'Remote server should be active').toBe(1);
         });
     });
 });

@@ -9,7 +9,6 @@
  * Requirements: 7.1-7.10
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { BundleScopeCommands } from '../../src/commands/BundleScopeCommands';
@@ -21,7 +20,7 @@ import { RegistryStorage } from '../../src/storage/RegistryStorage';
 import { InstalledBundle, InstallationScope, RepositoryCommitMode } from '../../src/types/registry';
 import { createMockInstalledBundle } from '../helpers/bundleTestHelpers';
 
-suite('BundleScopeCommands', () => {
+describe('BundleScopeCommands', () => {
     let sandbox: sinon.SinonSandbox;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
@@ -76,7 +75,7 @@ suite('BundleScopeCommands', () => {
         });
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Create mock instances
@@ -109,12 +108,12 @@ suite('BundleScopeCommands', () => {
         });
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('moveToRepository()', () => {
-        test('should move bundle from user scope to repository scope with commit mode', async () => {
+    describe('moveToRepository()', () => {
+        it('should move bundle from user scope to repository scope with commit mode', async () => {
             // Arrange
             const userBundle = createTestInstalledBundle('user');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(userBundle);
@@ -133,11 +132,11 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockScopeConflictResolver.migrateBundle.calledOnce, 'migrateBundle should be called');
-            assert.ok(mockShowInformationMessage.calledOnce, 'Success message should be shown');
+            expect(mockScopeConflictResolver.migrateBundle.calledOnce, 'migrateBundle should be called').toBeTruthy();
+            expect(mockShowInformationMessage.calledOnce, 'Success message should be shown').toBeTruthy();
         });
 
-        test('should move bundle from user scope to repository scope with local-only mode', async () => {
+        it('should move bundle from user scope to repository scope with local-only mode', async () => {
             // Arrange
             const userBundle = createTestInstalledBundle('user');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(userBundle);
@@ -156,10 +155,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'local-only');
 
             // Assert
-            assert.ok(mockScopeConflictResolver.migrateBundle.calledOnce, 'migrateBundle should be called');
+            expect(mockScopeConflictResolver.migrateBundle.calledOnce, 'migrateBundle should be called').toBeTruthy();
         });
 
-        test('should abort move if user cancels confirmation', async () => {
+        it('should abort move if user cancels confirmation', async () => {
             // Arrange
             const userBundle = createTestInstalledBundle('user');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(userBundle);
@@ -176,10 +175,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockScopeConflictResolver.migrateBundle.notCalled, 'migrateBundle should not be called');
+            expect(mockScopeConflictResolver.migrateBundle.notCalled, 'migrateBundle should not be called').toBeTruthy();
         });
 
-        test('should show error if bundle is not installed at user scope', async () => {
+        it('should show error if bundle is not installed at user scope', async () => {
             // Arrange
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(undefined);
 
@@ -194,10 +193,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockShowErrorMessage.calledOnce, 'Error message should be shown');
+            expect(mockShowErrorMessage.calledOnce, 'Error message should be shown').toBeTruthy();
         });
 
-        test('should show error if no workspace is open', async () => {
+        it('should show error if no workspace is open', async () => {
             // Arrange
             mockWorkspaceFolders = undefined;
             const userBundle = createTestInstalledBundle('user');
@@ -214,10 +213,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockShowErrorMessage.calledOnce, 'Error message should be shown');
+            expect(mockShowErrorMessage.calledOnce, 'Error message should be shown').toBeTruthy();
         });
 
-        test('should pass user scope to uninstallBundle — Validates: Requirement 3.2', async () => {
+        it('should pass user scope to uninstallBundle — Validates: Requirement 3.2', async () => {
             // Arrange: bundle exists at user scope
             const userBundle = createTestInstalledBundle('user');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(userBundle);
@@ -245,15 +244,12 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'commit');
 
             // Assert: Verify uninstallBundle was called with 'user' scope
-            assert.ok(
-                mockRegistryManager.uninstallBundle.calledWith(testBundleId, 'user'),
-                'uninstallBundle should be called with user scope'
-            );
+            expect(mockRegistryManager.uninstallBundle.calledWith(testBundleId, 'user'), 'uninstallBundle should be called with user scope').toBeTruthy();
         });
     });
 
-    suite('moveToUser()', () => {
-        test('should move bundle from repository scope to user scope', async () => {
+    describe('moveToUser()', () => {
+        it('should move bundle from repository scope to user scope', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -272,11 +268,11 @@ suite('BundleScopeCommands', () => {
             await commands.moveToUser(testBundleId);
 
             // Assert
-            assert.ok(mockScopeConflictResolver.migrateBundle.calledOnce, 'migrateBundle should be called');
-            assert.ok(mockShowInformationMessage.calledOnce, 'Success message should be shown');
+            expect(mockScopeConflictResolver.migrateBundle.calledOnce, 'migrateBundle should be called').toBeTruthy();
+            expect(mockShowInformationMessage.calledOnce, 'Success message should be shown').toBeTruthy();
         });
 
-        test('should abort move if user cancels confirmation', async () => {
+        it('should abort move if user cancels confirmation', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -293,10 +289,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToUser(testBundleId);
 
             // Assert
-            assert.ok(mockScopeConflictResolver.migrateBundle.notCalled, 'migrateBundle should not be called');
+            expect(mockScopeConflictResolver.migrateBundle.notCalled, 'migrateBundle should not be called').toBeTruthy();
         });
 
-        test('should show error if bundle is not installed at repository scope', async () => {
+        it('should show error if bundle is not installed at repository scope', async () => {
             // Arrange
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(undefined);
 
@@ -311,10 +307,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToUser(testBundleId);
 
             // Assert
-            assert.ok(mockShowErrorMessage.calledOnce, 'Error message should be shown');
+            expect(mockShowErrorMessage.calledOnce, 'Error message should be shown').toBeTruthy();
         });
 
-        test('should pass repository scope to uninstallBundle — Validates: Requirement 3.1', async () => {
+        it('should pass repository scope to uninstallBundle — Validates: Requirement 3.1', async () => {
             // Arrange: bundle exists at repository scope
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -342,15 +338,12 @@ suite('BundleScopeCommands', () => {
             await commands.moveToUser(testBundleId);
 
             // Assert: Verify uninstallBundle was called with 'repository' scope
-            assert.ok(
-                mockRegistryManager.uninstallBundle.calledWith(testBundleId, 'repository'),
-                'uninstallBundle should be called with repository scope'
-            );
+            expect(mockRegistryManager.uninstallBundle.calledWith(testBundleId, 'repository'), 'uninstallBundle should be called with repository scope').toBeTruthy();
         });
     });
 
-    suite('switchCommitMode()', () => {
-        test('should switch from commit mode to local-only mode', async () => {
+    describe('switchCommitMode()', () => {
+        it('should switch from commit mode to local-only mode', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -368,11 +361,11 @@ suite('BundleScopeCommands', () => {
             await commands.switchCommitMode(testBundleId, 'local-only');
 
             // Assert
-            assert.ok(mockRepositoryScopeService.switchCommitMode.calledOnceWith(testBundleId, 'local-only'), 'switchCommitMode should be called with correct args');
-            assert.ok(mockShowInformationMessage.calledOnce, 'Success message should be shown');
+            expect(mockRepositoryScopeService.switchCommitMode.calledOnceWith(testBundleId, 'local-only'), 'switchCommitMode should be called with correct args').toBeTruthy();
+            expect(mockShowInformationMessage.calledOnce, 'Success message should be shown').toBeTruthy();
         });
 
-        test('should switch from local-only mode to commit mode', async () => {
+        it('should switch from local-only mode to commit mode', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'local-only');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -390,10 +383,10 @@ suite('BundleScopeCommands', () => {
             await commands.switchCommitMode(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockRepositoryScopeService.switchCommitMode.calledOnceWith(testBundleId, 'commit'), 'switchCommitMode should be called with correct args');
+            expect(mockRepositoryScopeService.switchCommitMode.calledOnceWith(testBundleId, 'commit'), 'switchCommitMode should be called with correct args').toBeTruthy();
         });
 
-        test('should abort switch if user cancels confirmation', async () => {
+        it('should abort switch if user cancels confirmation', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -410,10 +403,10 @@ suite('BundleScopeCommands', () => {
             await commands.switchCommitMode(testBundleId, 'local-only');
 
             // Assert
-            assert.ok(mockRepositoryScopeService.switchCommitMode.notCalled, 'switchCommitMode should not be called');
+            expect(mockRepositoryScopeService.switchCommitMode.notCalled, 'switchCommitMode should not be called').toBeTruthy();
         });
 
-        test('should show error if bundle is not installed at repository scope', async () => {
+        it('should show error if bundle is not installed at repository scope', async () => {
             // Arrange
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(undefined);
 
@@ -428,10 +421,10 @@ suite('BundleScopeCommands', () => {
             await commands.switchCommitMode(testBundleId, 'local-only');
 
             // Assert
-            assert.ok(mockShowErrorMessage.calledOnce, 'Error message should be shown');
+            expect(mockShowErrorMessage.calledOnce, 'Error message should be shown').toBeTruthy();
         });
 
-        test('should show error if bundle is already in the target mode', async () => {
+        it('should show error if bundle is already in the target mode', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -447,13 +440,13 @@ suite('BundleScopeCommands', () => {
             await commands.switchCommitMode(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockShowInformationMessage.calledOnce, 'Info message should be shown');
-            assert.ok(mockRepositoryScopeService.switchCommitMode.notCalled, 'switchCommitMode should not be called');
+            expect(mockShowInformationMessage.calledOnce, 'Info message should be shown').toBeTruthy();
+            expect(mockRepositoryScopeService.switchCommitMode.notCalled, 'switchCommitMode should not be called').toBeTruthy();
         });
     });
 
-    suite('getContextMenuActions()', () => {
-        test('should return move to repository options for user-scoped bundle', async () => {
+    describe('getContextMenuActions()', () => {
+        it('should return move to repository options for user-scoped bundle', async () => {
             // Arrange
             const userBundle = createTestInstalledBundle('user');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(userBundle);
@@ -470,12 +463,12 @@ suite('BundleScopeCommands', () => {
             const actions = await commands.getContextMenuActions(testBundleId);
 
             // Assert
-            assert.ok(actions.some((a: any) => a.id === 'moveToRepositoryCommit'), 'Should have move to repository (commit) option');
-            assert.ok(actions.some((a: any) => a.id === 'moveToRepositoryLocalOnly'), 'Should have move to repository (local-only) option');
-            assert.ok(!actions.some((a: any) => a.id === 'moveToUser'), 'Should not have move to user option');
+            expect(actions.some((a: any) => a.id === 'moveToRepositoryCommit'), 'Should have move to repository (commit) option').toBeTruthy();
+            expect(actions.some((a: any) => a.id === 'moveToRepositoryLocalOnly'), 'Should have move to repository (local-only) option').toBeTruthy();
+            expect(!actions.some((a: any) => a.id === 'moveToUser'), 'Should not have move to user option').toBeTruthy();
         });
 
-        test('should return move to user and switch mode options for repository-scoped bundle with commit mode', async () => {
+        it('should return move to user and switch mode options for repository-scoped bundle with commit mode', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(undefined);
@@ -492,12 +485,12 @@ suite('BundleScopeCommands', () => {
             const actions = await commands.getContextMenuActions(testBundleId);
 
             // Assert
-            assert.ok(actions.some((a: any) => a.id === 'moveToUser'), 'Should have move to user option');
-            assert.ok(actions.some((a: any) => a.id === 'switchToLocalOnly'), 'Should have switch to local-only option');
-            assert.ok(!actions.some((a: any) => a.id === 'switchToCommit'), 'Should not have switch to commit option');
+            expect(actions.some((a: any) => a.id === 'moveToUser'), 'Should have move to user option').toBeTruthy();
+            expect(actions.some((a: any) => a.id === 'switchToLocalOnly'), 'Should have switch to local-only option').toBeTruthy();
+            expect(!actions.some((a: any) => a.id === 'switchToCommit'), 'Should not have switch to commit option').toBeTruthy();
         });
 
-        test('should return move to user and switch mode options for repository-scoped bundle with local-only mode', async () => {
+        it('should return move to user and switch mode options for repository-scoped bundle with local-only mode', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'local-only');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(undefined);
@@ -514,12 +507,12 @@ suite('BundleScopeCommands', () => {
             const actions = await commands.getContextMenuActions(testBundleId);
 
             // Assert
-            assert.ok(actions.some((a: any) => a.id === 'moveToUser'), 'Should have move to user option');
-            assert.ok(actions.some((a: any) => a.id === 'switchToCommit'), 'Should have switch to commit option');
-            assert.ok(!actions.some((a: any) => a.id === 'switchToLocalOnly'), 'Should not have switch to local-only option');
+            expect(actions.some((a: any) => a.id === 'moveToUser'), 'Should have move to user option').toBeTruthy();
+            expect(actions.some((a: any) => a.id === 'switchToCommit'), 'Should have switch to commit option').toBeTruthy();
+            expect(!actions.some((a: any) => a.id === 'switchToLocalOnly'), 'Should not have switch to local-only option').toBeTruthy();
         });
 
-        test('should return empty array if bundle is not installed', async () => {
+        it('should return empty array if bundle is not installed', async () => {
             // Arrange
             mockStorage.getInstalledBundle.resolves(undefined);
 
@@ -534,10 +527,10 @@ suite('BundleScopeCommands', () => {
             const actions = await commands.getContextMenuActions(testBundleId);
 
             // Assert
-            assert.strictEqual(actions.length, 0, 'Should return empty array');
+            expect(actions.length, 'Should return empty array').toBe(0);
         });
 
-        test('should disable repository options when no workspace is open', async () => {
+        it('should disable repository options when no workspace is open', async () => {
             // Arrange
             mockWorkspaceFolders = undefined;
             const userBundle = createTestInstalledBundle('user');
@@ -555,12 +548,12 @@ suite('BundleScopeCommands', () => {
 
             // Assert
             const repoActions = actions.filter((a: any) => a.id.startsWith('moveToRepository'));
-            assert.ok(repoActions.every((a: any) => a.disabled), 'Repository options should be disabled');
+            expect(repoActions.every((a: any) => a.disabled), 'Repository options should be disabled').toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle migration failure gracefully', async () => {
+    describe('Error Handling', () => {
+        it('should handle migration failure gracefully', async () => {
             // Arrange
             const userBundle = createTestInstalledBundle('user');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'user').resolves(userBundle);
@@ -584,10 +577,10 @@ suite('BundleScopeCommands', () => {
             await commands.moveToRepository(testBundleId, 'commit');
 
             // Assert
-            assert.ok(mockShowErrorMessage.calledOnce, 'Error message should be shown');
+            expect(mockShowErrorMessage.calledOnce, 'Error message should be shown').toBeTruthy();
         });
 
-        test('should handle switchCommitMode failure gracefully', async () => {
+        it('should handle switchCommitMode failure gracefully', async () => {
             // Arrange
             const repoBundle = createTestInstalledBundle('repository', 'commit');
             mockStorage.getInstalledBundle.withArgs(testBundleId, 'repository').resolves(repoBundle);
@@ -605,7 +598,7 @@ suite('BundleScopeCommands', () => {
             await commands.switchCommitMode(testBundleId, 'local-only');
 
             // Assert
-            assert.ok(mockShowErrorMessage.calledOnce, 'Error message should be shown');
+            expect(mockShowErrorMessage.calledOnce, 'Error message should be shown').toBeTruthy();
         });
     });
 });

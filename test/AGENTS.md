@@ -302,8 +302,8 @@ await fc.assert(
 
 ## VS Code Mocking
 
-Project uses `test/mocha.setup.js` for VS Code API mocks. If you get "Cannot read properties of undefined":
-1. Check if API is in `test/mocha.setup.js`
+Project uses `test/__mocks__/vscode.ts` for VS Code API mocks (resolved via vitest alias). For dynamic `require('vscode')` calls in source code, `test/mocha.setup.js` is used via `Module._resolveFilename` hook in `test/vitest.setup.ts`. If you get "Cannot read properties of undefined":
+1. Check if API is in `test/__mocks__/vscode.ts`
 2. Add missing APIs there first
 
 ```typescript
@@ -559,7 +559,7 @@ const response = require('../fixtures/github/releases-response.json');
 - [ ] **Test file count for this class ≤ 2** (unit + property only)
 - [ ] **Unit and property tests cover DIFFERENT concerns** (no overlap)
 - [ ] **E2E tests use VS Code commands, not direct method calls**
-- [ ] Using Mocha TDD style (`suite`, `test`)
+- [ ] Using Vitest BDD style (`describe`, `it`)
 - [ ] Behavior-focused names
 - [ ] Mocking only external boundaries (HTTP, file system, VS Code API)
 - [ ] **Considered if test would be simpler in real VS Code instance** (if mock setup is complex)

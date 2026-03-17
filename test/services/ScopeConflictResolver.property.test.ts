@@ -9,7 +9,6 @@
  * **Validates: Requirements 6.1, 6.4, 6.6**
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -21,7 +20,7 @@ import { InstallationScope, InstalledBundle } from '../../src/types/registry';
 import { createMockInstalledBundle } from '../helpers/bundleTestHelpers';
 import { PropertyTestConfig, BundleGenerators } from '../helpers/propertyTestHelpers';
 
-suite('ScopeConflictResolver Property Tests', () => {
+describe('ScopeConflictResolver Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let resolver: ScopeConflictResolver;
@@ -66,13 +65,13 @@ suite('ScopeConflictResolver Property Tests', () => {
         } as vscode.ExtensionContext;
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockStorage = sandbox.createStubInstance(RegistryStorage);
         resolver = new ScopeConflictResolver(mockStorage);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -90,10 +89,8 @@ suite('ScopeConflictResolver Property Tests', () => {
      * 
      * Feature: repository-level-installation, Property 5: Scope Exclusivity Invariant
      */
-    suite('Property 5: Scope Exclusivity Invariant', function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
-        test('should detect conflict when bundle exists at any other scope', async () => {
+    describe('Property 5: Scope Exclusivity Invariant', function() {
+        it('should detect conflict when bundle exists at any other scope', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -124,14 +121,10 @@ suite('ScopeConflictResolver Property Tests', () => {
                         const conflict = await resolver.checkConflict(bundleId, targetScope);
 
                         // Assert: conflict should be detected
-                        assert.ok(conflict !== null, 
-                            `Conflict should be detected when bundle at ${existingScope} and target is ${targetScope}`);
-                        assert.strictEqual(conflict!.existingScope, existingScope,
-                            'Conflict should report correct existing scope');
-                        assert.strictEqual(conflict!.targetScope, targetScope,
-                            'Conflict should report correct target scope');
-                        assert.strictEqual(conflict!.bundleId, bundleId,
-                            'Conflict should report correct bundle ID');
+                        expect(conflict !== null, `Conflict should be detected when bundle at ${existingScope} and target is ${targetScope}`).toBeTruthy();
+                        expect(conflict!.existingScope, 'Conflict should report correct existing scope').toBe(existingScope);
+                        expect(conflict!.targetScope, 'Conflict should report correct target scope').toBe(targetScope);
+                        expect(conflict!.bundleId, 'Conflict should report correct bundle ID').toBe(bundleId);
 
                         return true;
                     }
@@ -143,7 +136,7 @@ suite('ScopeConflictResolver Property Tests', () => {
             );
         });
 
-        test('should not detect conflict when bundle only exists at target scope', async () => {
+        it('should not detect conflict when bundle only exists at target scope', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -168,8 +161,7 @@ suite('ScopeConflictResolver Property Tests', () => {
                         const conflict = await resolver.checkConflict(bundleId, targetScope);
 
                         // Assert: no conflict should be detected (reinstalling at same scope is allowed)
-                        assert.strictEqual(conflict, null, 
-                            `No conflict should be detected when bundle only at target scope ${targetScope}`);
+                        expect(conflict, `No conflict should be detected when bundle only at target scope ${targetScope}`).toBe(null);
 
                         return true;
                     }
@@ -181,7 +173,7 @@ suite('ScopeConflictResolver Property Tests', () => {
             );
         });
 
-        test('should not detect conflict when bundle is not installed anywhere', async () => {
+        it('should not detect conflict when bundle is not installed anywhere', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -197,8 +189,7 @@ suite('ScopeConflictResolver Property Tests', () => {
                         const conflict = await resolver.checkConflict(bundleId, targetScope);
 
                         // Assert: no conflict
-                        assert.strictEqual(conflict, null, 
-                            'No conflict should be detected when bundle not installed');
+                        expect(conflict, 'No conflict should be detected when bundle not installed').toBe(null);
 
                         return true;
                     }
@@ -210,7 +201,7 @@ suite('ScopeConflictResolver Property Tests', () => {
             );
         });
 
-        test('should maintain exclusivity after successful migration', async () => {
+        it('should maintain exclusivity after successful migration', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -259,16 +250,14 @@ suite('ScopeConflictResolver Property Tests', () => {
                         );
 
                         // Assert: migration succeeded
-                        assert.ok(result.success, 'Migration should succeed');
-                        assert.ok(uninstallCalled, 'Uninstall should be called');
-                        assert.ok(installCalled, 'Install should be called');
+                        expect(result.success, 'Migration should succeed').toBeTruthy();
+                        expect(uninstallCalled, 'Uninstall should be called').toBeTruthy();
+                        expect(installCalled, 'Install should be called').toBeTruthy();
 
                         // Verify exclusivity: bundle should only be at toScope now
                         const conflictingScopes = await resolver.getConflictingScopes(bundleId);
-                        assert.strictEqual(conflictingScopes.length, 1, 
-                            'Bundle should exist at exactly one scope after migration');
-                        assert.strictEqual(conflictingScopes[0], toScope,
-                            'Bundle should be at target scope after migration');
+                        expect(conflictingScopes.length, 'Bundle should exist at exactly one scope after migration').toBe(1);
+                        expect(conflictingScopes[0], 'Bundle should be at target scope after migration').toBe(toScope);
 
                         return true;
                     }
@@ -280,7 +269,7 @@ suite('ScopeConflictResolver Property Tests', () => {
             );
         });
 
-        test('should report all conflicting scopes correctly', async () => {
+        it('should report all conflicting scopes correctly', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -304,11 +293,7 @@ suite('ScopeConflictResolver Property Tests', () => {
                         const conflictingScopes = await resolver.getConflictingScopes(bundleId);
 
                         // Assert: should match installed scopes
-                        assert.deepStrictEqual(
-                            conflictingScopes.sort(),
-                            installedScopes.sort(),
-                            'Should report all scopes where bundle is installed'
-                        );
+                        expect(conflictingScopes.sort(), 'Should report all scopes where bundle is installed').toEqual(installedScopes.sort());
 
                         return true;
                     }

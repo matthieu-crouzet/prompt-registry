@@ -1,19 +1,18 @@
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as vscode from 'vscode';
 import { UserScopeService } from '../../src/services/UserScopeService';
 
-suite('UserScopeService - Unsync Bundle Fix', () => {
+describe('UserScopeService - Unsync Bundle Fix', () => {
     let tempDir: string;
     let bundlesDir: string;
     let copilotDir: string;
     let context: vscode.ExtensionContext;
     let service: UserScopeService;
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory structure
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'copilot-sync-test-'));
         
@@ -39,7 +38,7 @@ suite('UserScopeService - Unsync Bundle Fix', () => {
         service = new UserScopeService(context);
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Cleanup
         try {
             fs.rmSync(tempDir, { recursive: true, force: true });
@@ -48,7 +47,7 @@ suite('UserScopeService - Unsync Bundle Fix', () => {
         }
     });
 
-    test('should delete copied file (not symlink) if content matches source', async () => {
+    it('should delete copied file (not symlink) if content matches source', async () => {
         const bundleId = 'test-bundle';
         const bundlePath = path.join(bundlesDir, bundleId);
         
@@ -85,17 +84,17 @@ suite('UserScopeService - Unsync Bundle Fix', () => {
         fs.writeFileSync(targetFile, promptContent); // Same content
 
         // Verify setup
-        assert.ok(fs.existsSync(targetFile), 'Target file should exist');
-        assert.strictEqual(fs.lstatSync(targetFile).isSymbolicLink(), false, 'Target file should NOT be a symlink');
+        expect(fs.existsSync(targetFile), 'Target file should exist').toBeTruthy();
+        expect(fs.lstatSync(targetFile).isSymbolicLink(), 'Target file should NOT be a symlink').toBe(false);
 
         // 3. Run unsyncBundle
         await service.unsyncBundle(bundleId);
 
         // 4. Verify deletion
-        assert.strictEqual(fs.existsSync(targetFile), false, 'Target file should be deleted because content matched');
+        expect(fs.existsSync(targetFile), 'Target file should be deleted because content matched').toBe(false);
     });
 
-    test('should NOT delete copied file if content differs', async () => {
+    it('should NOT delete copied file if content differs', async () => {
         const bundleId = 'test-bundle-diff';
         const bundlePath = path.join(bundlesDir, bundleId);
         
@@ -132,17 +131,17 @@ suite('UserScopeService - Unsync Bundle Fix', () => {
         fs.writeFileSync(targetFile, modifiedContent); // Different content
 
         // Verify setup
-        assert.ok(fs.existsSync(targetFile), 'Target file should exist');
-        assert.strictEqual(fs.lstatSync(targetFile).isSymbolicLink(), false, 'Target file should NOT be a symlink');
+        expect(fs.existsSync(targetFile), 'Target file should exist').toBeTruthy();
+        expect(fs.lstatSync(targetFile).isSymbolicLink(), 'Target file should NOT be a symlink').toBe(false);
 
         // 3. Run unsyncBundle
         await service.unsyncBundle(bundleId);
 
         // 4. Verify persistence
-        assert.ok(fs.existsSync(targetFile), 'Target file should NOT be deleted because content differed');
+        expect(fs.existsSync(targetFile), 'Target file should NOT be deleted because content differed').toBeTruthy();
     });
     
-    test('should handle line ending differences (CRLF vs LF)', async () => {
+    it('should handle line ending differences (CRLF vs LF)', async () => {
         const bundleId = 'test-bundle-crlf';
         const bundlePath = path.join(bundlesDir, bundleId);
         
@@ -179,12 +178,12 @@ suite('UserScopeService - Unsync Bundle Fix', () => {
         fs.writeFileSync(targetFile, promptContentCRLF);
 
         // Verify setup
-        assert.ok(fs.existsSync(targetFile), 'Target file should exist');
+        expect(fs.existsSync(targetFile), 'Target file should exist').toBeTruthy();
         
         // 3. Run unsyncBundle
         await service.unsyncBundle(bundleId);
 
         // 4. Verify deletion (normalization should handle it)
-        assert.strictEqual(fs.existsSync(targetFile), false, 'Target file should be deleted despite line ending differences');
+        expect(fs.existsSync(targetFile), 'Target file should be deleted despite line ending differences').toBe(false);
     });
 });

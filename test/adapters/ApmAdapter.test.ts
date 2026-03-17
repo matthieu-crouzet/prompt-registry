@@ -3,7 +3,6 @@
  * Tests remote APM package adapter (GitHub-based)
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import nock from 'nock';
@@ -11,7 +10,7 @@ import { ApmAdapter } from '../../src/adapters/ApmAdapter';
 import { RegistrySource } from '../../src/types/registry';
 import { ApmRuntimeManager } from '../../src/services/ApmRuntimeManager';
 
-suite('ApmAdapter', () => {
+describe('ApmAdapter', () => {
     let sandbox: sinon.SinonSandbox;
     let mockRuntime: sinon.SinonStubbedInstance<ApmRuntimeManager>;
     
@@ -24,9 +23,9 @@ suite('ApmAdapter', () => {
         priority: 1,
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
-        nock.cleanAll(); // Clean any existing nocks (e.g. from unit.setup.js)
+        nock.cleanAll(); // Clean any existing nocks (e.g. from vitest.setup.ts)
         
         // Mock runtime manager
         ApmRuntimeManager.resetInstance();
@@ -40,14 +39,14 @@ suite('ApmAdapter', () => {
         sandbox.stub(vscode.authentication, 'getSession').resolves(undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         ApmRuntimeManager.resetInstance();
         nock.cleanAll();
     });
 
-    suite('Authentication', () => {
-        test('should use VS Code authentication token when available', async () => {
+    describe('Authentication', () => {
+        it('should use VS Code authentication token when available', async () => {
             const adapter = new ApmAdapter(mockSource);
             const token = 'vscode-token';
             
@@ -68,10 +67,10 @@ suite('ApmAdapter', () => {
             
             await adapter.fetchBundles();
             
-            assert.ok(scope.isDone(), 'Request with auth header was not made');
+            expect(scope.isDone(), 'Request with auth header was not made').toBeTruthy();
         });
 
-        test('should use token in HTTPS requests', async () => {
+        it('should use token in HTTPS requests', async () => {
             const adapter = new ApmAdapter(mockSource);
             const token = 'test-token-123';
             
@@ -92,10 +91,10 @@ suite('ApmAdapter', () => {
 
             await adapter.fetchBundles();
 
-            assert.ok(scope.isDone(), 'Request with auth header was not made');
+            expect(scope.isDone(), 'Request with auth header was not made').toBeTruthy();
         });
         
-        test('should fallback to config token if VS Code auth fails', async () => {
+        it('should fallback to config token if VS Code auth fails', async () => {
             const sourceWithToken = { ...mockSource, token: 'config-token' };
             const adapter = new ApmAdapter(sourceWithToken);
             
@@ -114,67 +113,64 @@ suite('ApmAdapter', () => {
             
             await adapter.fetchBundles();
             
-            assert.ok(scope.isDone(), 'Request with config token auth header was not made');
+            expect(scope.isDone(), 'Request with config token auth header was not made').toBeTruthy();
         });
     });
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid GitHub URL', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid GitHub URL', () => {
             const adapter = new ApmAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'apm');
+            expect(adapter.type).toBe('apm');
         });
 
-        test('should accept GitHub URL with .git suffix', () => {
+        it('should accept GitHub URL with .git suffix', () => {
             const source = { ...mockSource, url: 'https://github.com/owner/repo.git' };
             const adapter = new ApmAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should throw error for invalid URL', () => {
+        it('should throw error for invalid URL', () => {
             const source = { ...mockSource, url: 'not-a-url' };
-            assert.throws(() => new ApmAdapter(source), /Invalid|URL/i);
+            expect(() => new ApmAdapter(source)).toThrow(/Invalid|URL/i);
         });
 
-        test('should throw error for non-GitHub URL', () => {
+        it('should throw error for non-GitHub URL', () => {
             const source = { ...mockSource, url: 'https://gitlab.com/owner/repo' };
-            assert.throws(() => new ApmAdapter(source), /GitHub/i);
+            expect(() => new ApmAdapter(source)).toThrow(/GitHub/i);
         });
     });
 
-    suite('parseGitHubUrl', () => {
-        test('should extract owner and repo from URL', () => {
+    describe('parseGitHubUrl', () => {
+        it('should extract owner and repo from URL', () => {
             const adapter = new ApmAdapter(mockSource);
             const { owner, repo } = (adapter as any).parseGitHubUrl();
             
-            assert.strictEqual(owner, 'test-owner');
-            assert.strictEqual(repo, 'test-repo');
+            expect(owner).toBe('test-owner');
+            expect(repo).toBe('test-repo');
         });
 
-        test('should handle .git suffix', () => {
+        it('should handle .git suffix', () => {
             const source = { ...mockSource, url: 'https://github.com/owner/repo.git' };
             const adapter = new ApmAdapter(source);
             const { repo } = (adapter as any).parseGitHubUrl();
             
-            assert.strictEqual(repo, 'repo');
+            expect(repo).toBe('repo');
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should throw error when runtime not installed and setup fails', async () => {
+    describe('fetchBundles', () => {
+        it('should throw error when runtime not installed and setup fails', async () => {
             mockRuntime.getStatus.resolves({ installed: false, uvxAvailable: false });
             mockRuntime.setupRuntime.resolves(false);
             
             const adapter = new ApmAdapter(mockSource);
             
-            await assert.rejects(
-                () => adapter.fetchBundles(),
-                /APM runtime is not available/
-            );
+            await expect(() => adapter.fetchBundles()).rejects.toThrow(/APM runtime is not available/);
             
-            assert.ok(mockRuntime.setupRuntime.called);
+            expect(mockRuntime.setupRuntime.called).toBeTruthy();
         });
 
-        test('should proceed when runtime setup succeeds', async () => {
+        it('should proceed when runtime setup succeeds', async () => {
             mockRuntime.getStatus.resolves({ installed: false, uvxAvailable: false });
             mockRuntime.setupRuntime.resolves(true);
             
@@ -185,20 +181,20 @@ suite('ApmAdapter', () => {
             
             const bundles = await adapter.fetchBundles();
             
-            assert.ok(mockRuntime.setupRuntime.called);
-            assert.ok(Array.isArray(bundles));
+            expect(mockRuntime.setupRuntime.called).toBeTruthy();
+            expect(Array.isArray(bundles)).toBeTruthy();
         });
 
-        test('should return empty array when manifest not found', async () => {
+        it('should return empty array when manifest not found', async () => {
             const adapter = new ApmAdapter(mockSource);
             
             // Will return empty array for non-existent repo
             const bundles = await adapter.fetchBundles();
             
-            assert.ok(Array.isArray(bundles));
+            expect(Array.isArray(bundles)).toBeTruthy();
         });
 
-        test('should fetch bundles using git tree optimization', async () => {
+        it('should fetch bundles using git tree optimization', async () => {
             const adapter = new ApmAdapter(mockSource);
             
             // Mock httpsGet to return tree then manifests
@@ -221,12 +217,12 @@ suite('ApmAdapter', () => {
             
             const bundles = await adapter.fetchBundles();
             
-            assert.strictEqual(bundles.length, 2);
-            assert.strictEqual(bundles[0].name, 'root-pkg');
-            assert.strictEqual(bundles[1].name, 'sub-pkg');
+            expect(bundles.length).toBe(2);
+            expect(bundles[0].name).toBe('root-pkg');
+            expect(bundles[1].name).toBe('sub-pkg');
         });
 
-        test('should cache results', async () => {
+        it('should cache results', async () => {
             const adapter = new ApmAdapter(mockSource);
             
             // First call
@@ -236,24 +232,24 @@ suite('ApmAdapter', () => {
             const bundles2 = await adapter.fetchBundles();
             
             // Both should return arrays
-            assert.ok(Array.isArray(bundles1));
-            assert.ok(Array.isArray(bundles2));
+            expect(Array.isArray(bundles1)).toBeTruthy();
+            expect(Array.isArray(bundles2)).toBeTruthy();
         });
     });
 
-    suite('validate', () => {
-        test('should return invalid when runtime not installed', async () => {
+    describe('validate', () => {
+        it('should return invalid when runtime not installed', async () => {
             mockRuntime.getStatus.resolves({ installed: false });
             
             const adapter = new ApmAdapter(mockSource);
             const result = await adapter.validate();
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
-            assert.ok(result.errors[0].includes('APM CLI'));
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
+            expect(result.errors[0].includes('APM CLI')).toBeTruthy();
         });
 
-        test('should return runtime version in status', async () => {
+        it('should return runtime version in status', async () => {
             mockRuntime.getStatus.resolves({ 
                 installed: true, 
                 version: '2.0.0' 
@@ -264,71 +260,71 @@ suite('ApmAdapter', () => {
             const result = await adapter.validate();
             
             // Should include validation info
-            assert.ok('valid' in result);
-            assert.ok('errors' in result);
+            expect('valid' in result).toBeTruthy();
+            expect('errors' in result).toBeTruthy();
         });
     });
 
-    suite('getManifestUrl', () => {
-        test('should generate correct raw GitHub URL', () => {
+    describe('getManifestUrl', () => {
+        it('should generate correct raw GitHub URL', () => {
             const adapter = new ApmAdapter(mockSource);
             const url = adapter.getManifestUrl('some-bundle');
             
-            assert.ok(url.includes('raw.githubusercontent.com'));
-            assert.ok(url.includes('test-owner/test-repo'));
-            assert.ok(url.includes('apm.yml'));
+            expect(url.includes('raw.githubusercontent.com')).toBeTruthy();
+            expect(url.includes('test-owner/test-repo')).toBeTruthy();
+            expect(url.includes('apm.yml')).toBeTruthy();
         });
     });
 
-    suite('getDownloadUrl', () => {
-        test('should return manifest URL (APM has no pre-built downloads)', () => {
+    describe('getDownloadUrl', () => {
+        it('should return manifest URL (APM has no pre-built downloads)', () => {
             const adapter = new ApmAdapter(mockSource);
             const downloadUrl = adapter.getDownloadUrl('some-bundle');
             const manifestUrl = adapter.getManifestUrl('some-bundle');
             
-            assert.strictEqual(downloadUrl, manifestUrl);
+            expect(downloadUrl).toBe(manifestUrl);
         });
     });
 
-    suite('requiresAuthentication', () => {
-        test('should return false for public repos by default', () => {
+    describe('requiresAuthentication', () => {
+        it('should return false for public repos by default', () => {
             const adapter = new ApmAdapter(mockSource);
             
-            assert.strictEqual(adapter.requiresAuthentication(), false);
+            expect(adapter.requiresAuthentication()).toBe(false);
         });
 
-        test('should return true when source is marked private', () => {
+        it('should return true when source is marked private', () => {
             const source = { ...mockSource, private: true };
             const adapter = new ApmAdapter(source);
             
-            assert.strictEqual(adapter.requiresAuthentication(), true);
+            expect(adapter.requiresAuthentication()).toBe(true);
         });
     });
 
-    suite('Configuration', () => {
-        test('should accept custom branch config', () => {
+    describe('Configuration', () => {
+        it('should accept custom branch config', () => {
             const source = { 
                 ...mockSource, 
                 config: { branch: 'develop' } 
             };
             const adapter = new ApmAdapter(source);
             
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should accept custom cache TTL config', () => {
+        it('should accept custom cache TTL config', () => {
             const source = { 
                 ...mockSource, 
                 config: { cacheTtl: 60000 } 
             };
             const adapter = new ApmAdapter(source);
             
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
     });
 
-    suite('Security', () => {
-        test('should validate GitHub URL format strictly', () => {
+    describe('Security', () => {
+        it('should validate GitHub URL format strictly', () => {
             const maliciousUrls = [
                 'https://github.com/owner/repo;rm -rf /',
                 'https://github.com/owner/repo|cat /etc/passwd',
@@ -338,15 +334,11 @@ suite('ApmAdapter', () => {
             
             for (const url of maliciousUrls) {
                 const source = { ...mockSource, url };
-                assert.throws(
-                    () => new ApmAdapter(source),
-                    /Invalid|URL|GitHub/i,
-                    `Should reject: ${url}`
-                );
+                expect(() => new ApmAdapter(source)).toThrow(/Invalid|URL|GitHub/i);
             }
         });
 
-        test('should not execute arbitrary code from manifest', async () => {
+        it('should not execute arbitrary code from manifest', async () => {
             // This test verifies that even if a manifest contains script fields,
             // the adapter does not execute them - it only parses YAML data
             const adapter = new ApmAdapter(mockSource);
@@ -356,12 +348,12 @@ suite('ApmAdapter', () => {
             const bundles = await adapter.fetchBundles();
             
             // Should return array (empty or with bundles) without executing any scripts
-            assert.ok(Array.isArray(bundles));
+            expect(Array.isArray(bundles)).toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle network errors gracefully', async () => {
+    describe('Error Handling', () => {
+        it('should handle network errors gracefully', async () => {
             // When network fails, adapter should return empty array (internal error handling)
             // Network errors are caught internally and result in empty bundle array
             const adapter = new ApmAdapter(mockSource);
@@ -371,19 +363,19 @@ suite('ApmAdapter', () => {
             const bundles = await adapter.fetchBundles();
             
             // Should return empty array on failure (repo doesn't exist)
-            assert.ok(Array.isArray(bundles));
+            expect(Array.isArray(bundles)).toBeTruthy();
         });
 
-        test('should provide helpful error messages when runtime not installed', async () => {
+        it('should provide helpful error messages when runtime not installed', async () => {
             mockRuntime.getStatus.resolves({ installed: false });
             
             const adapter = new ApmAdapter(mockSource);
             
             try {
                 await adapter.fetchBundles();
-                assert.fail('Should have thrown');
+                expect.fail('Should have thrown');
             } catch (error: any) {
-                assert.ok(error.message.includes('APM') || error.message.includes('install'));
+                expect(error.message.includes('APM') || error.message.includes('install')).toBeTruthy();
             }
         });
     });

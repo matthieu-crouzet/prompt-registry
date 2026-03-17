@@ -24,14 +24,14 @@ const MAX_PATCH_VERSION = 50;
 const MIN_BUNDLES = 1;
 const MAX_BUNDLES = 10;
 
-suite('UpdateChecker Property Tests', () => {
+describe('UpdateChecker Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockMemento: vscode.Memento;
     let registryManager: sinon.SinonStubbedInstance<RegistryManager>;
     let registryStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let updateChecker: UpdateChecker;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create mock memento for cache storage
@@ -67,7 +67,7 @@ suite('UpdateChecker Property Tests', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -81,7 +81,7 @@ suite('UpdateChecker Property Tests', () => {
      * 
      * Validates: Requirements 1.3
      */
-    test('Property 3: Version comparison identifies updates correctly', async () => {
+    it('Property 3: Version comparison identifies updates correctly', async () => {
         await fc.assert(
                 fc.asyncProperty(
                     // Ensure each bundleId is unique in the generated array to avoid
@@ -202,7 +202,7 @@ suite('UpdateChecker Property Tests', () => {
      * 
      * Validates: Requirements 1.4
      */
-    test('Property 4: Cache prevents redundant API calls within TTL', async () => {
+    it('Property 4: Cache prevents redundant API calls within TTL', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -339,7 +339,7 @@ suite('UpdateChecker Property Tests', () => {
      * 
      * Validates: Requirements 5.1
      */
-    test('Property 20: Manual check bypasses cache and triggers immediate query', async () => {
+    it('Property 20: Manual check bypasses cache and triggers immediate query', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -513,7 +513,7 @@ suite('UpdateChecker Property Tests', () => {
      * 
      * Validates: Requirements 1.7
      */
-    test('Property 46: Update check syncs only GitHub release sources', async () => {
+    it('Property 46: Update check syncs only GitHub release sources', async () => {
         await fc.assert(
                 fc.asyncProperty(
                     fc.record({

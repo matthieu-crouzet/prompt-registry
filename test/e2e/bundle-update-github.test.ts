@@ -11,7 +11,6 @@
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 3.2, 3.3
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -21,7 +20,7 @@ import AdmZip from 'adm-zip';
 import { createE2ETestContext, E2ETestContext, generateTestId } from '../helpers/e2eTestHelpers';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('E2E: GitHub Bundle Update Tests', () => {
+describe('E2E: GitHub Bundle Update Tests', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -91,8 +90,7 @@ license: MIT
     });
 
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('github');
         
         // Create sinon sandbox for stubbing
@@ -133,8 +131,7 @@ license: MIT
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         await testContext.cleanup();
         sandbox.restore();
         nock.cleanAll();
@@ -214,25 +211,21 @@ license: MIT
     }
 
 
-    suite('Test Setup Validation', () => {
-        test('should create isolated test context with unique storage path', async function() {
-            this.timeout(10000);
-            
+    describe('Test Setup Validation', () => {
+        it('should create isolated test context with unique storage path', async function() {
             // Verify test context was created
-            assert.ok(testContext, 'Test context should be created');
-            assert.ok(testContext.tempStoragePath, 'Temp storage path should exist');
-            assert.ok(fs.existsSync(testContext.tempStoragePath), 'Temp directory should exist');
+            expect(testContext, 'Test context should be created').toBeTruthy();
+            expect(testContext.tempStoragePath, 'Temp storage path should exist').toBeTruthy();
+            expect(fs.existsSync(testContext.tempStoragePath), 'Temp directory should exist').toBeTruthy();
             
             // Verify storage is initialized
             const paths = testContext.storage.getPaths();
-            assert.ok(fs.existsSync(paths.installed), 'Installed directory should exist');
+            expect(fs.existsSync(paths.installed), 'Installed directory should exist').toBeTruthy();
         });
     });
 
-    suite('GitHub Bundle Update Workflow', () => {
-        test('Example 2.1: Specific version installation records correct version', async function() {
-            this.timeout(60000);
-            
+    describe('GitHub Bundle Update Workflow', () => {
+        it('Example 2.1: Specific version installation records correct version', async function() {
             const sourceId = `${testId}-source-version`;
             const source = createMockSource(sourceId);
             
@@ -250,11 +243,11 @@ license: MIT
             
             // Step 3: Get raw bundles from cache (not consolidated) to find specific version
             const rawBundles = await testContext.storage.getCachedSourceBundles(sourceId);
-            assert.ok(rawBundles.length >= 2, 'Should have both versions in cache');
+            expect(rawBundles.length >= 2, 'Should have both versions in cache').toBeTruthy();
             
             // Find the v1.0.0 bundle by its full ID (owner-repo-manifestId-version format)
             const v1Bundle = rawBundles.find(b => b.id === 'test-owner-test-repo-test-collection-1.0.0');
-            assert.ok(v1Bundle, 'Should find v1.0.0 bundle');
+            expect(v1Bundle, 'Should find v1.0.0 bundle').toBeTruthy();
             
             // Step 4: Install v1.0.0 using the version option to get the specific version
             // The version option triggers applyVersionOverride which uses the correct bundle ID
@@ -262,13 +255,11 @@ license: MIT
             
             // Step 5: Verify installation record shows v1.0.0
             const installed = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installed.length, 1, 'Should have one installed bundle');
-            assert.strictEqual(installed[0].version, '1.0.0', 'Installation record should show v1.0.0');
+            expect(installed.length, 'Should have one installed bundle').toBe(1);
+            expect(installed[0].version, 'Installation record should show v1.0.0').toBe('1.0.0');
         });
 
-        test('Example 2.2: Update check compares installed vs latest version', async function() {
-            this.timeout(60000);
-            
+        it('Example 2.2: Update check compares installed vs latest version', async function() {
             const sourceId = `${testId}-source-check`;
             const source = createMockSource(sourceId);
             
@@ -285,7 +276,7 @@ license: MIT
             // Get raw bundles from cache and install v1.0.0 using version option
             const rawBundles = await testContext.storage.getCachedSourceBundles(sourceId);
             const v1Bundle = rawBundles.find(b => b.id === 'test-owner-test-repo-test-collection-1.0.0');
-            assert.ok(v1Bundle, 'Should find v1.0.0 bundle');
+            expect(v1Bundle, 'Should find v1.0.0 bundle').toBeTruthy();
             
             await testContext.registryManager.installBundle(v1Bundle!.id, { scope: 'user', version: '1.0.0' });
             
@@ -293,16 +284,14 @@ license: MIT
             const updates = await testContext.registryManager.checkUpdates();
             
             // Verify update is detected
-            assert.ok(updates.length > 0, 'Should detect available updates');
+            expect(updates.length > 0, 'Should detect available updates').toBeTruthy();
             const update = updates.find(u => u.bundleId.includes('test-owner-test-repo'));
-            assert.ok(update, 'Should find update for our bundle');
-            assert.strictEqual(update!.currentVersion, '1.0.0', 'Current version should be 1.0.0');
-            assert.strictEqual(update!.latestVersion, '2.0.0', 'Latest version should be 2.0.0');
+            expect(update, 'Should find update for our bundle').toBeTruthy();
+            expect(update!.currentVersion, 'Current version should be 1.0.0').toBe('1.0.0');
+            expect(update!.latestVersion, 'Latest version should be 2.0.0').toBe('2.0.0');
         });
 
-        test('Example 2.3: Update information displays both versions', async function() {
-            this.timeout(60000);
-            
+        it('Example 2.3: Update information displays both versions', async function() {
             const sourceId = `${testId}-source-info`;
             const source = createMockSource(sourceId);
             
@@ -326,17 +315,14 @@ license: MIT
             
             // Verify update information contains both versions
             const update = updates.find(u => u.bundleId.includes('test-owner-test-repo'));
-            assert.ok(update, 'Should find update info');
-            assert.ok(update!.currentVersion, 'Update info should have currentVersion');
-            assert.ok(update!.latestVersion, 'Update info should have latestVersion');
-            assert.notStrictEqual(update!.currentVersion, update!.latestVersion, 
-                'Current and latest versions should be different');
+            expect(update, 'Should find update info').toBeTruthy();
+            expect(update!.currentVersion, 'Update info should have currentVersion').toBeTruthy();
+            expect(update!.latestVersion, 'Update info should have latestVersion').toBeTruthy();
+            expect(update!.currentVersion, 'Current and latest versions should be different').not.toBe(update!.latestVersion);
         });
 
 
-        test('Example 2.4: Update action installs latest version', async function() {
-            this.timeout(60000);
-            
+        it('Example 2.4: Update action installs latest version', async function() {
             const sourceId = `${testId}-source-update`;
             const source = createMockSource(sourceId);
             
@@ -353,13 +339,13 @@ license: MIT
             // Get raw bundles from cache and install v1.0.0 using full bundle ID with version option
             const rawBundles = await testContext.storage.getCachedSourceBundles(sourceId);
             const v1Bundle = rawBundles.find(b => b.id === 'test-owner-test-repo-test-collection-1.0.0');
-            assert.ok(v1Bundle, 'Should find v1.0.0 bundle');
+            expect(v1Bundle, 'Should find v1.0.0 bundle').toBeTruthy();
             
             await testContext.registryManager.installBundle(v1Bundle!.id, { scope: 'user', version: '1.0.0' });
             
             // Verify v1.0.0 is installed
             const installedBefore = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedBefore[0].version, '1.0.0', 'Should have v1.0.0 installed');
+            expect(installedBefore[0].version, 'Should have v1.0.0 installed').toBe('1.0.0');
             
             // Trigger update using the installed bundle ID
             const installedBundleId = installedBefore[0].bundleId;
@@ -367,13 +353,11 @@ license: MIT
             
             // Verify v2.0.0 is now installed
             const installedAfter = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedAfter.length, 1, 'Should have one installed bundle');
-            assert.strictEqual(installedAfter[0].version, '2.0.0', 'Should have v2.0.0 installed after update');
+            expect(installedAfter.length, 'Should have one installed bundle').toBe(1);
+            expect(installedAfter[0].version, 'Should have v2.0.0 installed after update').toBe('2.0.0');
         });
 
-        test('Example 2.5: Previous installation record is removed', async function() {
-            this.timeout(60000);
-            
+        it('Example 2.5: Previous installation record is removed', async function() {
             const sourceId = `${testId}-source-record-remove`;
             const source = createMockSource(sourceId);
             
@@ -403,16 +387,14 @@ license: MIT
             // Verify no v1.0.0 record exists
             const installedAfter = await testContext.registryManager.listInstalledBundles();
             const v1Record = installedAfter.find(b => b.bundleId === v1BundleId && b.version === '1.0.0');
-            assert.ok(!v1Record, 'v1.0.0 installation record should be removed');
+            expect(!v1Record, 'v1.0.0 installation record should be removed').toBeTruthy();
             
             // Verify only v2.0.0 exists
-            assert.strictEqual(installedAfter.length, 1, 'Should have exactly one installation record');
-            assert.strictEqual(installedAfter[0].version, '2.0.0', 'Only v2.0.0 should exist');
+            expect(installedAfter.length, 'Should have exactly one installation record').toBe(1);
+            expect(installedAfter[0].version, 'Only v2.0.0 should exist').toBe('2.0.0');
         });
 
-        test('Example 2.6: Previous version files are removed', async function() {
-            this.timeout(60000);
-            
+        it('Example 2.6: Previous version files are removed', async function() {
             const sourceId = `${testId}-source-files-remove`;
             const source = createMockSource(sourceId);
             
@@ -439,9 +421,9 @@ license: MIT
             
             // Verify v1.0.0 files exist with initial content
             const v1PromptPath = path.join(v1InstallPath, 'prompts', 'test.prompt.md');
-            assert.ok(fs.existsSync(v1PromptPath), 'v1.0.0 prompt file should exist');
+            expect(fs.existsSync(v1PromptPath), 'v1.0.0 prompt file should exist').toBeTruthy();
             const v1Content = fs.readFileSync(v1PromptPath, 'utf-8');
-            assert.ok(v1Content.includes('INITIAL_CONTENT'), 'v1.0.0 should have initial content');
+            expect(v1Content.includes('INITIAL_CONTENT'), 'v1.0.0 should have initial content').toBeTruthy();
             
             // Trigger update
             await testContext.registryManager.updateBundle(v1BundleId);
@@ -452,20 +434,18 @@ license: MIT
             
             // If paths are different, v1 path should not exist
             if (v1InstallPath !== v2InstallPath) {
-                assert.ok(!fs.existsSync(v1InstallPath), 'v1.0.0 install directory should be removed');
+                expect(!fs.existsSync(v1InstallPath), 'v1.0.0 install directory should be removed').toBeTruthy();
             }
             
             // v2 files should have updated content
             const v2PromptPath = path.join(v2InstallPath, 'prompts', 'test.prompt.md');
-            assert.ok(fs.existsSync(v2PromptPath), 'v2.0.0 prompt file should exist');
+            expect(fs.existsSync(v2PromptPath), 'v2.0.0 prompt file should exist').toBeTruthy();
             const v2Content = fs.readFileSync(v2PromptPath, 'utf-8');
-            assert.ok(v2Content.includes('UPDATED_CONTENT'), 'v2.0.0 should have updated content');
-            assert.ok(!v2Content.includes('INITIAL_CONTENT'), 'v2.0.0 should not have initial content');
+            expect(v2Content.includes('UPDATED_CONTENT'), 'v2.0.0 should have updated content').toBeTruthy();
+            expect(!v2Content.includes('INITIAL_CONTENT'), 'v2.0.0 should not have initial content').toBeTruthy();
         });
 
-        test('Example 2.7: New installation record is created', async function() {
-            this.timeout(60000);
-            
+        it('Example 2.7: New installation record is created', async function() {
             const sourceId = `${testId}-source-new-record`;
             const source = createMockSource(sourceId);
             
@@ -494,13 +474,13 @@ license: MIT
             
             // Verify new installation record exists with v2.0.0
             const installedAfter = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installedAfter.length, 1, 'Should have one installation record');
+            expect(installedAfter.length, 'Should have one installation record').toBe(1);
             
             const newRecord = installedAfter[0];
-            assert.strictEqual(newRecord.version, '2.0.0', 'New record should have v2.0.0');
-            assert.ok(newRecord.bundleId, 'New record should have bundleId');
-            assert.ok(newRecord.installPath, 'New record should have installPath');
-            assert.ok(newRecord.installedAt, 'New record should have installedAt timestamp');
+            expect(newRecord.version, 'New record should have v2.0.0').toBe('2.0.0');
+            expect(newRecord.bundleId, 'New record should have bundleId').toBeTruthy();
+            expect(newRecord.installPath, 'New record should have installPath').toBeTruthy();
+            expect(newRecord.installedAt, 'New record should have installedAt timestamp').toBeTruthy();
         });
     });
 });

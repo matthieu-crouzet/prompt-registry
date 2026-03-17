@@ -1,4 +1,3 @@
-import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { RegistryTreeProvider, TreeItemType, RegistryTreeItem } from '../../src/ui/RegistryTreeProvider';
@@ -7,13 +6,13 @@ import { HubManager } from '../../src/services/HubManager';
 import { HubProfile } from '../../src/types/hub';
 import { setupTreeProviderMocks } from '../helpers/uiTestHelpers';
 
-suite('RegistryTreeProvider - Hub Profiles', () => {
+describe('RegistryTreeProvider - Hub Profiles', () => {
     let provider: RegistryTreeProvider;
     let registryManagerStub: sinon.SinonStubbedInstance<RegistryManager>;
     let hubManagerStub: sinon.SinonStubbedInstance<HubManager>;
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         registryManagerStub = sandbox.createStubInstance(RegistryManager);
         hubManagerStub = sandbox.createStubInstance(HubManager);
@@ -24,11 +23,11 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
         provider = new RegistryTreeProvider(registryManagerStub as any, hubManagerStub as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('getFavoritesItems should return items with correct contextValue for menu actions', async () => {
+    it('getFavoritesItems should return items with correct contextValue for menu actions', async () => {
         (provider as any).viewMode = 'favorites';
         const mockProfile: HubProfile = {
             id: 'test-profile',
@@ -60,24 +59,24 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
         const items = await (provider as any).getFavoritesItems();
 
         // 1 Hub Item + 0 local + 1 create button = 2 items
-        assert.strictEqual(items.length, 3);
+        expect(items.length).toBe(3);
         
         const hubItem = items.find((i: RegistryTreeItem) => i.label === 'Test Hub');
-        assert.ok(hubItem);
-        assert.strictEqual(hubItem.type, TreeItemType.HUB);
+        expect(hubItem).toBeTruthy();
+        expect(hubItem.type).toBe(TreeItemType.HUB);
 
         // Get children of Hub Item to find the profile
         hubManagerStub.listProfilesFromHub.withArgs('test-hub').resolves([mockProfile]);
         const children = await provider.getChildren(hubItem);
         
         const profileItem = children.find((i: RegistryTreeItem) => i.label === 'test-icon ⭐ Test Profile');
-        assert.ok(profileItem);
-        assert.strictEqual(profileItem.type, TreeItemType.HUB_PROFILE);
+        expect(profileItem).toBeTruthy();
+        expect(profileItem.type).toBe(TreeItemType.HUB_PROFILE);
         // contextValue should enable profile actions
-        assert.ok(profileItem.contextValue && profileItem.contextValue.includes('hub_profile'));
+        expect(profileItem.contextValue && profileItem.contextValue.includes('hub_profile')).toBeTruthy();
     });
 
-    test('Favorites view should include local profiles and Create New Profile item', async () => {
+    it('Favorites view should include local profiles and Create New Profile item', async () => {
         (provider as any).viewMode = 'favorites';
         const mockHubProfile: HubProfile = {
             id: 'test-hub-profile',
@@ -119,19 +118,19 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
         const items = await (provider as any).getFavoritesItems();
 
         // Should contain: 1 Hub Item + 1 Local Profiles folder + 1 create button
-        assert.strictEqual(items.length, 4);
+        expect(items.length).toBe(4);
         
         const hubItem = items.find((i: RegistryTreeItem) => i.label === 'Test Hub');
-        assert.ok(hubItem, 'Hub item should be present for favorited hub profiles');
+        expect(hubItem, 'Hub item should be present for favorited hub profiles').toBeTruthy();
 
         const localProfilesFolder = items.find((i: RegistryTreeItem) => i.label === 'Local Profiles');
-        assert.ok(localProfilesFolder, 'Local Profiles folder should be present');
+        expect(localProfilesFolder, 'Local Profiles folder should be present').toBeTruthy();
 
         const createItem = items.find((i: RegistryTreeItem) => i.type === TreeItemType.CREATE_PROFILE);
-        assert.ok(createItem, 'Create Profile item should be present');
+        expect(createItem, 'Create Profile item should be present').toBeTruthy();
     });
 
-    test('Active Hub Profile should be indicated', async () => {
+    it('Active Hub Profile should be indicated', async () => {
         (provider as any).viewMode = 'favorites';
         const mockProfile: HubProfile = {
             id: 'test-profile',
@@ -165,19 +164,19 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
         const children = await provider.getChildren(hubItem);
         const item = children.find((i: RegistryTreeItem) => i.label === 'test-icon ⭐ Test Profile'); // Expect profile icon + star
         
-        assert.ok(item);
-        assert.strictEqual(item.description, '[Active]');
+        expect(item).toBeTruthy();
+        expect(item.description).toBe('[Active]');
     });
 
-    test('Favorites root item should not have emoji in label', () => {
+    it('Favorites root item should not have emoji in label', () => {
         (provider as any).viewMode = 'favorites';
         const roots = (provider as any).getRootItems();
         const favoritesRoot = roots.find((i: RegistryTreeItem) => i.type === TreeItemType.FAVORITES_ROOT);
         
-        assert.strictEqual(favoritesRoot.label, 'Favorites');
+        expect(favoritesRoot.label).toBe('Favorites');
     });
 
-    test('Favorites view should show Active Profile section with None when no profile is active', async () => {
+    it('Favorites view should show Active Profile section with None when no profile is active', async () => {
         (provider as any).viewMode = 'favorites';
 
         hubManagerStub.getFavoriteProfiles.resolves({});
@@ -186,17 +185,17 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
 
         const items = await (provider as any).getFavoritesItems();
 
-        assert.strictEqual(items[0].label, 'Active Profile');
+        expect(items[0].label).toBe('Active Profile');
 
         const activeProfileSection = items.find((i: RegistryTreeItem) => i.label === 'Active Profile');
-        assert.ok(activeProfileSection);
+        expect(activeProfileSection).toBeTruthy();
 
         const children = await provider.getChildren(activeProfileSection);
-        assert.strictEqual(children.length, 1);
-        assert.strictEqual(children[0].label, 'None');
+        expect(children.length).toBe(1);
+        expect(children[0].label).toBe('None');
     });
 
-    test('Favorites view should show active local profile in Active Profile section', async () => {
+    it('Favorites view should show active local profile in Active Profile section', async () => {
         (provider as any).viewMode = 'favorites';
 
         const mockLocalProfile = {
@@ -216,16 +215,16 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
 
         const items = await (provider as any).getFavoritesItems();
         const activeProfileSection = items.find((i: RegistryTreeItem) => i.label === 'Active Profile');
-        assert.ok(activeProfileSection);
+        expect(activeProfileSection).toBeTruthy();
 
         const children = await provider.getChildren(activeProfileSection);
         const activeItem = children.find((i: RegistryTreeItem) => i.label === 'Local Profile');
-        assert.ok(activeItem);
-        assert.strictEqual(activeItem.type, TreeItemType.PROFILE);
-        assert.strictEqual(activeItem.description, '[Active]');
+        expect(activeItem).toBeTruthy();
+        expect(activeItem.type).toBe(TreeItemType.PROFILE);
+        expect(activeItem.description).toBe('[Active]');
     });
 
-    test('Favorites view should show active hub profile in Active Profile section', async () => {
+    it('Favorites view should show active hub profile in Active Profile section', async () => {
         (provider as any).viewMode = 'favorites';
 
         const hubId = 'test-hub';
@@ -255,16 +254,16 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
 
         const items = await (provider as any).getFavoritesItems();
         const activeProfileSection = items.find((i: RegistryTreeItem) => i.label === 'Active Profile');
-        assert.ok(activeProfileSection);
+        expect(activeProfileSection).toBeTruthy();
 
         const children = await provider.getChildren(activeProfileSection);
         const activeItem = children.find((i: RegistryTreeItem) => i.label === 'icon Active Profile');
-        assert.ok(activeItem);
-        assert.strictEqual(activeItem.type, TreeItemType.HUB_PROFILE);
-        assert.strictEqual(activeItem.description, '[Active]');
+        expect(activeItem).toBeTruthy();
+        expect(activeItem.type).toBe(TreeItemType.HUB_PROFILE);
+        expect(activeItem.description).toBe('[Active]');
     });
 
-    test('should deduplicate items when local profile matches favorite Hub Profile', async () => {
+    it('should deduplicate items when local profile matches favorite Hub Profile', async () => {
         (provider as any).viewMode = 'favorites';
         const commonId = 'common-profile';
         
@@ -310,16 +309,16 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
 
         // Should return 3 items: 1 Hub Item + 1 Local Profiles folder + 1 Create Button
         // Local profiles are now in their own folder, separate from hub favorites
-        assert.strictEqual(items.length, 4);
+        expect(items.length).toBe(4);
         
         const hubItem = items.find((i: RegistryTreeItem) => i.type === TreeItemType.HUB);
-        assert.ok(hubItem, 'Hub Item should be present');
+        expect(hubItem, 'Hub Item should be present').toBeTruthy();
         
         const localProfilesFolder = items.find((i: RegistryTreeItem) => i.type === TreeItemType.LOCAL_PROFILES_FOLDER);
-        assert.ok(localProfilesFolder, 'Local Profiles folder should be present');
+        expect(localProfilesFolder, 'Local Profiles folder should be present').toBeTruthy();
     });
 
-    test('Shared Profiles view should indicate active status', async () => {
+    it('Shared Profiles view should indicate active status', async () => {
         // Setup provider in 'all' mode (Shared Profiles)
         (provider as any).viewMode = 'all';
 
@@ -362,16 +361,16 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
         const items = await provider.getChildren(hubItem);
 
         const activeItem = items.find(i => i.label === 'icon Active Profile');
-        assert.ok(activeItem);
-        assert.strictEqual(activeItem.description, '[Active]');
+        expect(activeItem).toBeTruthy();
+        expect(activeItem.description).toBe('[Active]');
 
         const inactiveItem = items.find(i => i.label === 'icon Inactive Profile');
-        assert.ok(inactiveItem);
+        expect(inactiveItem).toBeTruthy();
         // Inactive profiles have empty string description to match PROFILE behavior
-        assert.strictEqual(inactiveItem.description, '');
+        expect(inactiveItem.description).toBe('');
     });
 
-    test('should organize profiles by path', async () => {
+    it('should organize profiles by path', async () => {
         (provider as any).viewMode = 'all';
         const hubId = 'test-hub';
         
@@ -416,34 +415,34 @@ suite('RegistryTreeProvider - Hub Profiles', () => {
         const rootProfileItem = rootItems.find(i => i.label === 'icon Root Profile');
         const folderItem = rootItems.find(i => i.label === 'Folder');
         
-        assert.ok(rootProfileItem, 'Root Profile not found');
-        assert.ok(folderItem, 'Folder not found');
-        assert.strictEqual(folderItem.type, TreeItemType.PROFILE_FOLDER);
+        expect(rootProfileItem, 'Root Profile not found').toBeTruthy();
+        expect(folderItem, 'Folder not found').toBeTruthy();
+        expect(folderItem.type).toBe(TreeItemType.PROFILE_FOLDER);
 
         // Get Folder children
         const folderChildren = await provider.getChildren(folderItem);
         
         // Should find "Subfolder"
         const subfolderItem = folderChildren.find(i => i.label === 'Subfolder');
-        assert.ok(subfolderItem, 'Subfolder not found');
-        assert.strictEqual(subfolderItem.type, TreeItemType.PROFILE_FOLDER);
+        expect(subfolderItem, 'Subfolder not found').toBeTruthy();
+        expect(subfolderItem.type).toBe(TreeItemType.PROFILE_FOLDER);
 
         // Get Subfolder children
         const subfolderChildren = await provider.getChildren(subfolderItem);
         
         // Should find "Nested Profile" (with icon prefix)
         const nestedProfileItem = subfolderChildren.find(i => i.label === 'icon Nested Profile');
-        assert.ok(nestedProfileItem, 'Nested Profile not found');
+        expect(nestedProfileItem, 'Nested Profile not found').toBeTruthy();
     });
 });
 
-suite('RegistryTreeProvider - Dual-Scope Display', () => {
+describe('RegistryTreeProvider - Dual-Scope Display', () => {
     let provider: RegistryTreeProvider;
     let registryManagerStub: sinon.SinonStubbedInstance<RegistryManager>;
     let hubManagerStub: sinon.SinonStubbedInstance<HubManager>;
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         registryManagerStub = sandbox.createStubInstance(RegistryManager);
         hubManagerStub = sandbox.createStubInstance(HubManager);
@@ -454,11 +453,11 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
         provider = new RegistryTreeProvider(registryManagerStub as any, hubManagerStub as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should list bundles from both user and repository scopes', async () => {
+    it('should list bundles from both user and repository scopes', async () => {
         const userBundle = {
             bundleId: 'user-bundle',
             version: '1.0.0',
@@ -520,16 +519,16 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 2, 'Should display both user and repository bundles');
+        expect(items.length, 'Should display both user and repository bundles').toBe(2);
         
         const userItem = items.find(i => i.label.includes('User Bundle'));
         const repoItem = items.find(i => i.label.includes('Repository Bundle'));
         
-        assert.ok(userItem, 'User bundle should be displayed');
-        assert.ok(repoItem, 'Repository bundle should be displayed');
+        expect(userItem, 'User bundle should be displayed').toBeTruthy();
+        expect(repoItem, 'Repository bundle should be displayed').toBeTruthy();
     });
 
-    test('should show scope indicator for repository bundles', async () => {
+    it('should show scope indicator for repository bundles', async () => {
         const repositoryBundle = {
             bundleId: 'repo-bundle',
             version: '1.0.0',
@@ -567,21 +566,18 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 1);
+        expect(items.length).toBe(1);
         const item = items[0];
         
         // Should have scope indicator in context value
-        assert.ok(item.contextValue, 'Should have context value');
-        assert.ok(
-            item.contextValue.includes('repository') || item.data.scope === 'repository',
-            'Should indicate repository scope'
-        );
+        expect(item.contextValue, 'Should have context value').toBeTruthy();
+        expect(item.contextValue.includes('repository') || item.data.scope === 'repository', 'Should indicate repository scope').toBeTruthy();
         
         // Verify scope is accessible from bundle data
-        assert.strictEqual(item.data.scope, 'repository', 'Bundle data should contain repository scope');
+        expect(item.data.scope, 'Bundle data should contain repository scope').toBe('repository');
     });
 
-    test('should show scope indicator for user bundles', async () => {
+    it('should show scope indicator for user bundles', async () => {
         const userBundle = {
             bundleId: 'user-bundle',
             version: '1.0.0',
@@ -618,14 +614,14 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 1);
+        expect(items.length).toBe(1);
         const item = items[0];
         
         // Verify scope is accessible from bundle data
-        assert.strictEqual(item.data.scope, 'user', 'Bundle data should contain user scope');
+        expect(item.data.scope, 'Bundle data should contain user scope').toBe('user');
     });
 
-    test('should show update indicators for both user and repository scopes', async () => {
+    it('should show update indicators for both user and repository scopes', async () => {
         const userBundle = {
             bundleId: 'user-bundle',
             version: '1.0.0',
@@ -707,25 +703,25 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 2);
+        expect(items.length).toBe(2);
         
         // Both should show update indicator
         const userItem = items.find(i => i.label.includes('User Bundle'));
         const repoItem = items.find(i => i.label.includes('Repository Bundle'));
         
-        assert.ok(userItem, 'User bundle should be displayed');
-        assert.ok(repoItem, 'Repository bundle should be displayed');
+        expect(userItem, 'User bundle should be displayed').toBeTruthy();
+        expect(repoItem, 'Repository bundle should be displayed').toBeTruthy();
         
         // Check for update indicator (⬆️)
-        assert.ok(userItem.label.includes('⬆️'), 'User bundle should show update indicator');
-        assert.ok(repoItem.label.includes('⬆️'), 'Repository bundle should show update indicator');
+        expect(userItem.label.includes('⬆️'), 'User bundle should show update indicator').toBeTruthy();
+        expect(repoItem.label.includes('⬆️'), 'Repository bundle should show update indicator').toBeTruthy();
         
         // Check version display shows both versions
-        assert.ok(userItem.description && typeof userItem.description === 'string' && userItem.description.includes('→'), 'User bundle should show version arrow');
-        assert.ok(repoItem.description && typeof repoItem.description === 'string' && repoItem.description.includes('→'), 'Repository bundle should show version arrow');
+        expect(userItem.description && typeof userItem.description === 'string' && userItem.description.includes('→'), 'User bundle should show version arrow').toBeTruthy();
+        expect(repoItem.description && typeof repoItem.description === 'string' && repoItem.description.includes('→'), 'Repository bundle should show version arrow').toBeTruthy();
     });
 
-    test('should differentiate commit mode in context value for repository bundles', async () => {
+    it('should differentiate commit mode in context value for repository bundles', async () => {
         const commitBundle = {
             bundleId: 'commit-bundle',
             version: '1.0.0',
@@ -789,20 +785,20 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 2);
+        expect(items.length).toBe(2);
         
         const commitItem = items.find(i => i.label.includes('Commit Bundle'));
         const localItem = items.find(i => i.label.includes('Local Bundle'));
         
-        assert.ok(commitItem, 'Commit bundle should be displayed');
-        assert.ok(localItem, 'Local bundle should be displayed');
+        expect(commitItem, 'Commit bundle should be displayed').toBeTruthy();
+        expect(localItem, 'Local bundle should be displayed').toBeTruthy();
         
         // Verify commit mode is accessible from data
-        assert.strictEqual(commitItem.data.commitMode, 'commit');
-        assert.strictEqual(localItem.data.commitMode, 'local-only');
+        expect(commitItem.data.commitMode).toBe('commit');
+        expect(localItem.data.commitMode).toBe('local-only');
     });
 
-    test('Favorites view should organize hub profiles by path', async () => {
+    it('Favorites view should organize hub profiles by path', async () => {
         (provider as any).viewMode = 'favorites';
         const hubId = 'test-hub';
         
@@ -835,32 +831,32 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
         
         // Should find "Test Hub" as a root item in favorites
         const hubItem = items.find((i: RegistryTreeItem) => i.label === 'Test Hub');
-        assert.ok(hubItem, 'Hub item not found in favorites');
-        assert.strictEqual(hubItem.type, TreeItemType.HUB);
+        expect(hubItem, 'Hub item not found in favorites').toBeTruthy();
+        expect(hubItem.type).toBe(TreeItemType.HUB);
 
         // Get children of the hub item
         const children = await provider.getChildren(hubItem);
         
         // Should find "Folder"
         const folderItem = children.find((i: RegistryTreeItem) => i.label === 'Folder');
-        assert.ok(folderItem, 'Folder not found in favorites');
-        assert.strictEqual(folderItem.type, TreeItemType.PROFILE_FOLDER);
+        expect(folderItem, 'Folder not found in favorites').toBeTruthy();
+        expect(folderItem.type).toBe(TreeItemType.PROFILE_FOLDER);
         
         // Get children of folder
         const folderChildren = await provider.getChildren(folderItem);
         
         // Should find "Subfolder"
         const subfolderItem = folderChildren.find((i: RegistryTreeItem) => i.label === 'Subfolder');
-        assert.ok(subfolderItem, 'Subfolder not found');
-        assert.strictEqual(subfolderItem.type, TreeItemType.PROFILE_FOLDER);
+        expect(subfolderItem, 'Subfolder not found').toBeTruthy();
+        expect(subfolderItem.type).toBe(TreeItemType.PROFILE_FOLDER);
 
         // Get Subfolder children
         const subfolderChildren = await provider.getChildren(subfolderItem);
         
         // Should find "Nested Profile" with icon prefix, star, and active status
         const nestedProfileItem = subfolderChildren.find((i: RegistryTreeItem) => i.label === 'icon ⭐ Nested Profile');
-        assert.ok(nestedProfileItem, 'Nested Profile not found');
-        assert.strictEqual(nestedProfileItem.description, '[Active]', 'Nested profile should be indicated as active');
+        expect(nestedProfileItem, 'Nested Profile not found').toBeTruthy();
+        expect(nestedProfileItem.description, 'Nested profile should be indicated as active').toBe('[Active]');
     });
 });
 
@@ -872,13 +868,13 @@ suite('RegistryTreeProvider - Dual-Scope Display', () => {
  * For any bundle with `filesMissing` set to `true`, the UI SHALL display 
  * a warning indicator distinguishing it from bundles with valid files.
  */
-suite('RegistryTreeProvider - Files Missing Warning Indicator', () => {
+describe('RegistryTreeProvider - Files Missing Warning Indicator', () => {
     let provider: RegistryTreeProvider;
     let registryManagerStub: sinon.SinonStubbedInstance<RegistryManager>;
     let hubManagerStub: sinon.SinonStubbedInstance<HubManager>;
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         registryManagerStub = sandbox.createStubInstance(RegistryManager);
         hubManagerStub = sandbox.createStubInstance(HubManager);
@@ -889,11 +885,11 @@ suite('RegistryTreeProvider - Files Missing Warning Indicator', () => {
         provider = new RegistryTreeProvider(registryManagerStub as any, hubManagerStub as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('should show warning indicator for bundle with filesMissing flag', async () => {
+    it('should show warning indicator for bundle with filesMissing flag', async () => {
         const bundleWithMissingFiles = {
             bundleId: 'missing-files-bundle',
             version: '1.0.0',
@@ -932,33 +928,24 @@ suite('RegistryTreeProvider - Files Missing Warning Indicator', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 1);
+        expect(items.length).toBe(1);
         const item = items[0];
         
         // Should show warning emoji prefix
-        assert.ok(item.label.includes('⚠️'), 'Bundle with missing files should show warning emoji');
+        expect(item.label.includes('⚠️'), 'Bundle with missing files should show warning emoji').toBeTruthy();
         
         // Should have warning tooltip
-        assert.ok(
-            item.tooltip && typeof item.tooltip === 'string' && item.tooltip.includes('Files missing'),
-            'Bundle with missing files should have warning tooltip'
-        );
+        expect(item.tooltip && typeof item.tooltip === 'string' && item.tooltip.includes('Files missing'), 'Bundle with missing files should have warning tooltip').toBeTruthy();
         
         // Should have warning icon
-        assert.ok(item.iconPath, 'Bundle with missing files should have warning icon');
-        assert.ok(
-            item.iconPath instanceof vscode.ThemeIcon && item.iconPath.id === 'warning',
-            'Icon should be warning ThemeIcon'
-        );
+        expect(item.iconPath, 'Bundle with missing files should have warning icon').toBeTruthy();
+        expect(item.iconPath instanceof vscode.ThemeIcon && item.iconPath.id === 'warning', 'Icon should be warning ThemeIcon').toBeTruthy();
         
         // Should have filesMissing context value (with scope suffix for repository bundles)
-        assert.ok(
-            item.contextValue?.startsWith('installedBundle.filesMissing'),
-            `Context value should start with installedBundle.filesMissing, got: ${item.contextValue}`
-        );
+        expect(item.contextValue?.startsWith('installedBundle.filesMissing'), `Context value should start with installedBundle.filesMissing, got: ${item.contextValue}`).toBeTruthy();
     });
 
-    test('should NOT show warning indicator for bundle without filesMissing flag', async () => {
+    it('should NOT show warning indicator for bundle without filesMissing flag', async () => {
         const normalBundle = {
             bundleId: 'normal-bundle',
             version: '1.0.0',
@@ -997,20 +984,17 @@ suite('RegistryTreeProvider - Files Missing Warning Indicator', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 1);
+        expect(items.length).toBe(1);
         const item = items[0];
         
         // Should NOT show warning emoji prefix
-        assert.ok(!item.label.includes('⚠️'), 'Normal bundle should not show warning emoji');
+        expect(!item.label.includes('⚠️'), 'Normal bundle should not show warning emoji').toBeTruthy();
         
         // Should have normal context value (not filesMissing)
-        assert.ok(
-            !item.contextValue?.startsWith('installedBundle.filesMissing'),
-            'Normal bundle should not have filesMissing context value'
-        );
+        expect(!item.contextValue?.startsWith('installedBundle.filesMissing'), 'Normal bundle should not have filesMissing context value').toBeTruthy();
     });
 
-    test('should show warning indicator when bundle details are not available', async () => {
+    it('should show warning indicator when bundle details are not available', async () => {
         const bundleWithMissingFiles = {
             bundleId: 'missing-files-bundle-no-details',
             version: '1.0.0',
@@ -1034,26 +1018,20 @@ suite('RegistryTreeProvider - Files Missing Warning Indicator', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 1);
+        expect(items.length).toBe(1);
         const item = items[0];
         
         // Should show warning emoji prefix even when details are not available
-        assert.ok(item.label.includes('⚠️'), 'Bundle with missing files should show warning emoji even without details');
+        expect(item.label.includes('⚠️'), 'Bundle with missing files should show warning emoji even without details').toBeTruthy();
         
         // Should have warning tooltip with bundle ID
-        assert.ok(
-            item.tooltip && typeof item.tooltip === 'string' && item.tooltip.includes('Files missing'),
-            'Bundle with missing files should have warning tooltip'
-        );
+        expect(item.tooltip && typeof item.tooltip === 'string' && item.tooltip.includes('Files missing'), 'Bundle with missing files should have warning tooltip').toBeTruthy();
         
         // Should have filesMissing context value (with scope suffix for repository bundles)
-        assert.ok(
-            item.contextValue?.startsWith('installedBundle.filesMissing'),
-            `Context value should start with installedBundle.filesMissing, got: ${item.contextValue}`
-        );
+        expect(item.contextValue?.startsWith('installedBundle.filesMissing'), `Context value should start with installedBundle.filesMissing, got: ${item.contextValue}`).toBeTruthy();
     });
 
-    test('should distinguish between bundles with and without missing files', async () => {
+    it('should distinguish between bundles with and without missing files', async () => {
         const bundleWithMissingFiles = {
             bundleId: 'missing-files-bundle',
             version: '1.0.0',
@@ -1118,26 +1096,20 @@ suite('RegistryTreeProvider - Files Missing Warning Indicator', () => {
 
         const items = await provider.getChildren(installedRoot);
 
-        assert.strictEqual(items.length, 2);
+        expect(items.length).toBe(2);
         
         const missingFilesItem = items.find(i => i.label.includes('Missing Files Bundle'));
         const normalItem = items.find(i => i.label.includes('Normal Bundle'));
         
-        assert.ok(missingFilesItem, 'Missing files bundle should be displayed');
-        assert.ok(normalItem, 'Normal bundle should be displayed');
+        expect(missingFilesItem, 'Missing files bundle should be displayed').toBeTruthy();
+        expect(normalItem, 'Normal bundle should be displayed').toBeTruthy();
         
         // Missing files bundle should have warning indicator
-        assert.ok(missingFilesItem.label.includes('⚠️'), 'Missing files bundle should show warning emoji');
-        assert.ok(
-            missingFilesItem.contextValue?.startsWith('installedBundle.filesMissing'),
-            `Missing files bundle context value should start with installedBundle.filesMissing, got: ${missingFilesItem.contextValue}`
-        );
+        expect(missingFilesItem.label.includes('⚠️'), 'Missing files bundle should show warning emoji').toBeTruthy();
+        expect(missingFilesItem.contextValue?.startsWith('installedBundle.filesMissing'), `Missing files bundle context value should start with installedBundle.filesMissing, got: ${missingFilesItem.contextValue}`).toBeTruthy();
         
         // Normal bundle should NOT have warning indicator
-        assert.ok(!normalItem.label.includes('⚠️'), 'Normal bundle should not show warning emoji');
-        assert.ok(
-            !normalItem.contextValue?.startsWith('installedBundle.filesMissing'),
-            'Normal bundle should not have filesMissing context value'
-        );
+        expect(!normalItem.label.includes('⚠️'), 'Normal bundle should not show warning emoji').toBeTruthy();
+        expect(!normalItem.contextValue?.startsWith('installedBundle.filesMissing'), 'Normal bundle should not have filesMissing context value').toBeTruthy();
     });
 });

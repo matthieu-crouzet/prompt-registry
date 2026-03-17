@@ -203,10 +203,13 @@ npm install                    # Install dependencies
 npm run compile                # Production webpack bundle
 npm run watch                  # Dev watch mode
 
-# Testing (always prefix with LOG_LEVEL=ERROR unless debugging)
+# Testing - unit tests use vitest (no compilation step needed)
 npm run test:one -- test/services/MyService.test.ts
 LOG_LEVEL=ERROR npm run test:unit
 LOG_LEVEL=ERROR npm test
+
+# Integration tests (run in VS Code via @vscode/test-electron, still uses mocha)
+npm run test:integration
 
 # Capture test output for analysis
 LOG_LEVEL=ERROR npm test 2>&1 | tee test.log | tail -20

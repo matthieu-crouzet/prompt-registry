@@ -3,7 +3,6 @@
  * Tests for hub orchestration logic
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
@@ -38,7 +37,7 @@ class MockSchemaValidator {
     }
 }
 
-suite('HubManager', () => {
+describe('HubManager', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let mockValidator: MockSchemaValidator;
@@ -49,7 +48,7 @@ suite('HubManager', () => {
         location: ''  // Will be set in setup
     };
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hubmanager');
 
@@ -68,105 +67,96 @@ suite('HubManager', () => {
         hubManager = new HubManager(storage, mockValidator as any, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    suite('Initialization', () => {
-        test('should initialize with storage and validator', () => {
-            assert.ok(hubManager);
+    describe('Initialization', () => {
+        it('should initialize with storage and validator', () => {
+            expect(hubManager).toBeTruthy();
         });
 
-        test('should throw if storage is missing', () => {
-            assert.throws(() => {
+        it('should throw if storage is missing', () => {
+            expect(() => {
                 new HubManager(null as any, mockValidator as any, process.cwd(), undefined, undefined);
-            }, /storage is required/);
+            }).toThrow(/storage is required/);
         });
 
-        test('should throw if validator is missing', () => {
-            assert.throws(() => {
+        it('should throw if validator is missing', () => {
+            expect(() => {
                 new HubManager(storage, null as any, process.cwd(), undefined, undefined);
-            }, /validator is required/);
+            }).toThrow(/validator is required/);
         });
     });
 
-    suite('Import Hub from Local', () => {
-        test('should import hub from local file', async () => {
+    describe('Import Hub from Local', () => {
+        it('should import hub from local file', async () => {
             const hubId = await hubManager.importHub(localRef, 'test-local');
-            assert.strictEqual(hubId, 'test-local');
+            expect(hubId).toBe('test-local');
 
             // Verify it's saved
             const loaded = await storage.loadHub('test-local');
-            assert.strictEqual(loaded.config.metadata.name, 'Official Prompt Registry Hub');
+            expect(loaded.config.metadata.name).toBe('Official Prompt Registry Hub');
         });
 
-        test('should auto-generate hub ID if not provided', async () => {
+        it('should auto-generate hub ID if not provided', async () => {
             const hubId = await hubManager.importHub(localRef);
-            assert.ok(hubId);
-            assert.ok(hubId.length > 0);
+            expect(hubId).toBeTruthy();
+            expect(hubId.length > 0).toBeTruthy();
         });
 
-        test('should fail if local file does not exist', async () => {
+        it('should fail if local file does not exist', async () => {
             const badRef: HubReference = {
                 type: 'local',
                 location: '/non/existent/file.yml'
             };
 
-            await assert.rejects(
-                async () => await hubManager.importHub(badRef),
-                /File not found/
-            );
+            await expect(async () => await hubManager.importHub(badRef)).rejects.toThrow(/File not found/);
         });
 
-        test('should fail if hub config is invalid', async () => {
+        it('should fail if hub config is invalid', async () => {
             mockValidator.setShouldFail(true, ['Invalid config']);
 
-            await assert.rejects(
-                async () => await hubManager.importHub(localRef, 'test-invalid'),
-                /Hub validation failed/
-            );
+            await expect(async () => await hubManager.importHub(localRef, 'test-invalid')).rejects.toThrow(/Hub validation failed/);
         });
     });
 
-    suite('Hub Validation', () => {
-        test('should validate hub config', async () => {
+    describe('Hub Validation', () => {
+        it('should validate hub config', async () => {
             // Load the fixture
             const config = yaml.load(fs.readFileSync(localRef.location, 'utf-8')) as HubConfig;
             const result = await hubManager.validateHub(config);
-            assert.strictEqual(result.valid, true);
+            expect(result.valid).toBe(true);
         });
 
-        test('should fail validation for invalid config', async () => {
+        it('should fail validation for invalid config', async () => {
             const config = yaml.load(fs.readFileSync(localRef.location, 'utf-8')) as HubConfig;
             mockValidator.setShouldFail(true, ['Schema error']);
 
             const result = await hubManager.validateHub(config);
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.includes('Schema error'));
+            expect(result.valid).toBe(false);
+            expect(result.errors.includes('Schema error')).toBeTruthy();
         });
     });
 
-    suite('Load Hub', () => {
-        test('should load hub from storage', async () => {
+    describe('Load Hub', () => {
+        it('should load hub from storage', async () => {
             // First import a hub
             await hubManager.importHub(localRef, 'test-load');
 
             // Then load it
             const result = await hubManager.loadHub('test-load');
-            assert.strictEqual(result.config.metadata.name, 'Official Prompt Registry Hub');
-            assert.strictEqual(result.reference.type, 'local');
+            expect(result.config.metadata.name).toBe('Official Prompt Registry Hub');
+            expect(result.reference.type).toBe('local');
         });
 
-        test('should fail to load non-existent hub', async () => {
-            await assert.rejects(
-                async () => await hubManager.loadHub('non-existent'),
-                /Hub not found/
-            );
+        it('should fail to load non-existent hub', async () => {
+            await expect(async () => await hubManager.loadHub('non-existent')).rejects.toThrow(/Hub not found/);
         });
 
-        test('should fail if loaded hub is invalid', async () => {
+        it('should fail if loaded hub is invalid', async () => {
             // Import valid hub
             await hubManager.importHub(localRef, 'test-invalid-load');
 
@@ -174,65 +164,59 @@ suite('HubManager', () => {
             mockValidator.setShouldFail(true, ['Validation failed']);
 
             // Load should fail
-            await assert.rejects(
-                async () => await hubManager.loadHub('test-invalid-load'),
-                /Hub validation failed/
-            );
+            await expect(async () => await hubManager.loadHub('test-invalid-load')).rejects.toThrow(/Hub validation failed/);
         });
     });
 
-    suite('List Hubs', () => {
-        test('should return empty array when no hubs', async () => {
+    describe('List Hubs', () => {
+        it('should return empty array when no hubs', async () => {
             const hubs = await hubManager.listHubs();
-            assert.strictEqual(hubs.length, 0);
+            expect(hubs.length).toBe(0);
         });
 
-        test('should list all imported hubs', async () => {
+        it('should list all imported hubs', async () => {
             await hubManager.importHub(localRef, 'hub1');
             await hubManager.importHub(localRef, 'hub2');
 
             const hubs = await hubManager.listHubs();
-            assert.strictEqual(hubs.length, 2);
-            assert.ok(hubs.some((h: any) => h.id === 'hub1'));
-            assert.ok(hubs.some((h: any) => h.id === 'hub2'));
+            expect(hubs.length).toBe(2);
+            expect(hubs.some((h: any) => h.id === 'hub1')).toBeTruthy();
+            expect(hubs.some((h: any) => h.id === 'hub2')).toBeTruthy();
         });
 
-        test('should include hub metadata in list', async () => {
+        it('should include hub metadata in list', async () => {
             await hubManager.importHub(localRef, 'hub-meta');
 
             const hubs = await hubManager.listHubs();
             const hub = hubs.find((h: any) => h.id === 'hub-meta');
-            assert.ok(hub);
-            assert.strictEqual(hub.name, 'Official Prompt Registry Hub');
+            expect(hub).toBeTruthy();
+            expect(hub.name).toBe('Official Prompt Registry Hub');
         });
     });
 
-    suite('Delete Hub', () => {
-        test('should delete hub from storage', async () => {
+    describe('Delete Hub', () => {
+        it('should delete hub from storage', async () => {
             await hubManager.importHub(localRef, 'test-delete');
 
             // Verify it exists
             const beforeDelete = await hubManager.listHubs();
-            assert.strictEqual(beforeDelete.length, 1);
+            expect(beforeDelete.length).toBe(1);
 
             // Delete it
             await hubManager.deleteHub('test-delete');
 
             // Verify it's gone
             const afterDelete = await hubManager.listHubs();
-            assert.strictEqual(afterDelete.length, 0);
+            expect(afterDelete.length).toBe(0);
         });
 
-        test('should fail to delete non-existent hub', async () => {
-            await assert.rejects(
-                async () => await hubManager.deleteHub('non-existent'),
-                /Hub not found/
-            );
+        it('should fail to delete non-existent hub', async () => {
+            await expect(async () => await hubManager.deleteHub('non-existent')).rejects.toThrow(/Hub not found/);
         });
     });
 
-    suite('Sync Hub', () => {
-        test('should sync hub from local source', async () => {
+    describe('Sync Hub', () => {
+        it('should sync hub from local source', async () => {
             // Copy fixture to temp location for modification
             const tempFixture = path.join(tempDir, 'sync-hub.yml');
             fs.copyFileSync(localRef.location, tempFixture);
@@ -255,87 +239,69 @@ suite('HubManager', () => {
 
             // Verify updated
             const result = await storage.loadHub('test-sync');
-            assert.strictEqual(result.config.metadata.maintainer, 'Updated Team');
+            expect(result.config.metadata.maintainer).toBe('Updated Team');
         });
 
-        test('should fail to sync non-existent hub', async () => {
-            await assert.rejects(
-                async () => await hubManager.syncHub('non-existent'),
-                /Hub not found/
-            );
+        it('should fail to sync non-existent hub', async () => {
+            await expect(async () => await hubManager.syncHub('non-existent')).rejects.toThrow(/Hub not found/);
         });
 
-        test('should fail sync if updated config is invalid', async () => {
+        it('should fail sync if updated config is invalid', async () => {
             await hubManager.importHub(localRef, 'test-sync-invalid');
 
             // Make validator fail for next validation
             mockValidator.setShouldFail(true, ['Invalid after sync']);
 
-            await assert.rejects(
-                async () => await hubManager.syncHub('test-sync-invalid'),
-                /Hub validation failed after sync/
-            );
+            await expect(async () => await hubManager.syncHub('test-sync-invalid')).rejects.toThrow(/Hub validation failed after sync/);
         });
     });
 
-    suite('Get Hub Info', () => {
-        test('should get detailed hub information', async () => {
+    describe('Get Hub Info', () => {
+        it('should get detailed hub information', async () => {
             await hubManager.importHub(localRef, 'test-info');
 
             const info = await hubManager.getHubInfo('test-info');
-            assert.strictEqual(info.id, 'test-info');
-            assert.strictEqual(info.config.metadata.name, 'Official Prompt Registry Hub');
-            assert.strictEqual(info.reference.type, 'local');
-            assert.ok(info.metadata.name);
-            assert.ok(info.metadata.description);
-            assert.ok(info.metadata.lastModified);
-            assert.ok(info.metadata.size > 0);
+            expect(info.id).toBe('test-info');
+            expect(info.config.metadata.name).toBe('Official Prompt Registry Hub');
+            expect(info.reference.type).toBe('local');
+            expect(info.metadata.name).toBeTruthy();
+            expect(info.metadata.description).toBeTruthy();
+            expect(info.metadata.lastModified).toBeTruthy();
+            expect(info.metadata.size > 0).toBeTruthy();
         });
 
-        test('should fail to get info for non-existent hub', async () => {
-            await assert.rejects(
-                async () => await hubManager.getHubInfo('non-existent'),
-                /Hub not found/
-            );
+        it('should fail to get info for non-existent hub', async () => {
+            await expect(async () => await hubManager.getHubInfo('non-existent')).rejects.toThrow(/Hub not found/);
         });
     });
 
-    suite('Reference Validation', () => {
-        test('should fail with missing type', async () => {
+    describe('Reference Validation', () => {
+        it('should fail with missing type', async () => {
             const badRef: any = {
                 location: 'somewhere'
             };
 
-            await assert.rejects(
-                async () => await hubManager.importHub(badRef),
-                /Reference type is required/
-            );
+            await expect(async () => await hubManager.importHub(badRef)).rejects.toThrow(/Reference type is required/);
         });
 
-        test('should fail with missing location', async () => {
+        it('should fail with missing location', async () => {
             const badRef: any = {
                 type: 'local'
             };
 
-            await assert.rejects(
-                async () => await hubManager.importHub(badRef),
-                /Reference location is required/
-            );
+            await expect(async () => await hubManager.importHub(badRef)).rejects.toThrow(/Reference location is required/);
         });
 
-        test('should fail with invalid GitHub location', async () => {
+        it('should fail with invalid GitHub location', async () => {
             const badRef: HubReference = {
                 type: 'github',
                 location: 'invalid-format'
             };
 
-            await assert.rejects(
-                async () => await hubManager.importHub(badRef),
-                /Invalid GitHub location format/
-            );
+            await expect(async () => await hubManager.importHub(badRef)).rejects.toThrow(/Invalid GitHub location format/);
         });
 
-        test('should accept valid GitHub location', async () => {
+        it('should accept valid GitHub location', async () => {
             // This will fail at fetch stage, but reference validation should pass
             const validRef: HubReference = {
                 type: 'github',
@@ -343,76 +309,66 @@ suite('HubManager', () => {
             };
 
             // Will fail at fetch, not at validation
-            await assert.rejects(
-                async () => await hubManager.importHub(validRef),
-                /Failed to fetch/
-            );
+            await expect(async () => await hubManager.importHub(validRef)).rejects.toThrow(/Failed to fetch/);
         });
     });
 
-    suite('Hub ID Validation', () => {
-        test('should reject invalid hub IDs', async () => {
-            await assert.rejects(
-                async () => await hubManager.importHub(localRef, '../bad-id'),
-                /Invalid hub ID/
-            );
+    describe('Hub ID Validation', () => {
+        it('should reject invalid hub IDs', async () => {
+            await expect(async () => await hubManager.importHub(localRef, '../bad-id')).rejects.toThrow(/Invalid hub ID/);
         });
 
-        test('should accept valid hub IDs', async () => {
+        it('should accept valid hub IDs', async () => {
             const hubId = await hubManager.importHub(localRef, 'valid-hub-123');
-            assert.strictEqual(hubId, 'valid-hub-123');
+            expect(hubId).toBe('valid-hub-123');
         });
     });
 
-    suite('Active Hub Management', () => {
-        test('should return null when no active hub is set', async () => {
+    describe('Active Hub Management', () => {
+        it('should return null when no active hub is set', async () => {
             const activeHub = await hubManager.getActiveHub();
-            assert.strictEqual(activeHub, null, 'Should return null when no active hub exists');
+            expect(activeHub, 'Should return null when no active hub exists').toBe(null);
         });
 
-        test('should set and retrieve active hub', async () => {
+        it('should set and retrieve active hub', async () => {
             const hubId = await hubManager.importHub(localRef, 'test-active-hub');
             
             await hubManager.setActiveHub(hubId);
             const activeHub = await hubManager.getActiveHub();
             
-            assert.ok(activeHub, 'Should return active hub');
-            assert.ok(activeHub.config, 'Should have config');
-            assert.ok(activeHub.reference, 'Should have reference');
+            expect(activeHub, 'Should return active hub').toBeTruthy();
+            expect(activeHub.config, 'Should have config').toBeTruthy();
+            expect(activeHub.reference, 'Should have reference').toBeTruthy();
         });
 
-        test('should update active hub when changed', async () => {
+        it('should update active hub when changed', async () => {
             const hubId1 = await hubManager.importHub(localRef, 'test-hub-1');
             const hubId2 = await hubManager.importHub(localRef, 'test-hub-2');
             
             await hubManager.setActiveHub(hubId1);
             let activeHub = await hubManager.getActiveHub();
-            assert.ok(activeHub, 'First hub should be active');
+            expect(activeHub, 'First hub should be active').toBeTruthy();
             
             await hubManager.setActiveHub(hubId2);
             activeHub = await hubManager.getActiveHub();
-            assert.ok(activeHub, 'Second hub should be active');
+            expect(activeHub, 'Second hub should be active').toBeTruthy();
         });
 
-        test('should return null after clearing active hub', async () => {
+        it('should return null after clearing active hub', async () => {
             const hubId = await hubManager.importHub(localRef, 'test-clear-hub');
             
             await hubManager.setActiveHub(hubId);
-            assert.ok(await hubManager.getActiveHub(), 'Hub should be active');
+            expect(await hubManager.getActiveHub(), 'Hub should be active').toBeTruthy();
             
             await hubManager.setActiveHub(null);
-            assert.strictEqual(await hubManager.getActiveHub(), null, 'Active hub should be cleared');
+            expect(await hubManager.getActiveHub(), 'Active hub should be cleared').toBe(null);
         });
 
-        test('should reject setting non-existent hub as active', async () => {
-            await assert.rejects(
-                async () => await hubManager.setActiveHub('non-existent-hub'),
-                /Hub not found/,
-                'Should reject non-existent hub'
-            );
+        it('should reject setting non-existent hub as active', async () => {
+            await expect(async () => await hubManager.setActiveHub('non-existent-hub')).rejects.toThrow(/Hub not found/, 'Should reject non-existent hub');
         });
 
-        test('should list profiles from active hub only', async () => {
+        it('should list profiles from active hub only', async () => {
             const hubId1 = await hubManager.importHub(localRef, 'test-profiles-hub-1');
             const hubId2 = await hubManager.importHub(localRef, 'test-profiles-hub-2');
             
@@ -423,13 +379,13 @@ suite('HubManager', () => {
             
             // Verify all profiles belong to the active hub
             for (const profile of profiles) {
-                assert.strictEqual(profile.hubId, hubId1, 'Profile should belong to active hub');
-                assert.ok(profile.name, 'Profile should have name');
-                assert.ok(profile.hubName, 'Profile should have hub name');
+                expect(profile.hubId, 'Profile should belong to active hub').toBe(hubId1);
+                expect(profile.name, 'Profile should have name').toBeTruthy();
+                expect(profile.hubName, 'Profile should have hub name').toBeTruthy();
             }
         });
 
-        test('should return empty array when active hub has no profiles', async () => {
+        it('should return empty array when active hub has no profiles', async () => {
             // Import a hub (fixture should have some profiles, but we can test the flow)
             const hubId = await hubManager.importHub(localRef, 'test-no-profiles');
             await hubManager.setActiveHub(hubId);
@@ -437,16 +393,16 @@ suite('HubManager', () => {
             const profiles = await hubManager.listActiveHubProfiles();
             
             // Fixture has profiles, so this will have items, but we're testing the method works
-            assert.ok(Array.isArray(profiles), 'Should return an array');
+            expect(Array.isArray(profiles), 'Should return an array').toBeTruthy();
         });
 
-        test('should return empty array when no active hub is set', async () => {
+        it('should return empty array when no active hub is set', async () => {
             const profiles = await hubManager.listActiveHubProfiles();
-            assert.ok(Array.isArray(profiles), 'Should return an array');
-            assert.strictEqual(profiles.length, 0, 'Should return empty array when no active hub');
+            expect(Array.isArray(profiles), 'Should return an array').toBeTruthy();
+            expect(profiles.length, 'Should return empty array when no active hub').toBe(0);
         });
 
-        test('should auto-clear invalid active hub ID', async () => {
+        it('should auto-clear invalid active hub ID', async () => {
             const hubId = await hubManager.importHub(localRef, 'test-auto-clear');
             await hubManager.setActiveHub(hubId);
             
@@ -455,14 +411,14 @@ suite('HubManager', () => {
             
             // Try to get active hub - should auto-clear and return null
             const activeHub = await hubManager.getActiveHub();
-            assert.strictEqual(activeHub, null, 'Should auto-clear invalid hub ID');
+            expect(activeHub, 'Should auto-clear invalid hub ID').toBe(null);
             
             // Verify it was cleared in storage
             const activeHubId = await storage.getActiveHubId();
-            assert.strictEqual(activeHubId, null, 'Storage should have cleared active hub ID');
+            expect(activeHubId, 'Storage should have cleared active hub ID').toBe(null);
         });
 
-        test('should handle concurrent setActiveHub calls', async () => {
+        it('should handle concurrent setActiveHub calls', async () => {
             const hubId1 = await hubManager.importHub(localRef, 'concurrent-1');
             const hubId2 = await hubManager.importHub(localRef, 'concurrent-2');
             
@@ -473,39 +429,39 @@ suite('HubManager', () => {
             ]);
             
             const activeHub = await hubManager.getActiveHub();
-            assert.ok(activeHub, 'Should have an active hub');
+            expect(activeHub, 'Should have an active hub').toBeTruthy();
         });
     });
 
-    suite('Favorites Management', () => {
-        test('should toggle favorite status', async () => {
+    describe('Favorites Management', () => {
+        it('should toggle favorite status', async () => {
             const hubId = 'test-hub';
             const profileId = 'profile-1';
 
             // Initially not favorite
             let favorites = await hubManager.getFavoriteProfiles();
-            assert.strictEqual(favorites[hubId], undefined);
+            expect(favorites[hubId]).toBe(undefined);
 
             // Toggle ON
             await hubManager.toggleProfileFavorite(hubId, profileId);
             let isFav = await hubManager.isProfileFavorite(hubId, profileId);
-            assert.strictEqual(isFav, true);
+            expect(isFav).toBe(true);
             
             favorites = await hubManager.getFavoriteProfiles();
-            assert.deepStrictEqual(favorites[hubId], [profileId]);
+            expect(favorites[hubId]).toEqual([profileId]);
 
             // Toggle OFF
             await hubManager.toggleProfileFavorite(hubId, profileId);
             isFav = await hubManager.isProfileFavorite(hubId, profileId);
-            assert.strictEqual(isFav, false);
+            expect(isFav).toBe(false);
             
             favorites = await hubManager.getFavoriteProfiles();
             // Should be empty array or undefined depending on implementation cleanup
             // Implementation: if (favorites[hubId].length === 0) { delete favorites[hubId]; }
-            assert.strictEqual(favorites[hubId], undefined);
+            expect(favorites[hubId]).toBe(undefined);
         });
 
-        test('should not create duplicates when toggling on repeatedly (simulated race)', async () => {
+        it('should not create duplicates when toggling on repeatedly (simulated race)', async () => {
             const hubId = 'test-hub';
             const profileId = 'profile-1';
 
@@ -519,30 +475,30 @@ suite('HubManager', () => {
             await hubManager.toggleProfileFavorite(hubId, profileId); // Add back
             
             const favorites = await hubManager.getFavoriteProfiles();
-            assert.strictEqual(favorites[hubId].length, 1);
-            assert.strictEqual(favorites[hubId][0], profileId);
+            expect(favorites[hubId].length).toBe(1);
+            expect(favorites[hubId][0]).toBe(profileId);
         });
 
-        test('should emit event on change', async () => {
+        it('should emit event on change', async () => {
             let eventFired = false;
             hubManager.onFavoritesChanged(() => {
                 eventFired = true;
             });
 
             await hubManager.toggleProfileFavorite('hub', 'profile');
-            assert.strictEqual(eventFired, true);
+            expect(eventFired).toBe(true);
         });
     });
 
-    suite('Profile Activation State', () => {
-        test('listProfilesFromHub should reflect active state', async () => {
+    describe('Profile Activation State', () => {
+        it('listProfilesFromHub should reflect active state', async () => {
             // Import a hub with profiles
             const hubId = await hubManager.importHub(localRef, 'active-state-hub');
             
             // Initially no profiles are active
             let profiles = await hubManager.listProfilesFromHub(hubId);
-            assert.ok(profiles.length > 0);
-            assert.ok(profiles.every(p => !p.active));
+            expect(profiles.length > 0).toBeTruthy();
+            expect(profiles.every(p => !p.active)).toBeTruthy();
 
             // Mark one profile as active in storage
             const profileToActivate = profiles[0];
@@ -556,13 +512,13 @@ suite('HubManager', () => {
             // Check if active state is reflected
             profiles = await hubManager.listProfilesFromHub(hubId);
             const activeProfile = profiles.find(p => p.id === profileToActivate.id);
-            assert.ok(activeProfile);
-            assert.strictEqual(activeProfile.active, true);
+            expect(activeProfile).toBeTruthy();
+            expect(activeProfile.active).toBe(true);
             
             // Check others are still inactive
             const otherProfiles = profiles.filter(p => p.id !== profileToActivate.id);
             if (otherProfiles.length > 0) {
-                assert.ok(otherProfiles.every(p => !p.active));
+                expect(otherProfiles.every(p => !p.active)).toBeTruthy();
             }
         });
     });
@@ -578,7 +534,7 @@ import { RegistrySource } from '../../src/types/registry';
  * Tests for the new sourceId format: {sourceType}-{12-char-hash}
  * Validates Requirement 2: Remove Hub ID from SourceId Generation
  */
-suite('Hub Source Loading - SourceId Format', () => {
+describe('Hub Source Loading - SourceId Format', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let mockValidator: MockSchemaValidator;
@@ -628,7 +584,7 @@ suite('Hub Source Loading - SourceId Format', () => {
         location: ''  // Will be set in setup
     };
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hubmanager-sourceid');
 
@@ -654,20 +610,20 @@ suite('Hub Source Loading - SourceId Format', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    suite('New SourceId Format Generation', () => {
-        test('loadHubSources() should generate sourceId via generateHubSourceId', async () => {
+    describe('New SourceId Format Generation', () => {
+        it('loadHubSources() should generate sourceId via generateHubSourceId', async () => {
             // Import hub with sources
             await hubManager.importHub(localRef, 'test-new-format');
 
             // Verify sources were loaded
             const sources = await mockRegistry.listSources();
-            assert.ok(sources.length > 0, 'Should have loaded sources');
+            expect(sources.length > 0, 'Should have loaded sources').toBeTruthy();
 
             // Verify each source ID matches generateHubSourceId output
             for (const source of sources) {
@@ -675,15 +631,11 @@ suite('Hub Source Loading - SourceId Format', () => {
                     branch: source.config?.branch,
                     collectionsPath: source.config?.collectionsPath
                 });
-                assert.strictEqual(
-                    source.id,
-                    expectedId,
-                    `Source ID "${source.id}" should match generateHubSourceId() output "${expectedId}"`
-                );
+                expect(source.id, `Source ID "${source.id}" should match generateHubSourceId() output "${expectedId}"`).toBe(expectedId);
             }
         });
 
-        test('loadHubSources() should NOT include hub ID in sourceId', async () => {
+        it('loadHubSources() should NOT include hub ID in sourceId', async () => {
             const hubId = 'my-custom-hub-id';
             
             // Import hub with a specific hub ID
@@ -691,27 +643,21 @@ suite('Hub Source Loading - SourceId Format', () => {
 
             // Verify sources were loaded
             const sources = await mockRegistry.listSources();
-            assert.ok(sources.length > 0, 'Should have loaded sources');
+            expect(sources.length > 0, 'Should have loaded sources').toBeTruthy();
 
             // Verify NO source ID contains the hub ID
             for (const source of sources) {
-                assert.ok(
-                    !source.id.includes(hubId),
-                    `Source ID "${source.id}" should NOT contain hub ID "${hubId}"`
-                );
+                expect(!source.id.includes(hubId), `Source ID "${source.id}" should NOT contain hub ID "${hubId}"`).toBeTruthy();
                 
                 // Also verify it doesn't start with 'hub-' (legacy format)
-                assert.ok(
-                    !source.id.startsWith('hub-'),
-                    `Source ID "${source.id}" should NOT start with 'hub-' (legacy format)`
-                );
+                expect(!source.id.startsWith('hub-'), `Source ID "${source.id}" should NOT start with 'hub-' (legacy format)`).toBeTruthy();
             }
         });
 
     });
 
-    suite('Duplicate Detection with URL Matching', () => {
-        test('should detect duplicate sources by URL matching (not by ID)', async () => {
+    describe('Duplicate Detection with URL Matching', () => {
+        it('should detect duplicate sources by URL matching (not by ID)', async () => {
             // Manually add a source with the new format ID
             const existingUrl = 'https://github.com/github/awesome-copilot';
             const existingType = 'awesome-copilot';
@@ -743,16 +689,13 @@ suite('Hub Source Loading - SourceId Format', () => {
             
             // Should have 2 sources: 1 existing + 1 new (source-2 has different URL)
             // source-1 should be skipped as duplicate
-            assert.strictEqual(sources.length, 2, 'Should have 2 sources (1 existing + 1 new, duplicate skipped)');
+            expect(sources.length, 'Should have 2 sources (1 existing + 1 new, duplicate skipped)').toBe(2);
 
             // Verify the existing source is still there
-            assert.ok(
-                sources.some(s => s.id === existingSourceId),
-                'Existing source should still be present'
-            );
+            expect(sources.some(s => s.id === existingSourceId), 'Existing source should still be present').toBeTruthy();
         });
 
-        test('should add new source when same URL but different branch is imported (different sourceId)', async () => {
+        it('should add new source when same URL but different branch is imported (different sourceId)', async () => {
             // Add source with branch: main
             const existingUrl = 'https://github.com/github/awesome-copilot';
             const existingType = 'awesome-copilot';
@@ -817,26 +760,26 @@ suite('Hub Source Loading - SourceId Format', () => {
 
             // Since sourceId now includes branch, different branch = different sourceId = ADD new source
             const sources = await mockRegistry.listSources();
-            assert.strictEqual(sources.length, 2, 'Should have 2 sources (original + new with different branch)');
+            expect(sources.length, 'Should have 2 sources (original + new with different branch)').toBe(2);
             
             // Verify it was an add, not an update
-            assert.strictEqual(mockRegistry.addSourceCalls.length, 1, 'Should have 1 add call');
-            assert.strictEqual(mockRegistry.updateSourceCalls.length, 0, 'Should have 0 update calls');
+            expect(mockRegistry.addSourceCalls.length, 'Should have 1 add call').toBe(1);
+            expect(mockRegistry.updateSourceCalls.length, 'Should have 0 update calls').toBe(0);
             
             // Verify we have both sources with different branches
             const mainSource = sources.find(s => s.config?.branch === 'main');
             const developSource = sources.find(s => s.config?.branch === 'develop');
-            assert.ok(mainSource, 'Should have main branch source');
-            assert.ok(developSource, 'Should have develop branch source');
-            assert.notStrictEqual(mainSource!.id, developSource!.id, 'Different branches should have different sourceIds');
+            expect(mainSource, 'Should have main branch source').toBeTruthy();
+            expect(developSource, 'Should have develop branch source').toBeTruthy();
+            expect(mainSource!.id, 'Different branches should have different sourceIds').not.toBe(developSource!.id);
         });
 
-        test('should update existing source when re-importing same hub', async () => {
+        it('should update existing source when re-importing same hub', async () => {
             // Import hub first time
             await hubManager.importHub(localRef, 'test-update');
             
             const sourcesAfterFirst = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterFirst.length, 2, 'Should have 2 sources after first import');
+            expect(sourcesAfterFirst.length, 'Should have 2 sources after first import').toBe(2);
 
             // Reset tracking
             mockRegistry.addSourceCalls = [];
@@ -847,21 +790,21 @@ suite('Hub Source Loading - SourceId Format', () => {
 
             // Verify sources were updated, not duplicated
             const sourcesAfterReload = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterReload.length, 2, 'Should still have only 2 sources (no duplicates)');
-            assert.strictEqual(mockRegistry.updateSourceCalls.length, 2, 'Should have 2 update calls');
-            assert.strictEqual(mockRegistry.addSourceCalls.length, 0, 'Should have 0 add calls on reload');
+            expect(sourcesAfterReload.length, 'Should still have only 2 sources (no duplicates)').toBe(2);
+            expect(mockRegistry.updateSourceCalls.length, 'Should have 2 update calls').toBe(2);
+            expect(mockRegistry.addSourceCalls.length, 'Should have 0 add calls on reload').toBe(0);
         });
     });
 
 });
 
-suite('HubManager HTTP Redirect Handling', () => {
+describe('HubManager HTTP Redirect Handling', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let mockValidator: any;
     let tempDir: string;
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hubmanager-redirect');
 
@@ -880,14 +823,14 @@ suite('HubManager HTTP Redirect Handling', () => {
         hubManager = new HubManager(storage, mockValidator, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    test('should follow HTTP 301 redirects when importing hub from URL', async () => {
+    it('should follow HTTP 301 redirects when importing hub from URL', async () => {
         const hubConfigYaml = `
 version: "1.0.0"
 metadata:
@@ -915,14 +858,14 @@ profiles: []
         };
 
         const hubId = await hubManager.importHub(reference, 'redirect-test-hub');
-        assert.strictEqual(hubId, 'redirect-test-hub');
+        expect(hubId).toBe('redirect-test-hub');
 
         // Verify hub was imported successfully
         const loaded = await storage.loadHub('redirect-test-hub');
-        assert.strictEqual(loaded.config.metadata.name, 'Redirect Test Hub');
+        expect(loaded.config.metadata.name).toBe('Redirect Test Hub');
     });
 
-    test('should follow HTTP 302 redirects when syncing hub', async () => {
+    it('should follow HTTP 302 redirects when syncing hub', async () => {
         // First, import a hub using local file
         const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
         const localRef = { type: 'local' as const, location: fixturePath };
@@ -958,6 +901,6 @@ profiles: []
 
         // Verify hub was synced successfully
         const loaded = await storage.loadHub(hubId);
-        assert.strictEqual(loaded.config.metadata.name, 'Updated Hub After Redirect');
+        expect(loaded.config.metadata.name).toBe('Updated Hub After Redirect');
     });
 });

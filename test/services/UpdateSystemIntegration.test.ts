@@ -4,7 +4,6 @@
  * are properly integrated in the extension
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { UpdateScheduler } from '../../src/services/UpdateScheduler';
@@ -14,12 +13,12 @@ import { AutoUpdateService } from '../../src/services/AutoUpdateService';
 import { RegistryManager } from '../../src/services/RegistryManager';
 import { RegistryStorage } from '../../src/storage/RegistryStorage';
 
-suite('Update System Integration', () => {
+describe('Update System Integration', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockMemento: vscode.Memento;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Create mock memento
@@ -48,11 +47,11 @@ suite('Update System Integration', () => {
         } as any;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('UpdateScheduler can be initialized with UpdateChecker', async () => {
+    it('UpdateScheduler can be initialized with UpdateChecker', async () => {
         // Mock configuration
         const mockConfig = sandbox.stub(vscode.workspace, 'getConfiguration');
         mockConfig.withArgs('promptregistry.updateCheck').returns({
@@ -91,13 +90,13 @@ suite('Update System Integration', () => {
         await updateScheduler.initialize();
 
         // Verify initialization
-        assert.ok(updateScheduler.isSchedulerInitialized());
+        expect(updateScheduler.isSchedulerInitialized()).toBeTruthy();
 
         // Cleanup
         updateScheduler.dispose();
     });
 
-    test('Complete update system can be wired together', async () => {
+    it('Complete update system can be wired together', async () => {
         // Mock configuration
         const mockConfig = sandbox.stub(vscode.workspace, 'getConfiguration');
         mockConfig.withArgs('promptregistry.updateCheck').returns({
@@ -142,16 +141,16 @@ suite('Update System Integration', () => {
         await updateScheduler.initialize();
 
         // Verify all components are properly initialized
-        assert.ok(updateScheduler.isSchedulerInitialized());
-        assert.ok(bundleNotifications);
-        assert.ok(updateChecker);
-        assert.ok(autoUpdateService);
+        expect(updateScheduler.isSchedulerInitialized()).toBeTruthy();
+        expect(bundleNotifications).toBeTruthy();
+        expect(updateChecker).toBeTruthy();
+        expect(autoUpdateService).toBeTruthy();
 
         // Cleanup
         updateScheduler.dispose();
     });
 
-    test('Configuration changes are handled correctly', async () => {
+    it('Configuration changes are handled correctly', async () => {
         // Mock configuration
         let currentFrequency: 'daily' | 'weekly' | 'manual' = 'daily';
         const mockConfig = sandbox.stub(vscode.workspace, 'getConfiguration');
@@ -193,7 +192,7 @@ suite('Update System Integration', () => {
         updateScheduler.updateSchedule('weekly');
 
         // Verify scheduler is still initialized
-        assert.ok(updateScheduler.isSchedulerInitialized());
+        expect(updateScheduler.isSchedulerInitialized()).toBeTruthy();
 
         // Cleanup
         updateScheduler.dispose();

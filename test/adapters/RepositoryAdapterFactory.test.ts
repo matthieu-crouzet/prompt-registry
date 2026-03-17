@@ -2,16 +2,15 @@
  * Repository Adapter Factory Unit Tests
  */
 
-import * as assert from 'assert';
 import { GitHubAdapter } from '../../src/adapters/GitHubAdapter';
 import { GitLabAdapter } from '../../src/adapters/GitLabAdapter';
 import { HttpAdapter } from '../../src/adapters/HttpAdapter';
 import { LocalAdapter } from '../../src/adapters/LocalAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('RepositoryAdapterFactory', () => {
-    suite('Adapter Creation', () => {
-        test('should create GitHub adapter for github type', () => {
+describe('RepositoryAdapterFactory', () => {
+    describe('Adapter Creation', () => {
+        it('should create GitHub adapter for github type', () => {
             const source: RegistrySource = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -23,10 +22,10 @@ suite('RepositoryAdapterFactory', () => {
             };
 
             const adapter = new GitHubAdapter(source);
-            assert.strictEqual(adapter.type, 'github');
+            expect(adapter.type).toBe('github');
         });
 
-        test('should create GitLab adapter for gitlab type', () => {
+        it('should create GitLab adapter for gitlab type', () => {
             const source: RegistrySource = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -38,10 +37,10 @@ suite('RepositoryAdapterFactory', () => {
             };
 
             const adapter = new GitLabAdapter(source);
-            assert.strictEqual(adapter.type, 'gitlab');
+            expect(adapter.type).toBe('gitlab');
         });
 
-        test('should create HTTP adapter for http type', () => {
+        it('should create HTTP adapter for http type', () => {
             const source: RegistrySource = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -52,10 +51,10 @@ suite('RepositoryAdapterFactory', () => {
             };
 
             const adapter = new HttpAdapter(source);
-            assert.strictEqual(adapter.type, 'http');
+            expect(adapter.type).toBe('http');
         });
 
-        test('should create Local adapter for local type', () => {
+        it('should create Local adapter for local type', () => {
             const source: RegistrySource = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -66,10 +65,10 @@ suite('RepositoryAdapterFactory', () => {
             };
 
             const adapter = new LocalAdapter(source);
-            assert.strictEqual(adapter.type, 'local');
+            expect(adapter.type).toBe('local');
         });
 
-        test('should throw error for unknown adapter type', () => {
+        it('should throw error for unknown adapter type', () => {
             const source: any = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -80,12 +79,12 @@ suite('RepositoryAdapterFactory', () => {
             };
 
             // Factory would throw error for unknown type
-            assert.ok(source.type);
+            expect(source.type).toBeTruthy();
         });
     });
 
-    suite('Adapter Registration', () => {
-        test('should support custom adapter registration', () => {
+    describe('Adapter Registration', () => {
+        it('should support custom adapter registration', () => {
             const customAdapters = new Map<string, any>();
 
             customAdapters.set('custom', class CustomAdapter {
@@ -94,11 +93,11 @@ suite('RepositoryAdapterFactory', () => {
                 async getDownloadUrl() { return ''; }
             });
 
-            assert.strictEqual(customAdapters.size, 1);
-            assert.ok(customAdapters.has('custom'));
+            expect(customAdapters.size).toBe(1);
+            expect(customAdapters.has('custom')).toBeTruthy();
         });
 
-        test('should allow overriding default adapters', () => {
+        it('should allow overriding default adapters', () => {
             const adapters = new Map<string, any>();
 
             adapters.set('github', GitHubAdapter);
@@ -109,12 +108,12 @@ suite('RepositoryAdapterFactory', () => {
                 async fetchBundles() { return []; }
             });
 
-            assert.ok(adapters.get('github'));
+            expect(adapters.get('github')).toBeTruthy();
         });
     });
 
-    suite('Adapter Interface Compliance', () => {
-        test('should verify all adapters implement required methods', () => {
+    describe('Adapter Interface Compliance', () => {
+        it('should verify all adapters implement required methods', () => {
             const requiredMethods = ['fetchBundles', 'getDownloadUrl', 'validate'];
 
             const adapters = [
@@ -127,15 +126,12 @@ suite('RepositoryAdapterFactory', () => {
             for (const AdapterClass of adapters) {
                 const prototype = AdapterClass.prototype;
                 for (const method of ['fetchBundles', 'getDownloadUrl']) {
-                    assert.ok(
-                        typeof prototype[method as keyof typeof prototype] === 'function',
-                        `${AdapterClass.name} missing ${method}`
-                    );
+                    expect(typeof prototype[method as keyof typeof prototype] === 'function', `${AdapterClass.name} missing ${method}`).toBeTruthy();
                 }
             }
         });
 
-        test('should verify adapter type property', () => {
+        it('should verify adapter type property', () => {
             const sources = [
                 { type: 'github', url: 'https://github.com/test/repo', token: 'token' },
                 { type: 'gitlab', url: 'https://gitlab.com/test/repo', token: 'token' },
@@ -144,14 +140,14 @@ suite('RepositoryAdapterFactory', () => {
             ];
 
             for (const source of sources) {
-                assert.ok(source.type);
-                assert.ok(['github', 'gitlab', 'http', 'local'].includes(source.type));
+                expect(source.type).toBeTruthy();
+                expect(['github', 'gitlab', 'http', 'local'].includes(source.type)).toBeTruthy();
             }
         });
     });
 
-    suite('Source Configuration Validation', () => {
-        test('should validate required source properties', () => {
+    describe('Source Configuration Validation', () => {
+        it('should validate required source properties', () => {
             const source = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -170,10 +166,10 @@ suite('RepositoryAdapterFactory', () => {
                 typeof source.priority === 'number'
             );
 
-            assert.strictEqual(hasRequired, true);
+            expect(hasRequired).toBe(true);
         });
 
-        test('should validate URL format for each adapter type', () => {
+        it('should validate URL format for each adapter type', () => {
             const validUrls = {
                 github: [
                     'https://github.com/owner/repo',
@@ -195,12 +191,12 @@ suite('RepositoryAdapterFactory', () => {
 
             for (const [type, urls] of Object.entries(validUrls)) {
                 for (const url of urls) {
-                    assert.ok(url, `Invalid URL for ${type}: ${url}`);
+                    expect(url, `Invalid URL for ${type}: ${url}`).toBeTruthy();
                 }
             }
         });
 
-        test('should validate authentication requirements', () => {
+        it('should validate authentication requirements', () => {
             const sources = [
                 { type: 'github', url: 'https://github.com/test/repo', token: 'required' },
                 { type: 'gitlab', url: 'https://gitlab.com/test/repo', token: 'required' },
@@ -210,14 +206,14 @@ suite('RepositoryAdapterFactory', () => {
 
             for (const source of sources) {
                 if (source.type === 'github' || source.type === 'gitlab') {
-                    assert.ok(source.token, `Token required for ${source.type}`);
+                    expect(source.token, `Token required for ${source.type}`).toBeTruthy();
                 }
             }
         });
     });
 
-    suite('Adapter Caching and Reuse', () => {
-        test('should cache adapter instances per source', () => {
+    describe('Adapter Caching and Reuse', () => {
+        it('should cache adapter instances per source', () => {
             const cache = new Map<string, any>();
 
             const sourceId = 'test-source';
@@ -238,10 +234,10 @@ suite('RepositoryAdapterFactory', () => {
             const adapter1 = cache.get(sourceId);
             const adapter2 = cache.get(sourceId);
 
-            assert.strictEqual(adapter1, adapter2);
+            expect(adapter1).toBe(adapter2);
         });
 
-        test('should invalidate cache when source changes', () => {
+        it('should invalidate cache when source changes', () => {
             const cache = new Map<string, any>();
             const sourceId = 'test-source';
 
@@ -268,12 +264,12 @@ suite('RepositoryAdapterFactory', () => {
             cache.delete(sourceId);
             cache.set(sourceId, new GitHubAdapter(source2));
 
-            assert.ok(cache.get(sourceId));
+            expect(cache.get(sourceId)).toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle adapter creation errors', () => {
+    describe('Error Handling', () => {
+        it('should handle adapter creation errors', () => {
             const invalidSource: RegistrySource = {
                 id: 'test-source',
                 name: 'Test Source',
@@ -284,17 +280,17 @@ suite('RepositoryAdapterFactory', () => {
                 token: undefined,
             };
 
-            assert.throws(() => new GitHubAdapter(invalidSource));
+            expect(() => new GitHubAdapter(invalidSource)).toThrow();
         });
 
-        test('should validate source before adapter creation', () => {
+        it('should validate source before adapter creation', () => {
             const source: any = {
                 id: 'test-source',
                 // Missing required fields
             };
 
             const isValid = Boolean(source.id && source.type && source.url);
-            assert.strictEqual(isValid, false);
+            expect(isValid).toBe(false);
         });
     });
 });

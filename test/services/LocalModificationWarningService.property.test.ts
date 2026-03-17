@@ -6,7 +6,6 @@
  * Requirements: 14.4-14.10
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as fc from 'fast-check';
@@ -15,14 +14,14 @@ import { LockfileManager } from '../../src/services/LockfileManager';
 import { ModifiedFileInfo } from '../../src/types/lockfile';
 import { LockfileGenerators } from '../helpers/lockfileTestHelpers';
 
-suite('LocalModificationWarningService - Property Tests', () => {
+describe('LocalModificationWarningService - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockLockfileManager: sinon.SinonStubbedInstance<LockfileManager>;
     let service: LocalModificationWarningService;
     let showWarningMessageStub: sinon.SinonStub;
     let openExternalStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockLockfileManager = sandbox.createStubInstance(LockfileManager);
         service = new LocalModificationWarningService(mockLockfileManager);
@@ -37,7 +36,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
         openExternalStub = sandbox.stub(vscode.env, 'openExternal').resolves(true);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -81,7 +80,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
      * 
      * Feature: repository-level-installation, Property 13: Local Modification Warning Dialog
      */
-    test('Property 13: Dialog displays correct options and handles all user responses', async () => {
+    it('Property 13: Dialog displays correct options and handles all user responses', async () => {
         await fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.bundleId(),
@@ -99,71 +98,41 @@ suite('LocalModificationWarningService - Property Tests', () => {
                     const result = await service.showWarningDialog(bundleId, modifiedFiles, bundleRepoUrl);
 
                     // Assert: Dialog should be displayed
-                    assert.strictEqual(
-                        showWarningMessageStub.callCount,
-                        1,
-                        'Dialog should be displayed exactly once'
-                    );
+                    expect(showWarningMessageStub.callCount, 'Dialog should be displayed exactly once').toBe(1);
 
                     // Assert: Dialog should have exactly 3 buttons
                     const callArgs = showWarningMessageStub.firstCall.args;
                     const buttons = callArgs.slice(1); // Skip message, get buttons
-                    assert.strictEqual(
-                        buttons.length,
-                        3,
-                        'Dialog should have exactly 3 action buttons'
-                    );
-                    assert.ok(
-                        buttons.includes('Contribute Changes'),
-                        'Dialog should have "Contribute Changes" button'
-                    );
-                    assert.ok(
-                        buttons.includes('Override'),
-                        'Dialog should have "Override" button'
-                    );
-                    assert.ok(
-                        buttons.includes('Cancel'),
-                        'Dialog should have "Cancel" button'
-                    );
+                    expect(buttons.length, 'Dialog should have exactly 3 action buttons').toBe(3);
+                    expect(buttons.includes('Contribute Changes'), 'Dialog should have "Contribute Changes" button').toBeTruthy();
+                    expect(buttons.includes('Override'), 'Dialog should have "Override" button').toBeTruthy();
+                    expect(buttons.includes('Cancel'), 'Dialog should have "Cancel" button').toBeTruthy();
 
                     // Assert: Message should list all modified files
                     const message = callArgs[0] as string;
                     for (const file of modifiedFiles) {
-                        assert.ok(
-                            message.includes(file.path),
-                            `Message should include file path: ${file.path}`
-                        );
+                        expect(message.includes(file.path), `Message should include file path: ${file.path}`).toBeTruthy();
                     }
 
                     // Assert: User response maps to correct result
                     if (userResponse === 'Contribute Changes') {
-                        assert.strictEqual(result, 'contribute', 'Should return "contribute" for Contribute Changes');
+                        expect(result, 'Should return "contribute" for Contribute Changes').toBe('contribute');
                         
                         // Assert: URL should be opened if provided
                         if (bundleRepoUrl) {
-                            assert.ok(
-                                openExternalStub.calledOnce,
-                                'Should open repository URL when Contribute Changes clicked and URL provided'
-                            );
+                            expect(openExternalStub.calledOnce, 'Should open repository URL when Contribute Changes clicked and URL provided').toBeTruthy();
                             const uri = openExternalStub.firstCall.args[0] as vscode.Uri;
-                            assert.strictEqual(
-                                uri.toString(),
-                                bundleRepoUrl,
-                                'Should open correct repository URL'
-                            );
+                            expect(uri.toString(), 'Should open correct repository URL').toBe(bundleRepoUrl);
                         } else {
-                            assert.ok(
-                                !openExternalStub.called,
-                                'Should not open URL when none provided'
-                            );
+                            expect(!openExternalStub.called, 'Should not open URL when none provided').toBeTruthy();
                         }
                     } else if (userResponse === 'Override') {
-                        assert.strictEqual(result, 'override', 'Should return "override" for Override');
-                        assert.ok(!openExternalStub.called, 'Should not open URL for Override');
+                        expect(result, 'Should return "override" for Override').toBe('override');
+                        expect(!openExternalStub.called, 'Should not open URL for Override').toBeTruthy();
                     } else {
                         // Cancel or dismissed
-                        assert.strictEqual(result, 'cancel', 'Should return "cancel" for Cancel or dismiss');
-                        assert.ok(!openExternalStub.called, 'Should not open URL for Cancel');
+                        expect(result, 'Should return "cancel" for Cancel or dismiss').toBe('cancel');
+                        expect(!openExternalStub.called, 'Should not open URL for Cancel').toBeTruthy();
                     }
                 }
             ),
@@ -177,7 +146,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
      * For any bundle ID, when no modifications are detected,
      * checkAndWarn should return null without showing a dialog.
      */
-    test('Property: checkAndWarn returns null when no modifications detected', async () => {
+    it('Property: checkAndWarn returns null when no modifications detected', async () => {
         await fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.bundleId(),
@@ -191,11 +160,8 @@ suite('LocalModificationWarningService - Property Tests', () => {
                     const result = await service.checkAndWarn(bundleId);
 
                     // Assert
-                    assert.strictEqual(result, null, 'Should return null when no modifications');
-                    assert.ok(
-                        !showWarningMessageStub.called,
-                        'Should not show dialog when no modifications'
-                    );
+                    expect(result, 'Should return null when no modifications').toBe(null);
+                    expect(!showWarningMessageStub.called, 'Should not show dialog when no modifications').toBeTruthy();
                 }
             ),
             { numRuns: 100 }
@@ -208,7 +174,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
      * For any bundle ID with modifications, checkAndWarn should
      * show the dialog and return the user's choice.
      */
-    test('Property: checkAndWarn shows dialog and returns result when modifications exist', async () => {
+    it('Property: checkAndWarn shows dialog and returns result when modifications exist', async () => {
         await fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.bundleId(),
@@ -228,19 +194,16 @@ suite('LocalModificationWarningService - Property Tests', () => {
                     const result = await service.checkAndWarn(bundleId);
 
                     // Assert
-                    assert.ok(result !== null, 'Should return a result when modifications exist');
-                    assert.ok(
-                        showWarningMessageStub.calledOnce,
-                        'Should show dialog when modifications exist'
-                    );
+                    expect(result !== null, 'Should return a result when modifications exist').toBeTruthy();
+                    expect(showWarningMessageStub.calledOnce, 'Should show dialog when modifications exist').toBeTruthy();
                     
                     // Verify result matches user response
                     if (userResponse === 'Contribute Changes') {
-                        assert.strictEqual(result, 'contribute');
+                        expect(result).toBe('contribute');
                     } else if (userResponse === 'Override') {
-                        assert.strictEqual(result, 'override');
+                        expect(result).toBe('override');
                     } else {
-                        assert.strictEqual(result, 'cancel');
+                        expect(result).toBe('cancel');
                     }
                 }
             ),
@@ -254,7 +217,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
      * For any set of modified files, the dialog message should
      * include all file paths, regardless of modification type.
      */
-    test('Property: Dialog message includes all modified file paths', async () => {
+    it('Property: Dialog message includes all modified file paths', async () => {
         await fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.bundleId(),
@@ -272,10 +235,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
                     
                     // Every file path should appear in the message
                     for (const file of modifiedFiles) {
-                        assert.ok(
-                            message.includes(file.path),
-                            `Message should include file path: ${file.path}`
-                        );
+                        expect(message.includes(file.path), `Message should include file path: ${file.path}`).toBeTruthy();
                     }
                 }
             ),
@@ -289,7 +249,7 @@ suite('LocalModificationWarningService - Property Tests', () => {
      * For any dialog invocation, the buttons should always appear
      * in the same order: Contribute Changes, Override, Cancel.
      */
-    test('Property: Dialog buttons appear in consistent order', async () => {
+    it('Property: Dialog buttons appear in consistent order', async () => {
         await fc.assert(
             fc.asyncProperty(
                 LockfileGenerators.bundleId(),
@@ -306,9 +266,9 @@ suite('LocalModificationWarningService - Property Tests', () => {
                     const callArgs = showWarningMessageStub.firstCall.args;
                     const buttons = callArgs.slice(1);
                     
-                    assert.strictEqual(buttons[0], 'Contribute Changes', 'First button should be Contribute Changes');
-                    assert.strictEqual(buttons[1], 'Override', 'Second button should be Override');
-                    assert.strictEqual(buttons[2], 'Cancel', 'Third button should be Cancel');
+                    expect(buttons[0], 'First button should be Contribute Changes').toBe('Contribute Changes');
+                    expect(buttons[1], 'Second button should be Override').toBe('Override');
+                    expect(buttons[2], 'Third button should be Cancel').toBe('Cancel');
                 }
             ),
             { numRuns: 100 }

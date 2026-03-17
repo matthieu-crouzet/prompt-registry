@@ -7,7 +7,6 @@
  * Feature: workflow-bundle-scaffolding
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -16,11 +15,11 @@ import { TemplateEngine, TemplateContext } from '../../src/services/TemplateEngi
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { ScaffoldCommand, MigrationScenario } from '../../src/commands/ScaffoldCommand';
 
-suite('GitHub Scaffold Property-Based Tests', () => {
+describe('GitHub Scaffold Property-Based Tests', () => {
     const templateRoot = path.join(process.cwd(), 'templates/scaffolds/github');
     let templateEngine: TemplateEngine;
 
-    setup(() => {
+    beforeEach(() => {
         templateEngine = new TemplateEngine(templateRoot);
     });
 
@@ -79,9 +78,7 @@ suite('GitHub Scaffold Property-Based Tests', () => {
      * For any valid project name and scaffold options, when scaffolding a github project,
      * all files marked as required in the manifest should exist in the generated project structure.
      */
-    test('Property 1: Scaffolding Completeness', async function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    it('Property 1: Scaffolding Completeness', async function() {
         // Required files that must exist after scaffolding
         // Note: Scripts are now provided via @prompt-registry/collection-scripts npm package
         const requiredFiles = [
@@ -146,29 +143,20 @@ suite('GitHub Scaffold Property-Based Tests', () => {
                     // Verify all required directories exist
                     for (const dir of requiredDirectories) {
                         const dirPath = path.join(tempDir, dir);
-                        assert.ok(
-                            fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory(),
-                            `Required directory should exist: ${dir}`
-                        );
+                        expect(fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory(), `Required directory should exist: ${dir}`).toBeTruthy();
                     }
 
                     // Verify all required files exist
                     for (const file of requiredFiles) {
                         const filePath = path.join(tempDir, file);
-                        assert.ok(
-                            fs.existsSync(filePath) && fs.statSync(filePath).isFile(),
-                            `Required file should exist: ${file}`
-                        );
+                        expect(fs.existsSync(filePath) && fs.statSync(filePath).isFile(), `Required file should exist: ${file}`).toBeTruthy();
                     }
 
                     // Verify files have content (not empty)
                     for (const file of requiredFiles) {
                         const filePath = path.join(tempDir, file);
                         const content = fs.readFileSync(filePath, 'utf8');
-                        assert.ok(
-                            content.length > 0,
-                            `File should have content: ${file}`
-                        );
+                        expect(content.length > 0, `File should have content: ${file}`).toBeTruthy();
                     }
 
                 } finally {
@@ -191,9 +179,7 @@ suite('GitHub Scaffold Property-Based Tests', () => {
      * should use only valid item kinds ('prompt', 'instruction', 'agent', 'skill') and never include
      * 'chatmode' references.
      */
-    test('Property 2: Agent-Only Item Kinds', async function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    it('Property 2: Agent-Only Item Kinds', async function() {
         // Valid item kinds per design document
         const validItemKinds = ['prompt', 'instruction', 'agent', 'skill'];
         const deprecatedKind = 'chatmode';
@@ -252,10 +238,7 @@ suite('GitHub Scaffold Property-Based Tests', () => {
                                         const contextStart = Math.max(0, i - 5);
                                         const contextLines = lines.slice(contextStart, i + 1).join('\n');
                                         const isMigrationExample = /before|migration|deprecated/i.test(contextLines);
-                                        assert.ok(
-                                            isMigrationExample,
-                                            `README.md should only show 'kind: chatmode' in migration/before examples, found at line ${i + 1}`
-                                        );
+                                        expect(isMigrationExample, `README.md should only show 'kind: chatmode' in migration/before examples, found at line ${i + 1}`).toBeTruthy();
                                     }
                                 }
                                 continue; // Skip the generic checks for README
@@ -263,18 +246,12 @@ suite('GitHub Scaffold Property-Based Tests', () => {
                             
                             // For non-README files, no chatmode references should exist
                             const chatmodeKindPattern = /kind:\s*chatmode/i;
-                            assert.ok(
-                                !chatmodeKindPattern.test(content),
-                                `File ${file} should not contain 'kind: chatmode'`
-                            );
+                            expect(!chatmodeKindPattern.test(content), `File ${file} should not contain 'kind: chatmode'`).toBeTruthy();
                             
                             // Check for .chatmode.md file references (except in migration docs)
                             if (file !== 'README.md') {
                                 const chatmodeFilePattern = /\.chatmode\.md/i;
-                                assert.ok(
-                                    !chatmodeFilePattern.test(content),
-                                    `File ${file} should not reference .chatmode.md files`
-                                );
+                                expect(!chatmodeFilePattern.test(content), `File ${file} should not reference .chatmode.md files`).toBeTruthy();
                             }
                         }
                     }
@@ -287,25 +264,16 @@ suite('GitHub Scaffold Property-Based Tests', () => {
                     const kindMatches = collectionContent.match(/kind:\s*(\w+)/g) || [];
                     for (const match of kindMatches) {
                         const kindValue = match.replace(/kind:\s*/, '').toLowerCase();
-                        assert.ok(
-                            validItemKinds.includes(kindValue),
-                            `Collection should only use valid item kinds (${validItemKinds.join(', ')}), found: ${kindValue}`
-                        );
+                        expect(validItemKinds.includes(kindValue), `Collection should only use valid item kinds (${validItemKinds.join(', ')}), found: ${kindValue}`).toBeTruthy();
                     }
 
                     // Verify agent example file exists (not chatmode)
                     const agentPath = path.join(tempDir, 'agents/example.agent.md');
-                    assert.ok(
-                        fs.existsSync(agentPath),
-                        'Agent example file should exist at agents/example.agent.md'
-                    );
+                    expect(fs.existsSync(agentPath), 'Agent example file should exist at agents/example.agent.md').toBeTruthy();
                     
                     // Verify no chatmode directory or files exist
                     const chatmodePath = path.join(tempDir, 'chatmodes');
-                    assert.ok(
-                        !fs.existsSync(chatmodePath),
-                        'Chatmodes directory should not exist'
-                    );
+                    expect(!fs.existsSync(chatmodePath), 'Chatmodes directory should not exist').toBeTruthy();
 
                 } finally {
                     // Cleanup
@@ -326,9 +294,7 @@ suite('GitHub Scaffold Property-Based Tests', () => {
      * For any githubRunner value provided in scaffold options, all generated workflow files
      * should contain that exact runner value in their `runs-on` fields.
      */
-    test('Property 4: GitHub Runner Substitution', async function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    it('Property 4: GitHub Runner Substitution', async function() {
         await fc.assert(
             fc.asyncProperty(scaffoldContextGenerator(), async (config) => {
                 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-runner-test-'));
@@ -355,16 +321,10 @@ suite('GitHub Scaffold Property-Based Tests', () => {
                         const workflowContent = fs.readFileSync(workflowPath, 'utf8');
 
                         // Verify the runner value is present
-                        assert.ok(
-                            workflowContent.includes(`runs-on: ${config.githubRunner}`),
-                            `Workflow ${workflowFile} should contain runs-on: ${config.githubRunner}`
-                        );
+                        expect(workflowContent.includes(`runs-on: ${config.githubRunner}`), `Workflow ${workflowFile} should contain runs-on: ${config.githubRunner}`).toBeTruthy();
 
                         // Verify no unsubstituted template variables remain
-                        assert.ok(
-                            !workflowContent.includes('{{githubRunner}}'),
-                            `Workflow ${workflowFile} should not contain unsubstituted {{githubRunner}}`
-                        );
+                        expect(!workflowContent.includes('{{githubRunner}}'), `Workflow ${workflowFile} should not contain unsubstituted {{githubRunner}}`).toBeTruthy();
                     }
 
                 } finally {
@@ -387,9 +347,7 @@ suite('GitHub Scaffold Property-Based Tests', () => {
      * steps that execute automatically on push and pull request events before any publishing
      * occurs.
      */
-    test('Property 12a: CI Workflow Automatic Validation', async function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    it('Property 12a: CI Workflow Automatic Validation', async function() {
         await fc.assert(
             fc.asyncProperty(scaffoldContextGenerator(), async (config) => {
                 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-ci-validation-test-'));
@@ -414,57 +372,33 @@ suite('GitHub Scaffold Property-Based Tests', () => {
                     const publishCommonContent = fs.readFileSync(publishCommonPath, 'utf8');
 
                     // Verify publish.yml has push and pull_request triggers
-                    assert.ok(
-                        publishWorkflowContent.includes('push:'),
-                        'publish.yml should have push trigger for automatic validation'
-                    );
-                    assert.ok(
-                        publishWorkflowContent.includes('pull_request:'),
-                        'publish.yml should have pull_request trigger for automatic validation'
-                    );
-                    assert.ok(
-                        publishWorkflowContent.includes('workflow_dispatch:'),
-                        'publish.yml should have workflow_dispatch trigger for manual runs'
-                    );
+                    expect(publishWorkflowContent.includes('push:'), 'publish.yml should have push trigger for automatic validation').toBeTruthy();
+                    expect(publishWorkflowContent.includes('pull_request:'), 'publish.yml should have pull_request trigger for automatic validation').toBeTruthy();
+                    expect(publishWorkflowContent.includes('workflow_dispatch:'), 'publish.yml should have workflow_dispatch trigger for manual runs').toBeTruthy();
 
                     // Verify publish.yml uses the publish-common action
-                    assert.ok(
-                        publishWorkflowContent.includes('uses: ./.github/actions/publish-common'),
-                        'publish.yml should use the publish-common action'
-                    );
+                    expect(publishWorkflowContent.includes('uses: ./.github/actions/publish-common'), 'publish.yml should use the publish-common action').toBeTruthy();
 
                     // Verify publish-common action includes validation step
-                    assert.ok(
-                        publishCommonContent.includes('Validate collections') ||
-                        publishCommonContent.includes('npm run validate'),
-                        'publish-common action should include validation step'
-                    );
+                    expect(publishCommonContent.includes('Validate collections') ||
+                        publishCommonContent.includes('npm run validate'), 'publish-common action should include validation step').toBeTruthy();
 
                     // Verify validation runs before publishing
                     // The publish-common action should run before the publish step
                     const publishCommonIndex = publishWorkflowContent.indexOf('publish-common');
                     const publishCollectionsIndex = publishWorkflowContent.indexOf('Publish affected collections');
                     
-                    assert.ok(
-                        publishCommonIndex < publishCollectionsIndex,
-                        'publish-common (with validation) should run before publishing collections'
-                    );
+                    expect(publishCommonIndex < publishCollectionsIndex, 'publish-common (with validation) should run before publishing collections').toBeTruthy();
 
                     // Verify both jobs (publish-collections and publish-preview) use validation
-                    assert.ok(
-                        (publishWorkflowContent.match(/uses: \.\/\.github\/actions\/publish-common/g) || []).length >= 2,
-                        'Both publish-collections and publish-preview jobs should use publish-common action'
-                    );
+                    expect((publishWorkflowContent.match(/uses: \.\/\.github\/actions\/publish-common/g) || []).length >= 2, 'Both publish-collections and publish-preview jobs should use publish-common action').toBeTruthy();
 
                     // Verify the publish-common action has the validation step in the correct order
                     // (after dependencies are installed, before any publishing)
                     const installDepsIndex = publishCommonContent.indexOf('Install dependencies');
                     const validateIndex = publishCommonContent.indexOf('Validate collections');
                     
-                    assert.ok(
-                        installDepsIndex < validateIndex,
-                        'Validation should run after dependencies are installed'
-                    );
+                    expect(installDepsIndex < validateIndex, 'Validation should run after dependencies are installed').toBeTruthy();
 
                 } finally {
                     // Cleanup
@@ -485,9 +419,7 @@ suite('GitHub Scaffold Property-Based Tests', () => {
      * For any project with collections containing chatmode references,
      * the system should display migration recommendations.
      */
-    test('Property 17: Deprecation Warning Display', async function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    it('Property 17: Deprecation Warning Display', async function() {
         /**
          * Generator for projects with chatmode references in collections
          * The new detection only looks at collection files with kind: chatmode
@@ -523,30 +455,18 @@ items:
 
                     // Test 1: Detection should identify chatmode references in collection
                     const scenario = await ScaffoldCommand.detectMigrationScenario(tempDir);
-                    assert.ok(
-                        scenario === MigrationScenario.ChatmodeReferences,
-                        `Should detect chatmode references with config: ${JSON.stringify(config)}`
-                    );
+                    expect(scenario === MigrationScenario.ChatmodeReferences, `Should detect chatmode references with config: ${JSON.stringify(config)}`).toBeTruthy();
 
                     // Test 2: Verify migration recommendation is available
                     const recommendation = ScaffoldCommand.getMigrationRecommendation(scenario);
-                    assert.ok(
-                        recommendation && recommendation.message && recommendation.message.length > 0,
-                        'Migration recommendation should have a message'
-                    );
+                    expect(recommendation && recommendation.message && recommendation.message.length > 0, 'Migration recommendation should have a message').toBeTruthy();
 
-                    assert.ok(
-                        recommendation && recommendation.documentationUrl && 
-                        recommendation.documentationUrl.startsWith('http'),
-                        'Migration recommendation should have a valid documentation URL'
-                    );
+                    expect(recommendation && recommendation.documentationUrl && 
+                        recommendation.documentationUrl.startsWith('http'), 'Migration recommendation should have a valid documentation URL').toBeTruthy();
 
                     // Test 3: Verify message mentions chatmode migration
-                    assert.ok(
-                        recommendation!.message.toLowerCase().includes('chatmode') ||
-                        recommendation!.message.toLowerCase().includes('agent'),
-                        'Migration message should mention chatmode to agent migration'
-                    );
+                    expect(recommendation!.message.toLowerCase().includes('chatmode') ||
+                        recommendation!.message.toLowerCase().includes('agent'), 'Migration message should mention chatmode to agent migration').toBeTruthy();
 
                 } finally {
                     // Cleanup
@@ -565,9 +485,7 @@ items:
      * For any project structure that does NOT contain awesome-copilot indicators,
      * the detection should return false.
      */
-    test('Property 17: Non-awesome-copilot structures should not trigger detection', async function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    it('Property 17: Non-awesome-copilot structures should not trigger detection', async function() {
         /**
          * Generator for valid github project structures (no awesome-copilot indicators)
          */
@@ -635,10 +553,7 @@ items:
 
                     // Detection should NOT identify this as needing migration
                     const scenario = await ScaffoldCommand.detectMigrationScenario(tempDir);
-                    assert.ok(
-                        scenario === MigrationScenario.None || scenario === MigrationScenario.MissingWorkflow,
-                        `Should NOT detect chatmode references in valid github project: ${JSON.stringify(config)}, got scenario: ${scenario}`
-                    );
+                    expect(scenario === MigrationScenario.None || scenario === MigrationScenario.MissingWorkflow, `Should NOT detect chatmode references in valid github project: ${JSON.stringify(config)}, got scenario: ${scenario}`).toBeTruthy();
 
                 } finally {
                     // Cleanup

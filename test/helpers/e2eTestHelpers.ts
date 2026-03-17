@@ -15,6 +15,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { RegistryManager } from '../../src/services/RegistryManager';
 import { RegistryStorage } from '../../src/storage/RegistryStorage';
+import { BundleInstaller } from '../../src/services/BundleInstaller';
 
 /**
  * E2E Test Context interface
@@ -127,7 +128,7 @@ export async function createE2ETestContext(): Promise<E2ETestContext> {
     (registryManager as any).sourcesCache = [];
     
     // Re-initialize the installer with the new context
-    const BundleInstaller = require('../../src/services/BundleInstaller').BundleInstaller;
+    // BundleInstaller imported at top of file
     (registryManager as any).installer = new BundleInstaller(mockContext);
 
     // Create cleanup function

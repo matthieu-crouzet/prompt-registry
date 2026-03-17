@@ -2,14 +2,13 @@
  * GitHubAdapter Unit Tests
  */
 
-import * as assert from 'assert';
 import nock from 'nock';
 import { GitHubAdapter } from '../../src/adapters/GitHubAdapter';
 import { RegistrySource } from '../../src/types/registry';
 import { Logger } from '../../src/utils/logger';
 import * as sinon from 'sinon';
 
-suite('GitHubAdapter', () => {
+describe('GitHubAdapter', () => {
     const mockSource: RegistrySource = {
         id: 'test-source',
         name: 'Test Source',
@@ -20,37 +19,37 @@ suite('GitHubAdapter', () => {
         token: 'test-token',
     };
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
     });
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid GitHub URL', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid GitHub URL', () => {
             const adapter = new GitHubAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'github');
+            expect(adapter.type).toBe('github');
         });
 
-        test('should accept GitHub SSH URL', () => {
+        it('should accept GitHub SSH URL', () => {
             const source = { ...mockSource, url: 'git@github.com:test-owner/test-repo.git' };
             const adapter = new GitHubAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should throw error for invalid URL', () => {
+        it('should throw error for invalid URL', () => {
             const source = { ...mockSource, url: 'https://invalid.com/repo', token: undefined };
-            assert.throws(() => new GitHubAdapter(source), /Invalid GitHub URL/);
+            expect(() => new GitHubAdapter(source)).toThrow(/Invalid GitHub URL/);
         });
 
-        test('should validate URL correctly', () => {
+        it('should validate URL correctly', () => {
             // isValidGitHubUrl is private, so we test it indirectly through constructor
-            assert.doesNotThrow(() => new GitHubAdapter(mockSource));
-            assert.doesNotThrow(() => new GitHubAdapter({ ...mockSource, url: 'git@github.com:owner/repo.git', token: undefined }));
-            assert.throws(() => new GitHubAdapter({ ...mockSource, url: 'https://gitlab.com/owner/repo', token: undefined }));
+            expect(() => new GitHubAdapter(mockSource)).not.toThrow();
+            expect(() => new GitHubAdapter({ ...mockSource, url: 'git@github.com:owner/repo.git', token: undefined })).not.toThrow();
+            expect(() => new GitHubAdapter({ ...mockSource, url: 'https://gitlab.com/owner/repo', token: undefined })).toThrow();
         });
     });
 
-    suite('fetchMetadata', () => {
-        test('should fetch repository metadata successfully', async () => {
+    describe('fetchMetadata', () => {
+        it('should fetch repository metadata successfully', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(200, {
@@ -63,24 +62,21 @@ suite('GitHubAdapter', () => {
             const adapter = new GitHubAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
-            assert.strictEqual(metadata.name, 'test-repo');
-            assert.strictEqual(metadata.description, 'Test repository');
-            assert.strictEqual(metadata.bundleCount, 2);
+            expect(metadata.name).toBe('test-repo');
+            expect(metadata.description).toBe('Test repository');
+            expect(metadata.bundleCount).toBe(2);
         });
 
-        test('should handle API errors gracefully', async () => {
+        it('should handle API errors gracefully', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(404, { message: 'Not Found' });
 
             const adapter = new GitHubAdapter(mockSource);
-            await assert.rejects(
-                () => adapter.fetchMetadata(),
-                /Failed to fetch GitHub metadata/
-            );
+            await expect(() => adapter.fetchMetadata()).rejects.toThrow(/Failed to fetch GitHub metadata/);
         });
 
-        test.skip('should include auth token in request', async () => {
+        it.skip('should include auth token in request', async () => {
             let authHeaderReceived = '';
             
             nock('https://api.github.com')
@@ -95,12 +91,12 @@ suite('GitHubAdapter', () => {
             const adapter = new GitHubAdapter(mockSource);
             await adapter.fetchMetadata();
 
-            assert.strictEqual(authHeaderReceived, 'token test-token');
+            expect(authHeaderReceived).toBe('token test-token');
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should fetch bundles from releases', async () => {
+    describe('fetchBundles', () => {
+        it('should fetch bundles from releases', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
                 .reply(200, [
@@ -140,14 +136,14 @@ suite('GitHubAdapter', () => {
             const adapter = new GitHubAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
+            expect(bundles.length).toBe(1);
             // Bundle ID now uses manifest.id when available: owner-repo-manifestId-version
-            assert.strictEqual(bundles[0].id, 'test-owner-test-repo-test-bundle-1.0.0');
-            assert.strictEqual(bundles[0].version, '1.0.0');
-            assert.strictEqual(bundles[0].sourceId, 'test-source');
+            expect(bundles[0].id).toBe('test-owner-test-repo-test-bundle-1.0.0');
+            expect(bundles[0].version).toBe('1.0.0');
+            expect(bundles[0].sourceId).toBe('test-source');
         });
 
-        test('should use bundle name from deployment manifest, not version number', async () => {
+        it('should use bundle name from deployment manifest, not version number', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
                 .reply(200, [
@@ -192,24 +188,21 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
+            expect(bundles.length).toBe(1);
             
             // The bundle name should be from the manifest, NOT the GitHub release name
-            assert.strictEqual(bundles[0].name, 'Amadeus Airlines Solutions', 
-                'Bundle name should come from deployment manifest');
-            assert.notStrictEqual(bundles[0].name, '1.0.12', 
-                'Bundle name should NOT be the version number');
-            assert.notStrictEqual(bundles[0].name, 'Release 1.0.12', 
-                'Bundle name should NOT be the GitHub release name');
+            expect(bundles[0].name, 'Bundle name should come from deployment manifest').toBe('Amadeus Airlines Solutions');
+            expect(bundles[0].name, 'Bundle name should NOT be the version number').not.toBe('1.0.12');
+            expect(bundles[0].name, 'Bundle name should NOT be the GitHub release name').not.toBe('Release 1.0.12');
             
             // Other fields should also come from manifest
-            assert.strictEqual(bundles[0].version, '1.0.12');
-            assert.strictEqual(bundles[0].description, 'Comprehensive airline management system');
-            assert.strictEqual(bundles[0].author, 'amadeus-airlines-solutions');
-            assert.deepStrictEqual(bundles[0].tags, ['airlines', 'travel', 'booking']);
+            expect(bundles[0].version).toBe('1.0.12');
+            expect(bundles[0].description).toBe('Comprehensive airline management system');
+            expect(bundles[0].author).toBe('amadeus-airlines-solutions');
+            expect(bundles[0].tags).toEqual(['airlines', 'travel', 'booking']);
         });
 
-        test('should fallback to GitHub release name when manifest fetch fails', async () => {
+        it('should fallback to GitHub release name when manifest fetch fails', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
                 .reply(200, [
@@ -243,12 +236,12 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
+            expect(bundles.length).toBe(1);
             // Should fallback to GitHub release name when manifest fetch fails
-            assert.strictEqual(bundles[0].name, 'Fallback Release Name');
+            expect(bundles[0].name).toBe('Fallback Release Name');
         });
 
-        test('should skip releases without manifest', async () => {
+        it('should skip releases without manifest', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
                 .reply(200, [
@@ -268,10 +261,10 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
 
-        test('should handle empty releases', async () => {
+        it('should handle empty releases', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
                 .reply(200, []);
@@ -279,12 +272,12 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
     });
 
-    suite('validate', () => {
-        test('should validate accessible repository', async () => {
+    describe('validate', () => {
+        it('should validate accessible repository', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(200, { name: 'test-repo' })
@@ -294,11 +287,11 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should report validation failure for inaccessible repository', async () => {
+        it('should report validation failure for inaccessible repository', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(404);
@@ -306,11 +299,11 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
 
-        test('should handle authentication errors', async () => {
+        it('should handle authentication errors', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(401, { message: 'Bad credentials' });
@@ -318,11 +311,11 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors[0].includes('401'));
+            expect(result.valid).toBe(false);
+            expect(result.errors[0].includes('401')).toBeTruthy();
         });
 
-        test('should follow HTTP 301 redirects when validating repository', async () => {
+        it('should follow HTTP 301 redirects when validating repository', async () => {
             // Simulate a renamed repository that returns 301 redirect
             // Both the repo metadata and releases endpoints will redirect
             nock('https://api.github.com')
@@ -345,11 +338,11 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true, 'Should successfully validate after following redirect');
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid, 'Should successfully validate after following redirect').toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should follow HTTP 302 redirects when validating repository', async () => {
+        it('should follow HTTP 302 redirects when validating repository', async () => {
             // Simulate a temporary redirect
             // Both the repo metadata and releases endpoints will redirect
             nock('https://api.github.com')
@@ -372,10 +365,10 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true, 'Should successfully validate after following redirect');
+            expect(result.valid, 'Should successfully validate after following redirect').toBe(true);
         });
 
-        test('should follow redirects when fetching bundles', async () => {
+        it('should follow redirects when fetching bundles', async () => {
             // First request to releases endpoint gets redirected
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
@@ -388,39 +381,39 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
     });
 
-    suite('URL Generation', () => {
-        test('should generate correct manifest URL', () => {
+    describe('URL Generation', () => {
+        it('should generate correct manifest URL', () => {
             const adapter = new GitHubAdapter(mockSource);
             const url = adapter.getManifestUrl('bundle-id', '1.0.0');
 
-            assert.ok(url.includes('test-owner/test-repo'));
-            assert.ok(url.includes('v1.0.0'));
-            assert.ok(url.includes('deployment-manifest.json'));
+            expect(url.includes('test-owner/test-repo')).toBeTruthy();
+            expect(url.includes('v1.0.0')).toBeTruthy();
+            expect(url.includes('deployment-manifest.json')).toBeTruthy();
         });
 
-        test('should generate correct download URL', () => {
+        it('should generate correct download URL', () => {
             const adapter = new GitHubAdapter(mockSource);
             const url = adapter.getDownloadUrl('bundle-id', '1.0.0');
 
-            assert.ok(url.includes('test-owner/test-repo'));
-            assert.ok(url.includes('v1.0.0'));
-            assert.ok(url.includes('bundle.zip'));
+            expect(url.includes('test-owner/test-repo')).toBeTruthy();
+            expect(url.includes('v1.0.0')).toBeTruthy();
+            expect(url.includes('bundle.zip')).toBeTruthy();
         });
 
-        test('should use latest tag when version not specified', () => {
+        it('should use latest tag when version not specified', () => {
             const adapter = new GitHubAdapter(mockSource);
             const url = adapter.getManifestUrl('bundle-id');
 
-            assert.ok(url.includes('latest'));
+            expect(url.includes('latest')).toBeTruthy();
         });
     });
 
-    suite('downloadBundle', () => {
-        test.skip('should download bundle successfully', async () => {
+    describe('downloadBundle', () => {
+        it.skip('should download bundle successfully', async () => {
             const bundleContent = Buffer.from('test bundle content');
             
             nock('https://github.com')
@@ -445,18 +438,17 @@ tags:
                 manifestUrl: 'https://github.com/test-owner/test-repo/releases/download/v1.0.0/deployment-manifest.json',
             });
 
-            assert.ok(Buffer.isBuffer(result));
-            assert.strictEqual(result.toString(), 'test bundle content');
+            expect(Buffer.isBuffer(result)).toBeTruthy();
+            expect(result.toString()).toBe('test bundle content');
         });
 
-        test('should handle download failures', async () => {
+        it('should handle download failures', async () => {
             nock('https://github.com')
                 .get('/test-owner/test-repo/releases/download/v1.0.0/bundle.zip')
                 .reply(404);
 
             const adapter = new GitHubAdapter(mockSource);
-            await assert.rejects(
-                () => adapter.downloadBundle({
+            await expect(() => adapter.downloadBundle({
                     id: 'test-bundle',
                     name: 'Test Bundle',
                     version: '1.0.0',
@@ -471,14 +463,12 @@ tags:
                     license: 'MIT',
                     downloadUrl: 'https://github.com/test-owner/test-repo/releases/download/v1.0.0/bundle.zip',
                     manifestUrl: 'https://github.com/test-owner/test-repo/releases/download/v1.0.0/deployment-manifest.json',
-                }),
-                /Failed to download bundle/
-            );
+                })).rejects.toThrow(/Failed to download bundle/);
         });
     });
 
-    suite('Error Messages', () => {
-        test('should produce clear error message for 401 authentication failure', async () => {
+    describe('Error Messages', () => {
+        it('should produce clear error message for 401 authentication failure', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(401, { message: 'Bad credentials' });
@@ -487,15 +477,15 @@ tags:
             
             try {
                 await adapter.fetchMetadata();
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error: any) {
-                assert.ok(error.message.includes('401'), 'Error should include status code 401');
-                assert.ok(error.message.includes('Authentication failed'), 'Error should mention authentication failure');
-                assert.ok(error.message.includes('Token may be invalid or expired'), 'Error should provide helpful context');
+                expect(error.message.includes('401'), 'Error should include status code 401').toBeTruthy();
+                expect(error.message.includes('Authentication failed'), 'Error should mention authentication failure').toBeTruthy();
+                expect(error.message.includes('Token may be invalid or expired'), 'Error should provide helpful context').toBeTruthy();
             }
         });
 
-        test('should produce clear error message for 403 access forbidden', async () => {
+        it('should produce clear error message for 403 access forbidden', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(403, { message: 'Forbidden' });
@@ -504,15 +494,15 @@ tags:
             
             try {
                 await adapter.fetchMetadata();
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error: any) {
-                assert.ok(error.message.includes('403'), 'Error should include status code 403');
-                assert.ok(error.message.includes('Access forbidden'), 'Error should mention access forbidden');
-                assert.ok(error.message.includes('Token may lack required scopes'), 'Error should provide helpful context about scopes');
+                expect(error.message.includes('403'), 'Error should include status code 403').toBeTruthy();
+                expect(error.message.includes('Access forbidden'), 'Error should mention access forbidden').toBeTruthy();
+                expect(error.message.includes('Token may lack required scopes'), 'Error should provide helpful context about scopes').toBeTruthy();
             }
         });
 
-        test('should produce clear error message for 404 repository not found', async () => {
+        it('should produce clear error message for 404 repository not found', async () => {
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo')
                 .reply(404, { message: 'Not Found' });
@@ -521,15 +511,15 @@ tags:
             
             try {
                 await adapter.fetchMetadata();
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error: any) {
-                assert.ok(error.message.includes('404'), 'Error should include status code 404');
-                assert.ok(error.message.includes('Repository not found'), 'Error should mention repository not found');
-                assert.ok(error.message.includes('Check authentication'), 'Error should provide helpful context');
+                expect(error.message.includes('404'), 'Error should include status code 404').toBeTruthy();
+                expect(error.message.includes('Repository not found'), 'Error should mention repository not found').toBeTruthy();
+                expect(error.message.includes('Check authentication'), 'Error should provide helpful context').toBeTruthy();
             }
         });
 
-        test('should include helpful context in all error messages', async () => {
+        it('should include helpful context in all error messages', async () => {
             // Test that error messages are actionable and clear
             const testCases = [
                 { status: 401, expectedPhrase: 'Authentication failed' },
@@ -546,34 +536,33 @@ tags:
                 
                 try {
                     await adapter.fetchMetadata();
-                    assert.fail(`Should have thrown an error for ${testCase.status}`);
+                    expect.fail(`Should have thrown an error for ${testCase.status}`);
                 } catch (error: any) {
-                    assert.ok(error.message.includes(testCase.expectedPhrase), 
-                        `Error for ${testCase.status} should include "${testCase.expectedPhrase}"`);
+                    expect(error.message.includes(testCase.expectedPhrase), `Error for ${testCase.status} should include "${testCase.expectedPhrase}"`).toBeTruthy();
                 }
             }
         });
     });
 
-    suite('Logging Behavior', () => {
+    describe('Logging Behavior', () => {
         let debugStub: sinon.SinonStub;
         let errorStub: sinon.SinonStub;
         let infoStub: sinon.SinonStub;
 
-        setup(() => {
+        beforeEach(() => {
             const logger = Logger.getInstance();
             debugStub = sinon.stub(logger, 'debug');
             errorStub = sinon.stub(logger, 'error');
             infoStub = sinon.stub(logger, 'info');
         });
 
-        teardown(() => {
+        afterEach(() => {
             debugStub.restore();
             errorStub.restore();
             infoStub.restore();
         });
 
-        test('should log URL and auth method before download', async () => {
+        it('should log URL and auth method before download', async () => {
             const bundleContent = Buffer.from('test content');
             
             nock('https://github.com')
@@ -602,11 +591,11 @@ tags:
             const downloadLogs = debugStub.getCalls().filter(call => 
                 call.args[0].includes('Downloading') && call.args[0].includes('bundle.zip')
             );
-            assert.ok(downloadLogs.length > 0, 'Should log download URL');
-            assert.ok(downloadLogs.some(call => call.args[0].includes('auth')), 'Should log auth method');
+            expect(downloadLogs.length > 0, 'Should log download URL').toBeTruthy();
+            expect(downloadLogs.some(call => call.args[0].includes('auth')), 'Should log auth method').toBeTruthy();
         });
 
-        test('should log redirect URL when following redirects', async () => {
+        it('should log redirect URL when following redirects', async () => {
             const bundleContent = Buffer.from('test content');
             
             nock('https://github.com')
@@ -641,10 +630,10 @@ tags:
             const redirectLogs = debugStub.getCalls().filter(call => 
                 call.args[0].includes('redirect')
             );
-            assert.ok(redirectLogs.length > 0, 'Should log redirect URL');
+            expect(redirectLogs.length > 0, 'Should log redirect URL').toBeTruthy();
         });
 
-        test('should log byte count on download complete', async () => {
+        it('should log byte count on download complete', async () => {
             const bundleContent = Buffer.from('test content with some bytes');
             
             nock('https://github.com')
@@ -673,10 +662,10 @@ tags:
             const completeLogs = debugStub.getCalls().filter(call => 
                 call.args[0].includes('complete') && call.args[0].includes('bytes')
             );
-            assert.ok(completeLogs.length > 0, 'Should log byte count on completion');
+            expect(completeLogs.length > 0, 'Should log byte count on completion').toBeTruthy();
         });
 
-        test('should log status code and error details on HTTP errors', async () => {
+        it('should log status code and error details on HTTP errors', async () => {
             nock('https://github.com')
                 .get('/test-owner/test-repo/releases/download/v1.0.0/bundle.zip')
                 .reply(404, 'Not Found');
@@ -700,7 +689,7 @@ tags:
                     downloadUrl: 'https://github.com/test-owner/test-repo/releases/download/v1.0.0/bundle.zip',
                     manifestUrl: 'https://github.com/test-owner/test-repo/releases/download/v1.0.0/deployment-manifest.json',
                 });
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error) {
                 // Expected error
             }
@@ -709,10 +698,10 @@ tags:
             const errorLogs = errorStub.getCalls().filter(call => 
                 call.args[0].includes('404') || call.args[0].includes('failed')
             );
-            assert.ok(errorLogs.length > 0, 'Should log HTTP error status code');
+            expect(errorLogs.length > 0, 'Should log HTTP error status code').toBeTruthy();
         });
 
-        test('should sanitize auth tokens in logs (only first 8 chars)', async () => {
+        it('should sanitize auth tokens in logs (only first 8 chars)', async () => {
             const bundleContent = Buffer.from('test content');
             
             nock('https://github.com')
@@ -745,15 +734,14 @@ tags:
                 const logMessage = call.args[0];
                 if (typeof logMessage === 'string' && logMessage.includes('token')) {
                     // If token is mentioned, it should not be the full token
-                    assert.ok(!logMessage.includes(fullToken) || logMessage.includes('...'), 
-                        'Full token should not appear in logs');
+                    expect(!logMessage.includes(fullToken) || logMessage.includes('...'), 'Full token should not appear in logs').toBeTruthy();
                 }
             }
         });
     });
 
-    suite('Manifest Caching', () => {
-        test('should make only one HTTP request when same manifest URL is fetched multiple times', async () => {
+    describe('Manifest Caching', () => {
+        it('should make only one HTTP request when same manifest URL is fetched multiple times', async () => {
             // This tests that the adapter minimizes GitHub API calls by caching manifests
             // Important for: API rate limits, performance, network costs
             const manifestContent = JSON.stringify({
@@ -799,10 +787,10 @@ tags:
             await adapter.fetchBundles();
 
             // Manifest should only be downloaded once (not multiple times)
-            assert.strictEqual(manifestDownloadCount, 1, 'Should make only one HTTP request for manifest');
+            expect(manifestDownloadCount, 'Should make only one HTTP request for manifest').toBe(1);
         });
 
-        test('should fetch fresh manifest after cache is cleared', async () => {
+        it('should fetch fresh manifest after cache is cleared', async () => {
             // This tests that clearManifestCache() allows fresh data to be fetched
             // Important for: manual sync should get latest data from GitHub
             const manifestContent = JSON.stringify({
@@ -838,7 +826,7 @@ tags:
             const adapter = new GitHubAdapter(mockSource);
             await adapter.fetchBundles();
             
-            assert.strictEqual(manifestDownloadCount, 1, 'First fetch should make one HTTP request');
+            expect(manifestDownloadCount, 'First fetch should make one HTTP request').toBe(1);
 
             // Clear cache (simulates manual sync)
             adapter.clearManifestCache();
@@ -868,12 +856,12 @@ tags:
             await adapter.fetchBundles();
 
             // After cache clear, should make another HTTP request to get fresh data
-            assert.strictEqual(manifestDownloadCount, 2, 'After cache clear, should make new HTTP request');
+            expect(manifestDownloadCount, 'After cache clear, should make new HTTP request').toBe(2);
         });
     });
 
-    suite('Multiple Releases Processing', () => {
-        test('should return bundles for all valid releases', async () => {
+    describe('Multiple Releases Processing', () => {
+        it('should return bundles for all valid releases', async () => {
             // Setup: Multiple releases to verify all are processed
             const releases = Array.from({ length: 15 }, (_, i) => ({
                 tag_name: `v1.0.${i}`,
@@ -904,17 +892,17 @@ tags:
             const bundles = await adapter.fetchBundles();
 
             // All 15 releases should be returned as bundles
-            assert.strictEqual(bundles.length, 15, 'Should return all 15 bundles');
+            expect(bundles.length, 'Should return all 15 bundles').toBe(15);
             
             // Verify each bundle has correct metadata from manifest
             for (let i = 0; i < 15; i++) {
                 const bundle = bundles.find(b => b.version === `1.0.${i}`);
-                assert.ok(bundle, `Should have bundle for version 1.0.${i}`);
-                assert.strictEqual(bundle!.name, `Test Bundle ${i}`);
+                expect(bundle, `Should have bundle for version 1.0.${i}`).toBeTruthy();
+                expect(bundle!.name).toBe(`Test Bundle ${i}`);
             }
         });
 
-        test('should skip releases without manifest and continue processing others', async () => {
+        it('should skip releases without manifest and continue processing others', async () => {
             // Setup: Mix of valid and invalid releases
             nock('https://api.github.com')
                 .get('/repos/test-owner/test-repo/releases')
@@ -963,9 +951,9 @@ tags:
             const bundles = await adapter.fetchBundles();
 
             // Should return only the 2 valid releases
-            assert.strictEqual(bundles.length, 2, 'Should return only valid bundles');
-            assert.ok(bundles.some(b => b.version === '1.0.0'), 'Should include v1.0.0');
-            assert.ok(bundles.some(b => b.version === '0.8.0'), 'Should include v0.8.0');
+            expect(bundles.length, 'Should return only valid bundles').toBe(2);
+            expect(bundles.some(b => b.version === '1.0.0'), 'Should include v1.0.0').toBeTruthy();
+            expect(bundles.some(b => b.version === '0.8.0'), 'Should include v0.8.0').toBeTruthy();
         });
     });
 });

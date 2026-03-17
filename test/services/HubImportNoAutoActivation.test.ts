@@ -8,7 +8,6 @@
  * automatically activated upon hub import.
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubManager } from '../../src/services/HubManager';
@@ -45,7 +44,7 @@ class MockRegistryManager {
     }
 }
 
-suite('Hub Import - No Auto-Activation', () => {
+describe('Hub Import - No Auto-Activation', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let mockValidator: MockSchemaValidator;
@@ -97,7 +96,7 @@ suite('Hub Import - No Auto-Activation', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '..', '..', 'test-temp-no-auto-activation');
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
@@ -117,14 +116,14 @@ suite('Hub Import - No Auto-Activation', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    suite('Hub Import Behavior', () => {
-        test('should NOT activate any profile when importing a hub with profiles', async () => {
+    describe('Hub Import Behavior', () => {
+        it('should NOT activate any profile when importing a hub with profiles', async () => {
             // Arrange: Create a hub config file with multiple profiles
             const hubConfig = createHubWithProfiles();
             const hubConfigPath = path.join(tempDir, 'hub-config.yml');
@@ -141,31 +140,19 @@ suite('Hub Import - No Auto-Activation', () => {
 
             // Assert: No profile should be activated
             // 1. Check that RegistryManager.activateProfile was never called
-            assert.strictEqual(
-                mockRegistryManager.activateProfileCalls.length,
-                0,
-                'RegistryManager.activateProfile should NOT be called during hub import'
-            );
+            expect(mockRegistryManager.activateProfileCalls.length, 'RegistryManager.activateProfile should NOT be called during hub import').toBe(0);
 
             // 2. Verify no profile has active=true in storage
             const profiles = await hubManager.listProfilesFromHub(hubId);
             const activeProfiles = profiles.filter(p => p.active);
-            assert.strictEqual(
-                activeProfiles.length,
-                0,
-                'No profile should be marked as active after hub import'
-            );
+            expect(activeProfiles.length, 'No profile should be marked as active after hub import').toBe(0);
 
             // 3. Verify no activation state exists
             const activationState = await hubManager.getActiveProfile(hubId);
-            assert.strictEqual(
-                activationState,
-                null,
-                'No activation state should exist after hub import'
-            );
+            expect(activationState, 'No activation state should exist after hub import').toBe(null);
         });
 
-        test('should NOT activate any profile when setting a hub as active', async () => {
+        it('should NOT activate any profile when setting a hub as active', async () => {
             // Arrange: Create and import a hub
             const hubConfig = createHubWithProfiles();
             const hubConfigPath = path.join(tempDir, 'hub-config-active.yml');
@@ -183,22 +170,14 @@ suite('Hub Import - No Auto-Activation', () => {
             await hubManager.setActiveHub(hubId);
 
             // Assert: Still no profile should be activated
-            assert.strictEqual(
-                mockRegistryManager.activateProfileCalls.length,
-                0,
-                'RegistryManager.activateProfile should NOT be called when setting active hub'
-            );
+            expect(mockRegistryManager.activateProfileCalls.length, 'RegistryManager.activateProfile should NOT be called when setting active hub').toBe(0);
 
             const profiles = await hubManager.listProfilesFromHub(hubId);
             const activeProfiles = profiles.filter(p => p.active);
-            assert.strictEqual(
-                activeProfiles.length,
-                0,
-                'No profile should be marked as active after setting hub as active'
-            );
+            expect(activeProfiles.length, 'No profile should be marked as active after setting hub as active').toBe(0);
         });
 
-        test('profiles should remain inactive until explicitly activated by user', async () => {
+        it('profiles should remain inactive until explicitly activated by user', async () => {
             // Arrange: Create and import a hub
             const hubConfig = createHubWithProfiles();
             const hubConfigPath = path.join(tempDir, 'hub-config-explicit.yml');
@@ -215,7 +194,7 @@ suite('Hub Import - No Auto-Activation', () => {
 
             // Verify profiles are inactive
             let profiles = await hubManager.listProfilesFromHub(hubId);
-            assert.ok(profiles.every(p => !p.active), 'All profiles should be inactive initially');
+            expect(profiles.every(p => !p.active), 'All profiles should be inactive initially').toBeTruthy();
 
             // Act: Explicitly activate a profile (simulating user action)
             await hubManager.activateProfile(hubId, 'profile-1', { installBundles: false });
@@ -223,16 +202,16 @@ suite('Hub Import - No Auto-Activation', () => {
             // Assert: Only the explicitly activated profile should be active
             profiles = await hubManager.listProfilesFromHub(hubId);
             const activeProfile = profiles.find(p => p.active);
-            assert.ok(activeProfile, 'One profile should now be active');
-            assert.strictEqual(activeProfile?.id, 'profile-1', 'The explicitly activated profile should be active');
+            expect(activeProfile, 'One profile should now be active').toBeTruthy();
+            expect(activeProfile?.id, 'The explicitly activated profile should be active').toBe('profile-1');
             
             const inactiveProfiles = profiles.filter(p => !p.active);
-            assert.strictEqual(inactiveProfiles.length, 1, 'Other profiles should remain inactive');
+            expect(inactiveProfiles.length, 'Other profiles should remain inactive').toBe(1);
         });
     });
 
-    suite('Hub Sync Behavior', () => {
-        test('should NOT activate any profile when syncing a hub', async () => {
+    describe('Hub Sync Behavior', () => {
+        it('should NOT activate any profile when syncing a hub', async () => {
             // Arrange: Create and import a hub
             const hubConfig = createHubWithProfiles();
             const hubConfigPath = path.join(tempDir, 'hub-config-sync.yml');
@@ -254,19 +233,11 @@ suite('Hub Import - No Auto-Activation', () => {
             await hubManager.syncHub(hubId);
 
             // Assert: No profile should be activated
-            assert.strictEqual(
-                mockRegistryManager.activateProfileCalls.length,
-                0,
-                'RegistryManager.activateProfile should NOT be called during hub sync'
-            );
+            expect(mockRegistryManager.activateProfileCalls.length, 'RegistryManager.activateProfile should NOT be called during hub sync').toBe(0);
 
             const profiles = await hubManager.listProfilesFromHub(hubId);
             const activeProfiles = profiles.filter(p => p.active);
-            assert.strictEqual(
-                activeProfiles.length,
-                0,
-                'No profile should be marked as active after hub sync'
-            );
+            expect(activeProfiles.length, 'No profile should be marked as active after hub sync').toBe(0);
         });
     });
 });

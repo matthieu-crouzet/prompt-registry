@@ -7,15 +7,13 @@
  * across all possible combinations of installed and latest versions.
  */
 
-import * as assert from 'assert';
-import { suite, test } from 'mocha';
 import * as fc from 'fast-check';
 import { VersionManager } from '../../src/utils/versionManager';
 import { determineButtonState } from '../helpers/marketplaceTestHelpers';
 
-suite('MarketplaceViewProvider - Property Tests', () => {
+describe('MarketplaceViewProvider - Property Tests', () => {
 
-    suite('Property 4: Button state correctness', () => {
+    describe('Property 4: Button state correctness', () => {
         /**
          * **Property 4: Button state correctness**
          * **Validates: Requirements 3.1, 3.2, 3.3, 3.4**
@@ -25,7 +23,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
          * - "uninstall" if versions are equal
          * - "install" if no version is installed
          */
-        test('should determine correct button state for all version combinations', () => {
+        it('should determine correct button state for all version combinations', () => {
             // Generator for valid semver strings
             const semverArbitrary = fc.tuple(
                 fc.integer({ min: 0, max: 10 }),
@@ -66,7 +64,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
             );
         });
 
-        test('should handle version prefixes correctly', () => {
+        it('should handle version prefixes correctly', () => {
             // Test with 'v' prefix variations
             const versionWithPrefixArbitrary = fc.tuple(
                 fc.integer({ min: 0, max: 10 }),
@@ -109,7 +107,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
             );
         });
 
-        test('should always return "install" when no version is installed', () => {
+        it('should always return "install" when no version is installed', () => {
             const semverArbitrary = fc.tuple(
                 fc.integer({ min: 0, max: 10 }),
                 fc.integer({ min: 0, max: 20 }),
@@ -128,7 +126,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
             );
         });
 
-        test('should return "uninstall" when versions are equal', () => {
+        it('should return "uninstall" when versions are equal', () => {
             const semverArbitrary = fc.tuple(
                 fc.integer({ min: 0, max: 10 }),
                 fc.integer({ min: 0, max: 20 }),
@@ -147,7 +145,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
             );
         });
 
-        test('should return "update" when installed version is older', () => {
+        it('should return "update" when installed version is older', () => {
             fc.assert(
                 fc.property(
                     fc.tuple(
@@ -169,7 +167,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
         });
     });
 
-    suite('Property 8: Update action correctness', () => {
+    describe('Property 8: Update action correctness', () => {
         /**
          * **Property 8: Update action correctness**
          * **Validates: Requirements 3.5**
@@ -182,7 +180,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
          * - After performing an update action
          * - The installed version should equal the latest version
          */
-        test('should result in latest version installed after update', () => {
+        it('should result in latest version installed after update', () => {
             // Generator for valid semver strings
             const semverArbitrary = fc.tuple(
                 fc.integer({ min: 0, max: 10 }),
@@ -225,7 +223,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
             );
         });
 
-        test('should handle update from any older version to latest', () => {
+        it('should handle update from any older version to latest', () => {
             fc.assert(
                 fc.property(
                     fc.tuple(
@@ -258,7 +256,7 @@ suite('MarketplaceViewProvider - Property Tests', () => {
             );
         });
 
-        test('should handle major version updates correctly', () => {
+        it('should handle major version updates correctly', () => {
             fc.assert(
                 fc.property(
                     fc.tuple(

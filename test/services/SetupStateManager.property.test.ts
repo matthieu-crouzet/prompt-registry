@@ -3,7 +3,6 @@
  * Tests universal correctness properties across all valid executions
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as fc from 'fast-check';
@@ -12,13 +11,13 @@ import { HubManager } from '../../src/services/HubManager';
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { createMockHubData, formatTestParams } from '../helpers/setupStateTestHelpers';
 
-suite('SetupStateManager - Property Tests', () => {
+describe('SetupStateManager - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockHubManager: sinon.SinonStubbedInstance<HubManager>;
     let globalStateData: Map<string, any>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         globalStateData = new Map();
 
@@ -46,14 +45,14 @@ suite('SetupStateManager - Property Tests', () => {
         SetupStateManager.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         SetupStateManager.resetInstance();
     });
 
     // Property 1: State Transition Validity
     // For any sequence of setup operations, the setup state should only transition through valid paths
-    test('Property 1: State transitions follow valid paths (Req 2.1-2.6)', async () => {
+    it('Property 1: State transitions follow valid paths (Req 2.1-2.6)', async () => {
         const operationArbitrary = fc.constantFrom(
             'start',
             'complete',
@@ -108,10 +107,7 @@ suite('SetupStateManager - Property Tests', () => {
                         // Verify transition is valid or state didn't change
                         if (currentState !== previousState) {
                             const allowedNextStates = validTransitions[previousState];
-                            assert.ok(
-                                allowedNextStates.includes(currentState),
-                                `Invalid transition: ${previousState} → ${currentState} (operation: ${op}, sequence: ${operations.join(',')})`
-                            );
+                            expect(allowedNextStates.includes(currentState), `Invalid transition: ${previousState} → ${currentState} (operation: ${op}, sequence: ${operations.join(',')})`).toBeTruthy();
                         }
 
                         previousState = currentState;
@@ -119,10 +115,7 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // Final state should always be valid
                     const finalState = await manager.getState();
-                    assert.ok(
-                        Object.values(SetupState).includes(finalState),
-                        `Final state ${finalState} is not a valid SetupState (sequence: ${operations.join(',')})`
-                    );
+                    expect(Object.values(SetupState).includes(finalState), `Final state ${finalState} is not a valid SetupState (sequence: ${operations.join(',')})`).toBeTruthy();
 
                     return true;
                 }
@@ -133,7 +126,7 @@ suite('SetupStateManager - Property Tests', () => {
 
     // Property 6: Setup Completion Idempotence
     // For any setup state that is already complete, calling markComplete() again should not change state
-    test('Property 6: Setup completion is idempotent (Req 5.1, 5.2, 5.3)', async () => {
+    it('Property 6: Setup completion is idempotent (Req 5.1, 5.2, 5.3)', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.integer({ min: 1, max: 10 }),
@@ -145,8 +138,7 @@ suite('SetupStateManager - Property Tests', () => {
                     // Mark as complete once
                     await manager.markComplete();
                     const stateAfterFirst = await manager.getState();
-                    assert.strictEqual(stateAfterFirst, SetupState.COMPLETE, 
-                        `Initial state should be COMPLETE (repeatCount=${repeatCount})`);
+                    expect(stateAfterFirst, `Initial state should be COMPLETE (repeatCount=${repeatCount})`).toBe(SetupState.COMPLETE);
 
                     // Mark as complete multiple times
                     for (let i = 0; i < repeatCount; i++) {
@@ -155,8 +147,7 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // State should still be complete
                     const finalState = await manager.getState();
-                    assert.strictEqual(finalState, SetupState.COMPLETE,
-                        `State should remain COMPLETE after ${repeatCount} additional markComplete() calls`);
+                    expect(finalState, `State should remain COMPLETE after ${repeatCount} additional markComplete() calls`).toBe(SetupState.COMPLETE);
 
                     return true;
                 }
@@ -167,7 +158,7 @@ suite('SetupStateManager - Property Tests', () => {
 
     // Property 9: State Persistence
     // For any state transition, the new state should be persisted and retrievable
-    test('Property 9: State persists across manager instances (Req 1.4, 2.6)', async () => {
+    it('Property 9: State persists across manager instances (Req 1.4, 2.6)', async () => {
         const stateArbitrary = fc.constantFrom(
             SetupState.NOT_STARTED,
             SetupState.IN_PROGRESS,
@@ -208,11 +199,7 @@ suite('SetupStateManager - Property Tests', () => {
                     const stateAfterReload = await manager2.getState();
 
                     // State should persist
-                    assert.strictEqual(
-                        stateAfterReload,
-                        stateBeforeReload,
-                        `State did not persist: ${stateBeforeReload} → ${stateAfterReload} (target: ${targetState})`
-                    );
+                    expect(stateAfterReload, `State did not persist: ${stateBeforeReload} → ${stateAfterReload} (target: ${targetState})`).toBe(stateBeforeReload);
 
                     return true;
                 }
@@ -226,7 +213,7 @@ suite('SetupStateManager - Property Tests', () => {
     // the system should detect setup as incomplete
     // **Validates: Requirements 1.1, 1.2, 5.4, 5.5**
     // **Merged with Property 5 to eliminate duplication**
-    test('Property 2: Incomplete setup detection and backward compatibility (Req 1.1, 1.2, 5.4, 5.5)', async () => {
+    it('Property 2: Incomplete setup detection and backward compatibility (Req 1.1, 1.2, 5.4, 5.5)', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.boolean(), // firstRun flag
@@ -254,51 +241,27 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // Requirement 1.1: firstRun=false AND no hub → incomplete
                     if (!firstRun && !hubInitialized && !hasAnyHub) {
-                        assert.strictEqual(
-                            isIncomplete,
-                            true,
-                            `Req 1.1: Should detect incomplete when firstRun=false and no hub (${testParams})`
-                        );
+                        expect(isIncomplete, `Req 1.1: Should detect incomplete when firstRun=false and no hub (${testParams})`).toBe(true);
                         
                         // Verify migration to new state system
                         const state = await manager.getState();
-                        assert.strictEqual(
-                            state,
-                            SetupState.INCOMPLETE,
-                            `Should migrate to INCOMPLETE state (${testParams})`
-                        );
+                        expect(state, `Should migrate to INCOMPLETE state (${testParams})`).toBe(SetupState.INCOMPLETE);
                     }
                     // Requirement 1.2 & 5.4, 5.5: firstRun=false AND has hub → complete (backward compat)
                     else if (!firstRun && hasAnyHub) {
-                        assert.strictEqual(
-                            isIncomplete,
-                            false,
-                            `Req 1.2, 5.4, 5.5: Should detect complete when firstRun=false and hub exists (${testParams})`
-                        );
+                        expect(isIncomplete, `Req 1.2, 5.4, 5.5: Should detect complete when firstRun=false and hub exists (${testParams})`).toBe(false);
                         
                         // Should NOT migrate state when hub is configured (backward compat)
                         const state = await manager.getState();
-                        assert.strictEqual(
-                            state,
-                            SetupState.NOT_STARTED,
-                            `Should not migrate state when hub is configured (${testParams})`
-                        );
+                        expect(state, `Should not migrate state when hub is configured (${testParams})`).toBe(SetupState.NOT_STARTED);
                     }
                     // firstRun=true → not incomplete (fresh install)
                     else if (firstRun) {
-                        assert.strictEqual(
-                            isIncomplete,
-                            false,
-                            `Fresh install (firstRun=true) should not be incomplete (${testParams})`
-                        );
+                        expect(isIncomplete, `Fresh install (firstRun=true) should not be incomplete (${testParams})`).toBe(false);
                     }
                     // Other cases (hubInitialized=true) → not incomplete
                     else {
-                        assert.strictEqual(
-                            isIncomplete,
-                            false,
-                            `Should not detect incomplete in other cases (${testParams})`
-                        );
+                        expect(isIncomplete, `Should not detect incomplete in other cases (${testParams})`).toBe(false);
                     }
 
                     return true;
@@ -310,7 +273,7 @@ suite('SetupStateManager - Property Tests', () => {
 
     // Property 13: Valid State Values
     // The state should always be one of the defined SetupState enum values
-    test('Property 13: State is always a valid enum value (Req 2.1)', async () => {
+    it('Property 13: State is always a valid enum value (Req 2.1)', async () => {
         const operationArbitrary = fc.constantFrom(
             'start',
             'complete',
@@ -343,10 +306,7 @@ suite('SetupStateManager - Property Tests', () => {
                         }
 
                         const currentState = await manager.getState();
-                        assert.ok(
-                            Object.values(SetupState).includes(currentState),
-                            `Invalid state value: ${currentState} (operation: ${op}, sequence: ${operations.join(',')})`
-                        );
+                        expect(Object.values(SetupState).includes(currentState), `Invalid state value: ${currentState} (operation: ${op}, sequence: ${operations.join(',')})`).toBeTruthy();
                     }
 
                     return true;
@@ -359,7 +319,7 @@ suite('SetupStateManager - Property Tests', () => {
     // Property 3: Resume Prompt Shown Once
     // For any activation session with incomplete setup, the resume prompt should be shown at most once
     // **Validates: Requirements 3.6**
-    test('Property 3: Resume prompt shown at most once per session (Req 3.6)', async () => {
+    it('Property 3: Resume prompt shown at most once per session (Req 3.6)', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.integer({ min: 1, max: 10 }), // Number of times to check shouldShowResumePrompt
@@ -373,11 +333,7 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // First check: should show prompt
                     const shouldShowFirst = await manager.shouldShowResumePrompt();
-                    assert.strictEqual(
-                        shouldShowFirst,
-                        true,
-                        `Should show resume prompt when setup is incomplete and prompt not yet shown (checkCount=${checkCount})`
-                    );
+                    expect(shouldShowFirst, `Should show resume prompt when setup is incomplete and prompt not yet shown (checkCount=${checkCount})`).toBe(true);
 
                     // Mark prompt as shown
                     await manager.markResumePromptShown();
@@ -385,31 +341,19 @@ suite('SetupStateManager - Property Tests', () => {
                     // All subsequent checks: should NOT show prompt
                     for (let i = 0; i < checkCount; i++) {
                         const shouldShowAgain = await manager.shouldShowResumePrompt();
-                        assert.strictEqual(
-                            shouldShowAgain,
-                            false,
-                            `Should not show resume prompt after marking as shown (check ${i + 1}/${checkCount})`
-                        );
+                        expect(shouldShowAgain, `Should not show resume prompt after marking as shown (check ${i + 1}/${checkCount})`).toBe(false);
                     }
 
                     // Verify the flag is session-scoped (NOT persisted to global state)
                     const promptShownFlag = globalStateData.get('promptregistry.resumePromptShown');
-                    assert.strictEqual(
-                        promptShownFlag,
-                        undefined,
-                        `Resume prompt shown flag should NOT be persisted in global state (session-scoped) (checkCount=${checkCount})`
-                    );
+                    expect(promptShownFlag, `Resume prompt shown flag should NOT be persisted in global state (session-scoped) (checkCount=${checkCount})`).toBe(undefined);
 
                     // Verify that a new instance (simulating new session) allows prompt again
                     SetupStateManager.resetInstance();
                     const newSessionManager = SetupStateManager.getInstance(mockContext, mockHubManager as any);
                     await newSessionManager.markIncomplete();
                     const shouldShowInNewSession = await newSessionManager.shouldShowResumePrompt();
-                    assert.strictEqual(
-                        shouldShowInNewSession,
-                        true,
-                        `Should show resume prompt in new session (flag is session-scoped)`
-                    );
+                    expect(shouldShowInNewSession, `Should show resume prompt in new session (flag is session-scoped)`).toBe(true);
 
                     return true;
                 }
@@ -422,7 +366,7 @@ suite('SetupStateManager - Property Tests', () => {
     // For any extension activation in a test environment (VSCODE_TEST=1 or ExtensionMode.Test),
     // all setup dialogs should be skipped and state should be set to complete
     // **Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5**
-    test('Property 4: Test environment bypass (Req 6.1, 6.2, 6.3, 6.4, 6.5)', async () => {
+    it('Property 4: Test environment bypass (Req 6.1, 6.2, 6.3, 6.4, 6.5)', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.constantFrom(SetupState.NOT_STARTED, SetupState.IN_PROGRESS, SetupState.INCOMPLETE),
@@ -466,27 +410,15 @@ suite('SetupStateManager - Property Tests', () => {
                             await manager.markComplete();
                             const state = await manager.getState();
                             
-                            assert.strictEqual(
-                                state,
-                                SetupState.COMPLETE,
-                                `Req 6.1-6.3: Test environment should allow marking as complete (${testParams})`
-                            );
+                            expect(state, `Req 6.1-6.3: Test environment should allow marking as complete (${testParams})`).toBe(SetupState.COMPLETE);
 
                             // Should not show resume prompt in test environment
                             const shouldShow = await manager.shouldShowResumePrompt();
-                            assert.strictEqual(
-                                shouldShow,
-                                false,
-                                `Req 6.4: Should not show resume prompt in test environment (${testParams})`
-                            );
+                            expect(shouldShow, `Req 6.4: Should not show resume prompt in test environment (${testParams})`).toBe(false);
                         } else {
                             // In non-test environment, state should remain as set
                             const state = await manager.getState();
-                            assert.strictEqual(
-                                state,
-                                initialState,
-                                `Non-test environment should preserve initial state (${testParams})`
-                            );
+                            expect(state, `Non-test environment should preserve initial state (${testParams})`).toBe(initialState);
                         }
 
                         return true;
@@ -508,7 +440,7 @@ suite('SetupStateManager - Property Tests', () => {
     // For any cancellation, markIncomplete() should set state to INCOMPLETE
     // and state should persist across multiple calls
     // **Validates: Requirements 8.1, 8.2, 9.1, 9.2**
-    test('Property 7: Cancellation handling sets INCOMPLETE state (Req 8.1-8.2, 9.1-9.2)', async () => {
+    it('Property 7: Cancellation handling sets INCOMPLETE state (Req 8.1-8.2, 9.1-9.2)', async () => {
         await fc.assert(
             fc.asyncProperty(
                 fc.integer({ min: 1, max: 5 }), // Number of cancellation calls
@@ -529,27 +461,15 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // Verify state is INCOMPLETE
                     const finalState = await manager.getState();
-                    assert.strictEqual(
-                        finalState,
-                        SetupState.INCOMPLETE,
-                        `Req 8.1, 9.1: State should be INCOMPLETE after cancellation (${testParams})`
-                    );
+                    expect(finalState, `Req 8.1, 9.1: State should be INCOMPLETE after cancellation (${testParams})`).toBe(SetupState.INCOMPLETE);
 
                     // Verify isIncomplete() returns true
                     const isIncomplete = await manager.isIncomplete();
-                    assert.strictEqual(
-                        isIncomplete,
-                        true,
-                        `Req 8.1, 9.1: isIncomplete() should return true (${testParams})`
-                    );
+                    expect(isIncomplete, `Req 8.1, 9.1: isIncomplete() should return true (${testParams})`).toBe(true);
 
                     // Verify isComplete() returns false
                     const isComplete = await manager.isComplete();
-                    assert.strictEqual(
-                        isComplete,
-                        false,
-                        `State should not be complete after cancellation (${testParams})`
-                    );
+                    expect(isComplete, `State should not be complete after cancellation (${testParams})`).toBe(false);
 
                     return true;
                 }
@@ -561,7 +481,7 @@ suite('SetupStateManager - Property Tests', () => {
     // Property 8: State Transition Idempotence
     // Calling the same state transition multiple times should result in the same final state
     // **Validates: Requirements 8.3, 8.4, 9.3, 9.4**
-    test('Property 8: State transitions are idempotent (Req 8.3-8.4, 9.3-9.4)', async () => {
+    it('Property 8: State transitions are idempotent (Req 8.3-8.4, 9.3-9.4)', async () => {
         const stateTransitionArbitrary = fc.constantFrom(
             'markStarted',
             'markComplete',
@@ -619,11 +539,7 @@ suite('SetupStateManager - Property Tests', () => {
                     const stateAfterRepeated = await manager.getState();
 
                     // State should be the same after repeated calls
-                    assert.strictEqual(
-                        stateAfterRepeated,
-                        stateAfterFirst,
-                        `Req 8.3, 9.3: State should be idempotent for ${transition} (${testParams})`
-                    );
+                    expect(stateAfterRepeated, `Req 8.3, 9.3: State should be idempotent for ${transition} (${testParams})`).toBe(stateAfterFirst);
 
                     return true;
                 }
@@ -636,7 +552,7 @@ suite('SetupStateManager - Property Tests', () => {
     // For any initial state, reset() should transition to NOT_STARTED
     // and shouldShowResumePrompt() should return false after reset
     // **Validates: Requirements 7.1, 7.2, 7.3**
-    test('Property 10: Reset transitions to NOT_STARTED from any state (Req 7.1-7.3)', async () => {
+    it('Property 10: Reset transitions to NOT_STARTED from any state (Req 7.1-7.3)', async () => {
         const initialStateArbitrary = fc.constantFrom(
             SetupState.NOT_STARTED,
             SetupState.IN_PROGRESS,
@@ -673,11 +589,7 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // Verify initial state is set correctly
                     const stateBeforeReset = await manager.getState();
-                    assert.strictEqual(
-                        stateBeforeReset,
-                        initialState,
-                        `Initial state should be ${initialState} (${testParams})`
-                    );
+                    expect(stateBeforeReset, `Initial state should be ${initialState} (${testParams})`).toBe(initialState);
 
                     // Execute reset multiple times
                     for (let i = 0; i < resetCount; i++) {
@@ -686,27 +598,15 @@ suite('SetupStateManager - Property Tests', () => {
 
                     // Verify state is NOT_STARTED after reset
                     const finalState = await manager.getState();
-                    assert.strictEqual(
-                        finalState,
-                        SetupState.NOT_STARTED,
-                        `Req 7.2: State should be NOT_STARTED after reset (${testParams})`
-                    );
+                    expect(finalState, `Req 7.2: State should be NOT_STARTED after reset (${testParams})`).toBe(SetupState.NOT_STARTED);
 
                     // Verify shouldShowResumePrompt returns false (prompt flag cleared)
                     const shouldShowPrompt = await manager.shouldShowResumePrompt();
-                    assert.strictEqual(
-                        shouldShowPrompt,
-                        false,
-                        `Req 7.3: shouldShowResumePrompt should return false after reset (${testParams})`
-                    );
+                    expect(shouldShowPrompt, `Req 7.3: shouldShowResumePrompt should return false after reset (${testParams})`).toBe(false);
 
                     // Verify isComplete returns false
                     const isComplete = await manager.isComplete();
-                    assert.strictEqual(
-                        isComplete,
-                        false,
-                        `isComplete should return false after reset (${testParams})`
-                    );
+                    expect(isComplete, `isComplete should return false after reset (${testParams})`).toBe(false);
 
                     return true;
                 }

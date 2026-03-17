@@ -20,8 +20,7 @@ const ITEMS_TO_COPY = [
     'mocks/testSetup.js',
     'helpers/mockData.js',
     'vscode-mock.js',
-    'mocha.setup.js',
-    'unit.setup.js'
+    'mocha.setup.js'
 ];
 
 // Additional items to copy from project root

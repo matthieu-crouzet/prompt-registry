@@ -17,7 +17,6 @@
  * 7.7 - Repository local-only mode shows "Switch to Commit" option
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fc from 'fast-check';
 import * as vscode from 'vscode';
@@ -30,7 +29,7 @@ import { InstalledBundle, InstallationScope, RepositoryCommitMode } from '../../
 import { createMockInstalledBundle } from '../helpers/bundleTestHelpers';
 import { PropertyTestConfig, BundleGenerators } from '../helpers/propertyTestHelpers';
 
-suite('BundleScopeCommands Property Tests', () => {
+describe('BundleScopeCommands Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
@@ -81,7 +80,7 @@ suite('BundleScopeCommands Property Tests', () => {
         });
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         // Create mock instances
@@ -98,13 +97,11 @@ suite('BundleScopeCommands Property Tests', () => {
         mockRegistryManager.getStorage.returns(mockStorage as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('Property 9: Context Menu Scope Actions', function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    describe('Property 9: Context Menu Scope Actions', function() {
         /**
          * Property 9.1: User-scoped bundles show repository move options
          * 
@@ -114,7 +111,7 @@ suite('BundleScopeCommands Property Tests', () => {
          * 
          * Validates: Requirements 7.2, 7.3
          */
-        test('user-scoped bundles show repository move options', async () => {
+        it('user-scoped bundles show repository move options', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -157,7 +154,7 @@ suite('BundleScopeCommands Property Tests', () => {
          * 
          * Validates: Requirements 7.4, 7.5
          */
-        test('repository-scoped bundles with commit mode show correct options', async () => {
+        it('repository-scoped bundles with commit mode show correct options', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -200,7 +197,7 @@ suite('BundleScopeCommands Property Tests', () => {
          * 
          * Validates: Requirements 7.6, 7.7
          */
-        test('repository-scoped bundles with local-only mode show correct options', async () => {
+        it('repository-scoped bundles with local-only mode show correct options', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -241,7 +238,7 @@ suite('BundleScopeCommands Property Tests', () => {
          * 
          * Validates: Requirement 7.1 (implicit - only installed bundles have options)
          */
-        test('uninstalled bundles return empty actions', async () => {
+        it('uninstalled bundles return empty actions', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     BundleGenerators.bundleId(),
@@ -276,7 +273,7 @@ suite('BundleScopeCommands Property Tests', () => {
          * 
          * Validates: Requirement 1.8 (repository scope requires workspace)
          */
-        test('repository options are disabled when no workspace is open', async () => {
+        it('repository options are disabled when no workspace is open', async () => {
             // Set no workspace
             mockWorkspaceFolders = undefined;
 
@@ -322,7 +319,7 @@ suite('BundleScopeCommands Property Tests', () => {
          * 
          * Validates: Requirements 7.2-7.7 (mutual exclusivity)
          */
-        test('context menu actions are mutually exclusive', async () => {
+        it('context menu actions are mutually exclusive', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleConfigGenerator(),

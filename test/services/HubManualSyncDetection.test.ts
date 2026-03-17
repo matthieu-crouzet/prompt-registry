@@ -3,14 +3,13 @@
  * Tests for detecting profile changes and conflicts
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubManager } from '../../src/services/HubManager';
 import { HubConfig, HubProfile } from '../../src/types/hub';
 
-suite('Hub Manual Sync Detection', () => {
+describe('Hub Manual Sync Detection', () => {
     let storage: HubStorage;
     let hubManager: HubManager;
     let tempDir: string;
@@ -57,7 +56,7 @@ suite('Hub Manual Sync Detection', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-hub-manual-sync');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -66,14 +65,14 @@ suite('Hub Manual Sync Detection', () => {
         hubManager = new HubManager(storage, {} as any, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Profile Change Detection', () => {
-        test('should detect when active profile has changed in hub', async () => {
+    describe('Profile Change Detection', () => {
+        it('should detect when active profile has changed in hub', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -87,19 +86,19 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const hasChanges = await hubManager.hasProfileChanges('test-hub', 'profile-1');
-            assert.strictEqual(hasChanges, true);
+            expect(hasChanges).toBe(true);
         });
 
-        test('should return false when profile has not changed', async () => {
+        it('should return false when profile has not changed', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
 
             const hasChanges = await hubManager.hasProfileChanges('test-hub', 'profile-1');
-            assert.strictEqual(hasChanges, false);
+            expect(hasChanges).toBe(false);
         });
 
-        test('should detect bundle additions', async () => {
+        it('should detect bundle additions', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -116,13 +115,13 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const changes = await hubManager.getProfileChanges('test-hub', 'profile-1');
-            assert.ok(changes);
-            assert.ok(changes.bundlesAdded);
-            assert.strictEqual(changes.bundlesAdded.length, 1);
-            assert.strictEqual(changes.bundlesAdded[0].id, 'bundle-2');
+            expect(changes).toBeTruthy();
+            expect(changes.bundlesAdded).toBeTruthy();
+            expect(changes.bundlesAdded.length).toBe(1);
+            expect(changes.bundlesAdded[0].id).toBe('bundle-2');
         });
 
-        test('should detect bundle removals', async () => {
+        it('should detect bundle removals', async () => {
             const hub = createTestHub();
             hub.profiles[0].bundles.push({
                 id: 'bundle-2',
@@ -140,13 +139,13 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const changes = await hubManager.getProfileChanges('test-hub', 'profile-1');
-            assert.ok(changes);
-            assert.ok(changes.bundlesRemoved);
-            assert.strictEqual(changes.bundlesRemoved.length, 1);
-            assert.strictEqual(changes.bundlesRemoved[0], 'bundle-2');
+            expect(changes).toBeTruthy();
+            expect(changes.bundlesRemoved).toBeTruthy();
+            expect(changes.bundlesRemoved.length).toBe(1);
+            expect(changes.bundlesRemoved[0]).toBe('bundle-2');
         });
 
-        test('should detect bundle version changes', async () => {
+        it('should detect bundle version changes', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -158,15 +157,15 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const changes = await hubManager.getProfileChanges('test-hub', 'profile-1');
-            assert.ok(changes);
-            assert.ok(changes.bundlesUpdated);
-            assert.strictEqual(changes.bundlesUpdated.length, 1);
-            assert.strictEqual(changes.bundlesUpdated[0].id, 'bundle-1');
-            assert.strictEqual(changes.bundlesUpdated[0].oldVersion, '1.0.0');
-            assert.strictEqual(changes.bundlesUpdated[0].newVersion, '2.0.0');
+            expect(changes).toBeTruthy();
+            expect(changes.bundlesUpdated).toBeTruthy();
+            expect(changes.bundlesUpdated.length).toBe(1);
+            expect(changes.bundlesUpdated[0].id).toBe('bundle-1');
+            expect(changes.bundlesUpdated[0].oldVersion).toBe('1.0.0');
+            expect(changes.bundlesUpdated[0].newVersion).toBe('2.0.0');
         });
 
-        test('should detect metadata changes', async () => {
+        it('should detect metadata changes', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -182,15 +181,15 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const changes = await hubManager.getProfileChanges('test-hub', 'profile-1');
-            assert.ok(changes);
-            assert.ok(changes.metadataChanged);
-            assert.strictEqual(changes.metadataChanged.name, true);
-            assert.strictEqual(changes.metadataChanged.description, true);
+            expect(changes).toBeTruthy();
+            expect(changes.metadataChanged).toBeTruthy();
+            expect(changes.metadataChanged.name).toBe(true);
+            expect(changes.metadataChanged.description).toBe(true);
         });
     });
 
-    suite('Last Sync Tracking', () => {
-        test('should track last sync timestamp', async () => {
+    describe('Last Sync Tracking', () => {
+        it('should track last sync timestamp', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             
@@ -199,18 +198,18 @@ suite('Hub Manual Sync Detection', () => {
             const afterSync = new Date().getTime();
 
             const state = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(state);
+            expect(state).toBeTruthy();
             const syncTime = new Date(state.activatedAt).getTime();
-            assert.ok(syncTime >= beforeSync && syncTime <= afterSync);
+            expect(syncTime >= beforeSync && syncTime <= afterSync).toBeTruthy();
         });
 
-        test('should update last sync on profile sync', async () => {
+        it('should update last sync on profile sync', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
 
             const state1 = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(state1);
+            expect(state1).toBeTruthy();
             const firstSync = new Date(state1.activatedAt).getTime();
 
             // Wait a bit and sync again
@@ -218,13 +217,13 @@ suite('Hub Manual Sync Detection', () => {
             await hubManager.syncProfile('test-hub', 'profile-1');
 
             const state2 = await storage.getProfileActivationState('test-hub', 'profile-1');
-            assert.ok(state2);
+            expect(state2).toBeTruthy();
             const secondSync = new Date(state2.activatedAt).getTime();
 
-            assert.ok(secondSync > firstSync);
+            expect(secondSync > firstSync).toBeTruthy();
         });
 
-        test('should get time since last sync', async () => {
+        it('should get time since last sync', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -232,21 +231,21 @@ suite('Hub Manual Sync Detection', () => {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             const timeSince = await hubManager.getTimeSinceLastSync('test-hub', 'profile-1');
-            assert.ok(timeSince);
-            assert.ok(timeSince >= 100);
+            expect(timeSince).toBeTruthy();
+            expect(timeSince >= 100).toBeTruthy();
         });
 
-        test('should return null for time since last sync when not activated', async () => {
+        it('should return null for time since last sync when not activated', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             const timeSince = await hubManager.getTimeSinceLastSync('test-hub', 'profile-1');
-            assert.strictEqual(timeSince, null);
+            expect(timeSince).toBe(null);
         });
     });
 
-    suite('Hub Update Detection', () => {
-        test('should detect when hub config has been updated', async () => {
+    describe('Hub Update Detection', () => {
+        it('should detect when hub config has been updated', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -257,19 +256,19 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const hasUpdates = await hubManager.hasHubUpdates('test-hub');
-            assert.strictEqual(hasUpdates, true);
+            expect(hasUpdates).toBe(true);
         });
 
-        test('should return false when hub has not been updated', async () => {
+        it('should return false when hub has not been updated', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
 
             const hasUpdates = await hubManager.hasHubUpdates('test-hub');
-            assert.strictEqual(hasUpdates, false);
+            expect(hasUpdates).toBe(false);
         });
 
-        test('should list profiles with pending updates', async () => {
+        it('should list profiles with pending updates', async () => {
             const hub = createTestHub();
             hub.profiles.push({
                 id: 'profile-2',
@@ -291,23 +290,23 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const profilesWithUpdates = await hubManager.getProfilesWithUpdates('test-hub');
-            assert.strictEqual(profilesWithUpdates.length, 1);
-            assert.strictEqual(profilesWithUpdates[0].profileId, 'profile-1');
-            assert.ok(profilesWithUpdates[0].hasChanges);
+            expect(profilesWithUpdates.length).toBe(1);
+            expect(profilesWithUpdates[0].profileId).toBe('profile-1');
+            expect(profilesWithUpdates[0].hasChanges).toBeTruthy();
         });
 
-        test('should return empty list when no profiles have updates', async () => {
+        it('should return empty list when no profiles have updates', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
 
             const profilesWithUpdates = await hubManager.getProfilesWithUpdates('test-hub');
-            assert.strictEqual(profilesWithUpdates.length, 0);
+            expect(profilesWithUpdates.length).toBe(0);
         });
     });
 
-    suite('Change Summary', () => {
-        test('should provide comprehensive change summary', async () => {
+    describe('Change Summary', () => {
+        it('should provide comprehensive change summary', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
             await hubManager.activateProfile('test-hub', 'profile-1', { installBundles: false });
@@ -329,18 +328,18 @@ suite('Hub Manual Sync Detection', () => {
             await storage.saveHub('test-hub', updated.config, updated.reference);
 
             const changes = await hubManager.getProfileChanges('test-hub', 'profile-1');
-            assert.ok(changes);
-            assert.ok(changes.metadataChanged?.name);
-            assert.strictEqual(changes.bundlesAdded?.length, 1);
-            assert.strictEqual(changes.bundlesUpdated?.length, 1);
+            expect(changes).toBeTruthy();
+            expect(changes.metadataChanged?.name).toBeTruthy();
+            expect(changes.bundlesAdded?.length).toBe(1);
+            expect(changes.bundlesUpdated?.length).toBe(1);
         });
 
-        test('should return null when profile is not activated', async () => {
+        it('should return null when profile is not activated', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
             const changes = await hubManager.getProfileChanges('test-hub', 'profile-1');
-            assert.strictEqual(changes, null);
+            expect(changes).toBe(null);
         });
     });
 });

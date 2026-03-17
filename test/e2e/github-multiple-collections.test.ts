@@ -13,7 +13,6 @@
  * - Uninstalling one bundle doesn't affect the other
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -23,7 +22,7 @@ import AdmZip from 'adm-zip';
 import { createE2ETestContext, E2ETestContext, generateTestId } from '../helpers/e2eTestHelpers';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('E2E: GitHub Multiple Collections (Separate Releases)', () => {
+describe('E2E: GitHub Multiple Collections (Separate Releases)', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -166,8 +165,7 @@ Version: ${version}
         });
     }
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('github-multi-col');
         
         // Create sinon sandbox
@@ -208,18 +206,15 @@ Version: ${version}
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         await testContext.cleanup();
         sandbox.restore();
         nock.cleanAll();
         nock.enableNetConnect();
     });
 
-    suite('Bundle Detection', () => {
-        test('should detect two separate bundles from two releases', async function() {
-            this.timeout(60000);
-            
+    describe('Bundle Detection', () => {
+        it('should detect two separate bundles from two releases', async function() {
             // Clean all existing mocks first to prevent interference
             nock.cleanAll();
             nock.disableNetConnect();
@@ -238,20 +233,18 @@ Version: ${version}
             const bundles = await testContext.registryManager.searchBundles({ sourceId });
             
             // Verify two bundles are detected
-            assert.ok(bundles.length >= 2, `Should detect at least 2 bundles, got ${bundles.length}`);
+            expect(bundles.length >= 2, `Should detect at least 2 bundles, got ${bundles.length}`).toBeTruthy();
             
             const collectionA = bundles.find(b => b.id.includes('collection-a'));
             const collectionB = bundles.find(b => b.id.includes('collection-b'));
             
-            assert.ok(collectionA, 'Should find collection-a bundle');
-            assert.ok(collectionB, 'Should find collection-b bundle');
+            expect(collectionA, 'Should find collection-a bundle').toBeTruthy();
+            expect(collectionB, 'Should find collection-b bundle').toBeTruthy();
         });
     });
 
-    suite('Simultaneous Installation', () => {
-        test('should maintain separate installation records', async function() {
-            this.timeout(60000);
-            
+    describe('Simultaneous Installation', () => {
+        it('should maintain separate installation records', async function() {
             setupMultiCollectionMocks();
             
             const sourceId = `${testId}-source-records`;
@@ -280,21 +273,17 @@ Version: ${version}
             const recordA = installed.find(b => b.bundleId.includes('collection-a'));
             const recordB = installed.find(b => b.bundleId.includes('collection-b'));
             
-            assert.ok(recordA, 'Should have collection-a record');
-            assert.ok(recordB, 'Should have collection-b record');
+            expect(recordA, 'Should have collection-a record').toBeTruthy();
+            expect(recordB, 'Should have collection-b record').toBeTruthy();
             
             // Verify records are different
-            assert.notStrictEqual(recordA!.bundleId, recordB!.bundleId, 
-                'Bundle IDs should be different');
-            assert.notStrictEqual(recordA!.installPath, recordB!.installPath, 
-                'Install paths should be different');
-            assert.strictEqual(recordA!.version, '1.0.0', 'Collection-a should be v1.0.0');
-            assert.strictEqual(recordB!.version, '2.0.0', 'Collection-b should be v2.0.0');
+            expect(recordA!.bundleId, 'Bundle IDs should be different').not.toBe(recordB!.bundleId);
+            expect(recordA!.installPath, 'Install paths should be different').not.toBe(recordB!.installPath);
+            expect(recordA!.version, 'Collection-a should be v1.0.0').toBe('1.0.0');
+            expect(recordB!.version, 'Collection-b should be v2.0.0').toBe('2.0.0');
         });
 
-        test('should maintain separate file structures', async function() {
-            this.timeout(60000);
-            
+        it('should maintain separate file structures', async function() {
             setupMultiCollectionMocks();
             
             const sourceId = `${testId}-source-files`;
@@ -323,30 +312,26 @@ Version: ${version}
             
             // Verify collection-a files
             const promptA = path.join(recordA!.installPath, 'prompts', 'collection-a-prompt-1.md');
-            assert.ok(fs.existsSync(promptA), 'Collection-a prompt should exist');
+            expect(fs.existsSync(promptA), 'Collection-a prompt should exist').toBeTruthy();
             const contentA = fs.readFileSync(promptA, 'utf-8');
-            assert.ok(contentA.includes('collection-a'), 'Should have collection-a content');
+            expect(contentA.includes('collection-a'), 'Should have collection-a content').toBeTruthy();
             
             // Verify collection-b files
             const promptB = path.join(recordB!.installPath, 'prompts', 'collection-b-prompt-1.md');
-            assert.ok(fs.existsSync(promptB), 'Collection-b prompt should exist');
+            expect(fs.existsSync(promptB), 'Collection-b prompt should exist').toBeTruthy();
             const contentB = fs.readFileSync(promptB, 'utf-8');
-            assert.ok(contentB.includes('collection-b'), 'Should have collection-b content');
+            expect(contentB.includes('collection-b'), 'Should have collection-b content').toBeTruthy();
             
             // Verify no cross-contamination
             const wrongPromptA = path.join(recordA!.installPath, 'prompts', 'collection-b-prompt-1.md');
             const wrongPromptB = path.join(recordB!.installPath, 'prompts', 'collection-a-prompt-1.md');
-            assert.ok(!fs.existsSync(wrongPromptA), 
-                'Collection-a should not have collection-b files');
-            assert.ok(!fs.existsSync(wrongPromptB), 
-                'Collection-b should not have collection-a files');
+            expect(!fs.existsSync(wrongPromptA), 'Collection-a should not have collection-b files').toBeTruthy();
+            expect(!fs.existsSync(wrongPromptB), 'Collection-b should not have collection-a files').toBeTruthy();
         });
     });
 
-    suite('Independent Uninstallation', () => {
-        test('should uninstall collection-a without affecting collection-b', async function() {
-            this.timeout(60000);
-            
+    describe('Independent Uninstallation', () => {
+        it('should uninstall collection-a without affecting collection-b', async function() {
             setupMultiCollectionMocks();
             
             const sourceId = `${testId}-source-uninstall`;
@@ -380,13 +365,12 @@ Version: ${version}
             
             // Verify collection-a is removed
             installed = await testContext.registryManager.listInstalledBundles();
-            assert.strictEqual(installed.length, 1, 'Should have one bundle remaining');
-            assert.ok(installed[0].bundleId.includes('collection-b'), 
-                'Remaining bundle should be collection-b');
+            expect(installed.length, 'Should have one bundle remaining').toBe(1);
+            expect(installed[0].bundleId.includes('collection-b'), 'Remaining bundle should be collection-b').toBeTruthy();
             
             // Verify collection-b files still exist
             const promptB = path.join(installPathB, 'prompts', 'collection-b-prompt-1.md');
-            assert.ok(fs.existsSync(promptB), 'Collection-b files should still exist');
+            expect(fs.existsSync(promptB), 'Collection-b files should still exist').toBeTruthy();
         });
     });
 });

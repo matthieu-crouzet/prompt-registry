@@ -9,48 +9,29 @@
  * Requirements: 3.1, 3.2, 3.3
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createE2ETestContext, E2ETestContext, generateTestId, waitForCondition } from './e2eTestHelpers';
 
-suite('E2E Test Helpers', () => {
-    suite('createE2ETestContext', () => {
-        test('should create isolated storage directory for each test (Example 3.1)', async function() {
-            this.timeout(10000);
-            
+describe('E2E Test Helpers', () => {
+    describe('createE2ETestContext', () => {
+        it('should create isolated storage directory for each test (Example 3.1)', async function() {
             // Create two test contexts
             const context1 = await createE2ETestContext();
             const context2 = await createE2ETestContext();
             
             try {
                 // Verify each has unique storage path
-                assert.notStrictEqual(
-                    context1.tempStoragePath, 
-                    context2.tempStoragePath,
-                    'Each test context should have unique storage path'
-                );
+                expect(context1.tempStoragePath, 'Each test context should have unique storage path').not.toBe(context2.tempStoragePath);
                 
                 // Verify directories exist
-                assert.ok(
-                    fs.existsSync(context1.tempStoragePath),
-                    'Context 1 storage directory should exist'
-                );
-                assert.ok(
-                    fs.existsSync(context2.tempStoragePath),
-                    'Context 2 storage directory should exist'
-                );
+                expect(fs.existsSync(context1.tempStoragePath), 'Context 1 storage directory should exist').toBeTruthy();
+                expect(fs.existsSync(context2.tempStoragePath), 'Context 2 storage directory should exist').toBeTruthy();
                 
                 // Verify storage subdirectories are created
                 const paths1 = context1.storage.getPaths();
-                assert.ok(
-                    fs.existsSync(paths1.installed),
-                    'Installed directory should be created'
-                );
-                assert.ok(
-                    fs.existsSync(paths1.cache),
-                    'Cache directory should be created'
-                );
+                expect(fs.existsSync(paths1.installed), 'Installed directory should be created').toBeTruthy();
+                expect(fs.existsSync(paths1.cache), 'Cache directory should be created').toBeTruthy();
             } finally {
                 // Cleanup both contexts
                 await context1.cleanup();
@@ -58,41 +39,28 @@ suite('E2E Test Helpers', () => {
             }
         });
 
-        test('should cleanup all test artifacts after teardown (Example 3.2)', async function() {
-            this.timeout(10000);
-            
+        it('should cleanup all test artifacts after teardown (Example 3.2)', async function() {
             // Create test context
             const context = await createE2ETestContext();
             const storagePath = context.tempStoragePath;
             
             // Verify directory exists before cleanup
-            assert.ok(
-                fs.existsSync(storagePath),
-                'Storage directory should exist before cleanup'
-            );
+            expect(fs.existsSync(storagePath), 'Storage directory should exist before cleanup').toBeTruthy();
             
             // Create some test files to simulate test artifacts
             const testFile = path.join(storagePath, 'test-artifact.json');
             fs.writeFileSync(testFile, JSON.stringify({ test: 'data' }));
-            assert.ok(fs.existsSync(testFile), 'Test artifact should be created');
+            expect(fs.existsSync(testFile), 'Test artifact should be created').toBeTruthy();
             
             // Run cleanup
             await context.cleanup();
             
             // Verify directory is removed
-            assert.ok(
-                !fs.existsSync(storagePath),
-                'Storage directory should be removed after cleanup'
-            );
-            assert.ok(
-                !fs.existsSync(testFile),
-                'Test artifacts should be removed after cleanup'
-            );
+            expect(!fs.existsSync(storagePath), 'Storage directory should be removed after cleanup').toBeTruthy();
+            expect(!fs.existsSync(testFile), 'Test artifacts should be removed after cleanup').toBeTruthy();
         });
 
-        test('should cleanup even on test failure (Example 3.3)', async function() {
-            this.timeout(10000);
-            
+        it('should cleanup even on test failure (Example 3.3)', async function() {
             let storagePath: string | undefined;
             let cleanupCalled = false;
             
@@ -117,57 +85,47 @@ suite('E2E Test Helpers', () => {
             }
             
             // Verify cleanup was called and directory removed
-            assert.ok(cleanupCalled, 'Cleanup should be called');
-            assert.ok(
-                !fs.existsSync(storagePath),
-                'Storage directory should be removed even after test failure'
-            );
+            expect(cleanupCalled, 'Cleanup should be called').toBeTruthy();
+            expect(!fs.existsSync(storagePath), 'Storage directory should be removed even after test failure').toBeTruthy();
         });
 
-        test('should provide working RegistryManager instance', async function() {
-            this.timeout(10000);
-            
+        it('should provide working RegistryManager instance', async function() {
             const context = await createE2ETestContext();
             
             try {
                 // Verify RegistryManager is available
-                assert.ok(context.registryManager, 'RegistryManager should be available');
+                expect(context.registryManager, 'RegistryManager should be available').toBeTruthy();
                 
                 // Verify storage is available
-                assert.ok(context.storage, 'Storage should be available');
+                expect(context.storage, 'Storage should be available').toBeTruthy();
                 
                 // Verify storage paths point to temp directory
                 const paths = context.storage.getPaths();
-                assert.ok(
-                    paths.root.startsWith(context.tempStoragePath) || 
-                    paths.root === context.tempStoragePath,
-                    'Storage root should be in temp directory'
-                );
+                expect(paths.root.startsWith(context.tempStoragePath) || 
+                    paths.root === context.tempStoragePath, 'Storage root should be in temp directory').toBeTruthy();
             } finally {
                 await context.cleanup();
             }
         });
     });
 
-    suite('generateTestId', () => {
-        test('should generate unique IDs', () => {
+    describe('generateTestId', () => {
+        it('should generate unique IDs', () => {
             const id1 = generateTestId();
             const id2 = generateTestId();
             
-            assert.notStrictEqual(id1, id2, 'Generated IDs should be unique');
+            expect(id1, 'Generated IDs should be unique').not.toBe(id2);
         });
 
-        test('should include prefix in ID', () => {
+        it('should include prefix in ID', () => {
             const id = generateTestId('my-prefix');
             
-            assert.ok(id.startsWith('my-prefix-'), 'ID should start with prefix');
+            expect(id.startsWith('my-prefix-'), 'ID should start with prefix').toBeTruthy();
         });
     });
 
-    suite('waitForCondition', () => {
-        test('should resolve when condition becomes true', async function() {
-            this.timeout(5000);
-            
+    describe('waitForCondition', () => {
+        it('should resolve when condition becomes true', async function() {
             let counter = 0;
             const condition = () => {
                 counter++;
@@ -176,22 +134,17 @@ suite('E2E Test Helpers', () => {
             
             await waitForCondition(condition, 2000, 50);
             
-            assert.ok(counter >= 3, 'Condition should have been checked multiple times');
+            expect(counter >= 3, 'Condition should have been checked multiple times').toBeTruthy();
         });
 
-        test('should reject on timeout', async function() {
-            this.timeout(5000);
-            
+        it('should reject on timeout', async function() {
             const condition = () => false; // Never true
             
             try {
                 await waitForCondition(condition, 200, 50);
-                assert.fail('Should have thrown timeout error');
+                expect.fail('Should have thrown timeout error');
             } catch (error: any) {
-                assert.ok(
-                    error.message.includes('timeout'),
-                    'Error should mention timeout'
-                );
+                expect(error.message.includes('timeout'), 'Error should mention timeout').toBeTruthy();
             }
         });
     });

@@ -10,7 +10,6 @@
  * - 12.1-12.6: Source and hub tracking
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,7 +29,7 @@ import { LockfileManager, CreateOrUpdateOptions } from '../../src/services/Lockf
 import { calculateFileChecksum } from '../../src/utils/fileIntegrityService';
 import { Logger } from '../../src/utils/logger';
 
-suite('LockfileManager', () => {
+describe('LockfileManager', () => {
     let sandbox: sinon.SinonSandbox;
     let tempDir: string;
     let lockfilePath: string;
@@ -69,7 +68,7 @@ suite('LockfileManager', () => {
         source: createMockSourceEntry('github', 'https://github.com/owner/repo')
     });
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         tempDir = createTempDir();
         lockfilePath = path.join(tempDir, 'prompt-registry.lock.json');
@@ -77,30 +76,30 @@ suite('LockfileManager', () => {
         LockfileManager.resetInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         LockfileManager.resetInstance();
         cleanupTempDir(tempDir);
     });
 
-    suite('Singleton Pattern', () => {
-        test('should return same instance on multiple calls', () => {
+    describe('Singleton Pattern', () => {
+        it('should return same instance on multiple calls', () => {
             const instance1 = LockfileManager.getInstance(tempDir);
             const instance2 = LockfileManager.getInstance(tempDir);
-            assert.strictEqual(instance1, instance2);
+            expect(instance1).toBe(instance2);
         });
 
-        test('should require repository path on first call', () => {
+        it('should require repository path on first call', () => {
             LockfileManager.resetInstance();
-            assert.throws(() => {
+            expect(() => {
                 LockfileManager.getInstance();
-            }, /Repository path required/);
+            }).toThrow(/Repository path required/);
         });
     });
 
-    suite('createOrUpdate()', () => {
-        suite('Lockfile Creation', () => {
-            test('should create lockfile with all required fields', async () => {
+    describe('createOrUpdate()', () => {
+        describe('Lockfile Creation', () => {
+            it('should create lockfile with all required fields', async () => {
                 // Requirements: 4.2-4.7
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('test-bundle');
@@ -108,174 +107,174 @@ suite('LockfileManager', () => {
                 await manager.createOrUpdate(options);
                 
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile);
-                assert.ok(lockfile!.$schema);
-                assert.ok(lockfile!.version);
-                assert.ok(lockfile!.generatedAt);
-                assert.ok(lockfile!.generatedBy);
-                assert.ok(lockfile!.bundles);
-                assert.ok(lockfile!.sources);
+                expect(lockfile).toBeTruthy();
+                expect(lockfile!.$schema).toBeTruthy();
+                expect(lockfile!.version).toBeTruthy();
+                expect(lockfile!.generatedAt).toBeTruthy();
+                expect(lockfile!.generatedBy).toBeTruthy();
+                expect(lockfile!.bundles).toBeTruthy();
+                expect(lockfile!.sources).toBeTruthy();
             });
 
-            test('should include $schema field pointing to schema definition', async () => {
+            it('should include $schema field pointing to schema definition', async () => {
                 // Requirements: 11.4
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.$schema.includes('lockfile.schema.json'));
+                expect(lockfile!.$schema.includes('lockfile.schema.json')).toBeTruthy();
             });
 
-            test('should include version field with schema version', async () => {
+            it('should include version field with schema version', async () => {
                 // Requirements: 4.2
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.match(lockfile!.version, /^\d+\.\d+\.\d+$/);
+                expect(lockfile!.version).toMatch(/^\d+\.\d+\.\d+$/);
             });
 
-            test('should include generatedAt ISO timestamp', async () => {
+            it('should include generatedAt ISO timestamp', async () => {
                 // Requirements: 4.3
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(new Date(lockfile!.generatedAt).toISOString() === lockfile!.generatedAt);
+                expect(new Date(lockfile!.generatedAt).toISOString() === lockfile!.generatedAt).toBeTruthy();
             });
 
-            test('should include generatedBy with extension name and version', async () => {
+            it('should include generatedBy with extension name and version', async () => {
                 // Requirements: 4.4
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.generatedBy.includes('prompt-registry'));
+                expect(lockfile!.generatedBy.includes('prompt-registry')).toBeTruthy();
             });
 
-            test('should use 2-space indentation for readability', async () => {
+            it('should use 2-space indentation for readability', async () => {
                 // Requirements: 4.10
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const content = fs.readFileSync(lockfilePath, 'utf8');
-                assert.ok(content.includes('  "version"'));
+                expect(content.includes('  "version"')).toBeTruthy();
             });
         });
 
-        suite('Bundle Entry Management', () => {
-            test('should add bundle entry to lockfile', async () => {
+        describe('Bundle Entry Management', () => {
+            it('should add bundle entry to lockfile', async () => {
                 // Requirements: 4.5
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.bundles['my-bundle']);
+                expect(lockfile!.bundles['my-bundle']).toBeTruthy();
             });
 
-            test('should include version in bundle entry', async () => {
+            it('should include version in bundle entry', async () => {
                 // Requirements: 4.6
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle', '1.0.0'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.bundles['my-bundle'].version, '1.0.0');
+                expect(lockfile!.bundles['my-bundle'].version).toBe('1.0.0');
             });
 
-            test('should include sourceId in bundle entry', async () => {
+            it('should include sourceId in bundle entry', async () => {
                 // Requirements: 4.6
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.bundles['my-bundle'].sourceId, 'test-source');
+                expect(lockfile!.bundles['my-bundle'].sourceId).toBe('test-source');
             });
 
-            test('should include sourceType in bundle entry', async () => {
+            it('should include sourceType in bundle entry', async () => {
                 // Requirements: 4.6
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.bundles['my-bundle'].sourceType, 'github');
+                expect(lockfile!.bundles['my-bundle'].sourceType).toBe('github');
             });
 
-            test('should include installedAt timestamp in bundle entry', async () => {
+            it('should include installedAt timestamp in bundle entry', async () => {
                 // Requirements: 4.6
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.bundles['my-bundle'].installedAt);
+                expect(lockfile!.bundles['my-bundle'].installedAt).toBeTruthy();
             });
 
-            test('should NOT include commitMode in bundle entry (implicit based on file)', async () => {
+            it('should NOT include commitMode in bundle entry (implicit based on file)', async () => {
                 // Requirements: 1.4, 1.5 - commitMode is implicit based on which lockfile contains the entry
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle'));
                 const lockfile = readLockfileFromDisk();
                 // commitMode should NOT be present in the bundle entry
-                assert.strictEqual(lockfile!.bundles['my-bundle'].commitMode, undefined);
+                expect(lockfile!.bundles['my-bundle'].commitMode).toBe(undefined);
             });
 
-            test('should include files array with checksums', async () => {
+            it('should include files array with checksums', async () => {
                 // Requirements: 15.1-15.2
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(Array.isArray(lockfile!.bundles['my-bundle'].files));
-                assert.ok(lockfile!.bundles['my-bundle'].files[0].path);
-                assert.ok(lockfile!.bundles['my-bundle'].files[0].checksum);
+                expect(Array.isArray(lockfile!.bundles['my-bundle'].files)).toBeTruthy();
+                expect(lockfile!.bundles['my-bundle'].files[0].path).toBeTruthy();
+                expect(lockfile!.bundles['my-bundle'].files[0].checksum).toBeTruthy();
             });
 
-            test('should update existing bundle entry', async () => {
+            it('should update existing bundle entry', async () => {
                 // Requirements: 4.1
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('my-bundle', '1.0.0'));
                 await manager.createOrUpdate(createTestOptions('my-bundle', '2.0.0'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.bundles['my-bundle'].version, '2.0.0');
+                expect(lockfile!.bundles['my-bundle'].version).toBe('2.0.0');
             });
 
-            test('should preserve other bundles when updating one', async () => {
+            it('should preserve other bundles when updating one', async () => {
                 // Requirements: 11.5
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('bundle-1', '1.0.0'));
                 await manager.createOrUpdate(createTestOptions('bundle-2', '2.0.0'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.bundles['bundle-1']);
-                assert.ok(lockfile!.bundles['bundle-2']);
+                expect(lockfile!.bundles['bundle-1']).toBeTruthy();
+                expect(lockfile!.bundles['bundle-2']).toBeTruthy();
             });
         });
 
-        suite('Source Recording', () => {
-            test('should record source configuration in sources section', async () => {
+        describe('Source Recording', () => {
+            it('should record source configuration in sources section', async () => {
                 // Requirements: 4.7, 12.1
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.sources['test-source']);
+                expect(lockfile!.sources['test-source']).toBeTruthy();
             });
 
-            test('should include source type', async () => {
+            it('should include source type', async () => {
                 // Requirements: 12.3
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.sources['test-source'].type, 'github');
+                expect(lockfile!.sources['test-source'].type).toBe('github');
             });
 
-            test('should include source URL', async () => {
+            it('should include source URL', async () => {
                 // Requirements: 12.3
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.sources['test-source'].url, 'https://github.com/owner/repo');
+                expect(lockfile!.sources['test-source'].url).toBe('https://github.com/owner/repo');
             });
 
-            test('should include optional branch for git sources', async () => {
+            it('should include optional branch for git sources', async () => {
                 // Requirements: 12.3
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('test-bundle');
                 options.source = createMockSourceEntry('github', 'https://github.com/owner/repo', 'main');
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.sources['test-source'].branch, 'main');
+                expect(lockfile!.sources['test-source'].branch).toBe('main');
             });
         });
 
-        suite('Hub Recording', () => {
-            test('should record hub configuration when bundle comes from hub', async () => {
+        describe('Hub Recording', () => {
+            it('should record hub configuration when bundle comes from hub', async () => {
                 // Requirements: 12.2
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('test-bundle');
@@ -285,11 +284,11 @@ suite('LockfileManager', () => {
                 };
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.hubs);
-                assert.ok(lockfile!.hubs!['hub-1']);
+                expect(lockfile!.hubs).toBeTruthy();
+                expect(lockfile!.hubs!['hub-1']).toBeTruthy();
             });
 
-            test('should include hub name', async () => {
+            it('should include hub name', async () => {
                 // Requirements: 12.2
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('test-bundle');
@@ -299,10 +298,10 @@ suite('LockfileManager', () => {
                 };
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.hubs!['hub-1'].name, 'My Hub');
+                expect(lockfile!.hubs!['hub-1'].name).toBe('My Hub');
             });
 
-            test('should include hub URL', async () => {
+            it('should include hub URL', async () => {
                 // Requirements: 12.2
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('test-bundle');
@@ -312,19 +311,19 @@ suite('LockfileManager', () => {
                 };
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.hubs!['hub-1'].url, 'https://hub.example.com/config.yml');
+                expect(lockfile!.hubs!['hub-1'].url).toBe('https://hub.example.com/config.yml');
             });
 
-            test('should not include hubs section when no hub provided', async () => {
+            it('should not include hubs section when no hub provided', async () => {
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.hubs, undefined);
+                expect(lockfile!.hubs).toBe(undefined);
             });
         });
 
-        suite('Profile Recording', () => {
-            test('should record profile when bundle installed as part of profile', async () => {
+        describe('Profile Recording', () => {
+            it('should record profile when bundle installed as part of profile', async () => {
                 // Requirements: 12.6, 15.3
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('bundle-1');
@@ -334,10 +333,10 @@ suite('LockfileManager', () => {
                 };
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile!.profiles);
+                expect(lockfile!.profiles).toBeTruthy();
             });
 
-            test('should include profile name', async () => {
+            it('should include profile name', async () => {
                 // Requirements: 15.4
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('bundle-1');
@@ -347,10 +346,10 @@ suite('LockfileManager', () => {
                 };
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.profiles!['profile-1'].name, 'My Profile');
+                expect(lockfile!.profiles!['profile-1'].name).toBe('My Profile');
             });
 
-            test('should include profile bundleIds', async () => {
+            it('should include profile bundleIds', async () => {
                 // Requirements: 15.4
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('bundle-1');
@@ -360,29 +359,29 @@ suite('LockfileManager', () => {
                 };
                 await manager.createOrUpdate(options);
                 const lockfile = readLockfileFromDisk();
-                assert.deepStrictEqual(lockfile!.profiles!['profile-1'].bundleIds, ['bundle-1', 'bundle-2']);
+                expect(lockfile!.profiles!['profile-1'].bundleIds).toEqual(['bundle-1', 'bundle-2']);
             });
 
-            test('should not include profiles section when no profile provided', async () => {
+            it('should not include profiles section when no profile provided', async () => {
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 const lockfile = readLockfileFromDisk();
-                assert.strictEqual(lockfile!.profiles, undefined);
+                expect(lockfile!.profiles).toBe(undefined);
             });
         });
 
-        suite('Atomic Write', () => {
-            test('should write atomically using temp file and rename', async () => {
+        describe('Atomic Write', () => {
+            it('should write atomically using temp file and rename', async () => {
                 // Requirements: 15.6
                 const manager = LockfileManager.getInstance(tempDir);
                 await manager.createOrUpdate(createTestOptions('test-bundle'));
                 
                 // Verify lockfile exists and temp file doesn't
-                assert.ok(fs.existsSync(lockfilePath));
-                assert.ok(!fs.existsSync(lockfilePath + '.tmp'));
+                expect(fs.existsSync(lockfilePath)).toBeTruthy();
+                expect(!fs.existsSync(lockfilePath + '.tmp')).toBeTruthy();
             });
 
-            test('should not corrupt lockfile on concurrent writes', async () => {
+            it('should not corrupt lockfile on concurrent writes', async () => {
                 // Requirements: 15.6
                 const manager = LockfileManager.getInstance(tempDir);
                 
@@ -395,12 +394,12 @@ suite('LockfileManager', () => {
                 
                 // Verify lockfile is valid JSON
                 const lockfile = readLockfileFromDisk();
-                assert.ok(lockfile);
-                assert.ok(lockfile!.bundles);
+                expect(lockfile).toBeTruthy();
+                expect(lockfile!.bundles).toBeTruthy();
             });
         });
 
-        suite('Dual-Lockfile Write Operations', () => {
+        describe('Dual-Lockfile Write Operations', () => {
             const localLockfilePath = () => path.join(tempDir, 'prompt-registry.local.lock.json');
             
             const readLocalLockfileFromDisk = (): Lockfile | null => {
@@ -411,7 +410,7 @@ suite('LockfileManager', () => {
                 return JSON.parse(fs.readFileSync(localPath, 'utf8'));
             };
 
-            test('should write commit mode bundles to main lockfile', async () => {
+            it('should write commit mode bundles to main lockfile', async () => {
                 // Requirements: 1.2 - Write commit bundles to prompt-registry.lock.json
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('commit-bundle');
@@ -421,15 +420,15 @@ suite('LockfileManager', () => {
                 
                 // Verify bundle is in main lockfile
                 const mainLockfile = readLockfileFromDisk();
-                assert.ok(mainLockfile, 'Main lockfile should exist');
-                assert.ok(mainLockfile!.bundles['commit-bundle'], 'Bundle should be in main lockfile');
+                expect(mainLockfile, 'Main lockfile should exist').toBeTruthy();
+                expect(mainLockfile!.bundles['commit-bundle'], 'Bundle should be in main lockfile').toBeTruthy();
                 
                 // Verify bundle is NOT in local lockfile
                 const localLockfile = readLocalLockfileFromDisk();
-                assert.strictEqual(localLockfile, null, 'Local lockfile should not exist');
+                expect(localLockfile, 'Local lockfile should not exist').toBe(null);
             });
 
-            test('should write local-only mode bundles to local lockfile', async () => {
+            it('should write local-only mode bundles to local lockfile', async () => {
                 // Requirements: 1.1 - Write local-only bundles to prompt-registry.local.lock.json
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('local-bundle');
@@ -439,15 +438,15 @@ suite('LockfileManager', () => {
                 
                 // Verify bundle is in local lockfile
                 const localLockfile = readLocalLockfileFromDisk();
-                assert.ok(localLockfile, 'Local lockfile should exist');
-                assert.ok(localLockfile!.bundles['local-bundle'], 'Bundle should be in local lockfile');
+                expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
+                expect(localLockfile!.bundles['local-bundle'], 'Bundle should be in local lockfile').toBeTruthy();
                 
                 // Verify bundle is NOT in main lockfile
                 const mainLockfile = readLockfileFromDisk();
-                assert.strictEqual(mainLockfile, null, 'Main lockfile should not exist');
+                expect(mainLockfile, 'Main lockfile should not exist').toBe(null);
             });
 
-            test('should NOT include commitMode field in bundle entries for commit mode', async () => {
+            it('should NOT include commitMode field in bundle entries for commit mode', async () => {
                 // Requirements: 1.5 - commitMode field should not be included in main lockfile entries
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('commit-bundle');
@@ -456,15 +455,11 @@ suite('LockfileManager', () => {
                 await manager.createOrUpdate(options);
                 
                 const mainLockfile = readLockfileFromDisk();
-                assert.ok(mainLockfile, 'Main lockfile should exist');
-                assert.strictEqual(
-                    mainLockfile!.bundles['commit-bundle'].commitMode, 
-                    undefined, 
-                    'commitMode should NOT be in bundle entry'
-                );
+                expect(mainLockfile, 'Main lockfile should exist').toBeTruthy();
+                expect(mainLockfile!.bundles['commit-bundle'].commitMode, 'commitMode should NOT be in bundle entry').toBe(undefined);
             });
 
-            test('should NOT include commitMode field in bundle entries for local-only mode', async () => {
+            it('should NOT include commitMode field in bundle entries for local-only mode', async () => {
                 // Requirements: 1.4 - commitMode field should not be included in local lockfile entries
                 const manager = LockfileManager.getInstance(tempDir);
                 const options = createTestOptions('local-bundle');
@@ -473,15 +468,11 @@ suite('LockfileManager', () => {
                 await manager.createOrUpdate(options);
                 
                 const localLockfile = readLocalLockfileFromDisk();
-                assert.ok(localLockfile, 'Local lockfile should exist');
-                assert.strictEqual(
-                    localLockfile!.bundles['local-bundle'].commitMode, 
-                    undefined, 
-                    'commitMode should NOT be in bundle entry'
-                );
+                expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
+                expect(localLockfile!.bundles['local-bundle'].commitMode, 'commitMode should NOT be in bundle entry').toBe(undefined);
             });
 
-            test('should keep commit and local-only bundles in separate lockfiles', async () => {
+            it('should keep commit and local-only bundles in separate lockfiles', async () => {
                 // Requirements: 1.1, 1.2 - Bundles should be in correct lockfiles based on commitMode
                 const manager = LockfileManager.getInstance(tempDir);
                 
@@ -498,16 +489,16 @@ suite('LockfileManager', () => {
                 
                 // Verify commit bundle is only in main lockfile
                 const mainLockfile = readLockfileFromDisk();
-                assert.ok(mainLockfile!.bundles['commit-bundle'], 'Commit bundle should be in main lockfile');
-                assert.strictEqual(mainLockfile!.bundles['local-bundle'], undefined, 'Local bundle should NOT be in main lockfile');
+                expect(mainLockfile!.bundles['commit-bundle'], 'Commit bundle should be in main lockfile').toBeTruthy();
+                expect(mainLockfile!.bundles['local-bundle'], 'Local bundle should NOT be in main lockfile').toBe(undefined);
                 
                 // Verify local-only bundle is only in local lockfile
                 const localLockfile = readLocalLockfileFromDisk();
-                assert.ok(localLockfile!.bundles['local-bundle'], 'Local bundle should be in local lockfile');
-                assert.strictEqual(localLockfile!.bundles['commit-bundle'], undefined, 'Commit bundle should NOT be in local lockfile');
+                expect(localLockfile!.bundles['local-bundle'], 'Local bundle should be in local lockfile').toBeTruthy();
+                expect(localLockfile!.bundles['commit-bundle'], 'Commit bundle should NOT be in local lockfile').toBe(undefined);
             });
 
-            test('should add local lockfile to git exclude on first local-only bundle creation', async () => {
+            it('should add local lockfile to git exclude on first local-only bundle creation', async () => {
                 // Requirements: 2.1 - Add prompt-registry.local.lock.json to .git/info/exclude
                 const manager = LockfileManager.getInstance(tempDir);
                 
@@ -522,20 +513,14 @@ suite('LockfileManager', () => {
                 
                 // Verify .git/info/exclude has the local lockfile entry
                 const excludePath = path.join(gitInfoDir, 'exclude');
-                assert.ok(fs.existsSync(excludePath), '.git/info/exclude should exist');
+                expect(fs.existsSync(excludePath), '.git/info/exclude should exist').toBeTruthy();
                 
                 const excludeContent = fs.readFileSync(excludePath, 'utf-8');
-                assert.ok(
-                    excludeContent.includes('prompt-registry.local.lock.json'),
-                    'Local lockfile should be in git exclude'
-                );
-                assert.ok(
-                    excludeContent.includes('# Prompt Registry (local)'),
-                    'Git exclude should have Prompt Registry section header'
-                );
+                expect(excludeContent.includes('prompt-registry.local.lock.json'), 'Local lockfile should be in git exclude').toBeTruthy();
+                expect(excludeContent.includes('# Prompt Registry (local)'), 'Git exclude should have Prompt Registry section header').toBeTruthy();
             });
 
-            test('should not add to git exclude when .git directory does not exist', async () => {
+            it('should not add to git exclude when .git directory does not exist', async () => {
                 // Requirements: 2.3 - Skip git exclude operations if .git directory does not exist
                 const manager = LockfileManager.getInstance(tempDir);
                 
@@ -552,14 +537,14 @@ suite('LockfileManager', () => {
                 
                 // Verify local lockfile was created
                 const localLockfile = readLocalLockfileFromDisk();
-                assert.ok(localLockfile, 'Local lockfile should exist');
+                expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
                 
                 // Verify .git/info/exclude was NOT created
                 const excludePath = path.join(tempDir, '.git', 'info', 'exclude');
-                assert.ok(!fs.existsSync(excludePath), '.git/info/exclude should NOT exist');
+                expect(!fs.existsSync(excludePath), '.git/info/exclude should NOT exist').toBeTruthy();
             });
 
-            test('should not duplicate git exclude entry on subsequent local-only bundle creations', async () => {
+            it('should not duplicate git exclude entry on subsequent local-only bundle creations', async () => {
                 // Requirements: 2.5 - Prevent duplicate entries in git exclude
                 const manager = LockfileManager.getInstance(tempDir);
                 
@@ -583,53 +568,53 @@ suite('LockfileManager', () => {
                 const excludeContent = fs.readFileSync(excludePath, 'utf-8');
                 
                 const matches = excludeContent.match(/prompt-registry\.local\.lock\.json/g);
-                assert.strictEqual(matches?.length, 1, 'Local lockfile should appear only once in git exclude');
+                expect(matches?.length, 'Local lockfile should appear only once in git exclude').toBe(1);
             });
         });
     });
 
-    suite('remove()', () => {
-        test('should remove bundle entry from lockfile', async () => {
+    describe('remove()', () => {
+        it('should remove bundle entry from lockfile', async () => {
             // Requirements: 4.8
             const lockfile = createMockLockfile(2);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             await manager.remove('bundle-0');
             const updated = readLockfileFromDisk();
-            assert.ok(!updated!.bundles['bundle-0']);
-            assert.ok(updated!.bundles['bundle-1']);
+            expect(!updated!.bundles['bundle-0']).toBeTruthy();
+            expect(updated!.bundles['bundle-1']).toBeTruthy();
         });
 
-        test('should delete lockfile when last bundle is removed', async () => {
+        it('should delete lockfile when last bundle is removed', async () => {
             // Requirements: 4.9
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             await manager.remove('bundle-0');
-            assert.strictEqual(fs.existsSync(lockfilePath), false);
+            expect(fs.existsSync(lockfilePath)).toBe(false);
         });
 
-        test('should preserve other bundles when removing one', async () => {
+        it('should preserve other bundles when removing one', async () => {
             const lockfile = createMockLockfile(3);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             await manager.remove('bundle-1');
             const updated = readLockfileFromDisk();
-            assert.ok(updated!.bundles['bundle-0']);
-            assert.ok(!updated!.bundles['bundle-1']);
-            assert.ok(updated!.bundles['bundle-2']);
+            expect(updated!.bundles['bundle-0']).toBeTruthy();
+            expect(!updated!.bundles['bundle-1']).toBeTruthy();
+            expect(updated!.bundles['bundle-2']).toBeTruthy();
         });
 
-        test('should handle removing non-existent bundle gracefully', async () => {
+        it('should handle removing non-existent bundle gracefully', async () => {
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             await manager.remove('non-existent');
             const updated = readLockfileFromDisk();
-            assert.ok(updated!.bundles['bundle-0']);
+            expect(updated!.bundles['bundle-0']).toBeTruthy();
         });
 
-        test('should clean up orphaned sources when bundle removed', async () => {
+        it('should clean up orphaned sources when bundle removed', async () => {
             // If a source is only referenced by the removed bundle, it should be cleaned up
             const manager = LockfileManager.getInstance(tempDir);
             
@@ -647,11 +632,11 @@ suite('LockfileManager', () => {
             await manager.remove('bundle-1');
             
             const updated = readLockfileFromDisk();
-            assert.ok(!updated!.sources['source-1'], 'Orphaned source should be removed');
-            assert.ok(updated!.sources['source-2'], 'Referenced source should remain');
+            expect(!updated!.sources['source-1'], 'Orphaned source should be removed').toBeTruthy();
+            expect(updated!.sources['source-2'], 'Referenced source should remain').toBeTruthy();
         });
 
-        suite('Dual-Lockfile Remove Operations', () => {
+        describe('Dual-Lockfile Remove Operations', () => {
             // Requirements: 5.1, 5.2, 5.3, 5.4 - Remove from correct lockfile
             
             const localLockfilePath = () => path.join(tempDir, 'prompt-registry.local.lock.json');
@@ -668,7 +653,7 @@ suite('LockfileManager', () => {
                 fs.writeFileSync(localLockfilePath(), JSON.stringify(lockfile, null, 2));
             };
 
-            test('should remove local-only bundle from local lockfile', async () => {
+            it('should remove local-only bundle from local lockfile', async () => {
                 // Requirements: 5.1 - Remove local-only bundle from Local_Lockfile
                 const localLockfile = createMockLockfile(2);
                 writeLocalLockfile(localLockfile);
@@ -678,16 +663,16 @@ suite('LockfileManager', () => {
                 
                 // Bundle should be removed from local lockfile
                 const updatedLocal = readLocalLockfileFromDisk();
-                assert.ok(updatedLocal, 'Local lockfile should still exist');
-                assert.ok(!updatedLocal!.bundles['bundle-0'], 'bundle-0 should be removed');
-                assert.ok(updatedLocal!.bundles['bundle-1'], 'bundle-1 should remain');
+                expect(updatedLocal, 'Local lockfile should still exist').toBeTruthy();
+                expect(!updatedLocal!.bundles['bundle-0'], 'bundle-0 should be removed').toBeTruthy();
+                expect(updatedLocal!.bundles['bundle-1'], 'bundle-1 should remain').toBeTruthy();
                 
                 // Main lockfile should not exist
                 const mainLockfile = readLockfileFromDisk();
-                assert.strictEqual(mainLockfile, null, 'Main lockfile should not exist');
+                expect(mainLockfile, 'Main lockfile should not exist').toBe(null);
             });
 
-            test('should remove committed bundle from main lockfile', async () => {
+            it('should remove committed bundle from main lockfile', async () => {
                 // Requirements: 5.2 - Remove committed bundle from Main_Lockfile
                 const mainLockfile = createMockLockfile(2);
                 writeLockfile(mainLockfile);
@@ -697,16 +682,16 @@ suite('LockfileManager', () => {
                 
                 // Bundle should be removed from main lockfile
                 const updatedMain = readLockfileFromDisk();
-                assert.ok(updatedMain, 'Main lockfile should still exist');
-                assert.ok(!updatedMain!.bundles['bundle-0'], 'bundle-0 should be removed');
-                assert.ok(updatedMain!.bundles['bundle-1'], 'bundle-1 should remain');
+                expect(updatedMain, 'Main lockfile should still exist').toBeTruthy();
+                expect(!updatedMain!.bundles['bundle-0'], 'bundle-0 should be removed').toBeTruthy();
+                expect(updatedMain!.bundles['bundle-1'], 'bundle-1 should remain').toBeTruthy();
                 
                 // Local lockfile should not exist
                 const localLockfile = readLocalLockfileFromDisk();
-                assert.strictEqual(localLockfile, null, 'Local lockfile should not exist');
+                expect(localLockfile, 'Local lockfile should not exist').toBe(null);
             });
 
-            test('should delete local lockfile when last local-only bundle is removed', async () => {
+            it('should delete local lockfile when last local-only bundle is removed', async () => {
                 // Requirements: 5.3 - Delete Local_Lockfile when last bundle removed
                 const localLockfile = createMockLockfile(1);
                 writeLocalLockfile(localLockfile);
@@ -715,10 +700,10 @@ suite('LockfileManager', () => {
                 await manager.remove('bundle-0');
                 
                 // Local lockfile should be deleted
-                assert.strictEqual(fs.existsSync(localLockfilePath()), false, 'Local lockfile should be deleted');
+                expect(fs.existsSync(localLockfilePath()), 'Local lockfile should be deleted').toBe(false);
             });
 
-            test('should delete main lockfile when last committed bundle is removed', async () => {
+            it('should delete main lockfile when last committed bundle is removed', async () => {
                 // Requirements: 5.5 - Delete Main_Lockfile when last bundle removed
                 const mainLockfile = createMockLockfile(1);
                 writeLockfile(mainLockfile);
@@ -727,10 +712,10 @@ suite('LockfileManager', () => {
                 await manager.remove('bundle-0');
                 
                 // Main lockfile should be deleted
-                assert.strictEqual(fs.existsSync(lockfilePath), false, 'Main lockfile should be deleted');
+                expect(fs.existsSync(lockfilePath), 'Main lockfile should be deleted').toBe(false);
             });
 
-            test('should remove local lockfile from git exclude when local lockfile is deleted', async () => {
+            it('should remove local lockfile from git exclude when local lockfile is deleted', async () => {
                 // Requirements: 5.4 - Remove local lockfile from git exclude when deleted
                 const localLockfile = createMockLockfile(1);
                 writeLocalLockfile(localLockfile);
@@ -745,17 +730,14 @@ suite('LockfileManager', () => {
                 await manager.remove('bundle-0');
                 
                 // Local lockfile should be deleted
-                assert.strictEqual(fs.existsSync(localLockfilePath()), false, 'Local lockfile should be deleted');
+                expect(fs.existsSync(localLockfilePath()), 'Local lockfile should be deleted').toBe(false);
                 
                 // Git exclude should no longer have the local lockfile entry
                 const excludeContent = fs.readFileSync(excludePath, 'utf-8');
-                assert.ok(
-                    !excludeContent.includes('prompt-registry.local.lock.json'),
-                    'Local lockfile should be removed from git exclude'
-                );
+                expect(!excludeContent.includes('prompt-registry.local.lock.json'), 'Local lockfile should be removed from git exclude').toBeTruthy();
             });
 
-            test('should remove from correct lockfile when both exist', async () => {
+            it('should remove from correct lockfile when both exist', async () => {
                 // Test that remove finds the bundle in the correct lockfile
                 const mainLockfile = LockfileBuilder.create()
                     .withSource('main-source', 'github', 'https://github.com/main/repo')
@@ -775,15 +757,15 @@ suite('LockfileManager', () => {
                 await manager.remove('local-bundle');
                 
                 // Local lockfile should be deleted (was the only bundle)
-                assert.strictEqual(fs.existsSync(localLockfilePath()), false, 'Local lockfile should be deleted');
+                expect(fs.existsSync(localLockfilePath()), 'Local lockfile should be deleted').toBe(false);
                 
                 // Main lockfile should still have its bundle
                 const updatedMain = readLockfileFromDisk();
-                assert.ok(updatedMain, 'Main lockfile should still exist');
-                assert.ok(updatedMain!.bundles['main-bundle'], 'main-bundle should remain');
+                expect(updatedMain, 'Main lockfile should still exist').toBeTruthy();
+                expect(updatedMain!.bundles['main-bundle'], 'main-bundle should remain').toBeTruthy();
             });
 
-            test('should handle removing non-existent bundle from both lockfiles gracefully', async () => {
+            it('should handle removing non-existent bundle from both lockfiles gracefully', async () => {
                 // Test that remove handles non-existent bundle when both lockfiles exist
                 const mainLockfile = createMockLockfile(1);
                 writeLockfile(mainLockfile);
@@ -799,13 +781,13 @@ suite('LockfileManager', () => {
                 // Both lockfiles should remain unchanged
                 const updatedMain = readLockfileFromDisk();
                 const updatedLocal = readLocalLockfileFromDisk();
-                assert.ok(updatedMain!.bundles['bundle-0'], 'Main lockfile bundle should remain');
-                assert.ok(updatedLocal!.bundles['bundle-0'], 'Local lockfile bundle should remain');
+                expect(updatedMain!.bundles['bundle-0'], 'Main lockfile bundle should remain').toBeTruthy();
+                expect(updatedLocal!.bundles['bundle-0'], 'Local lockfile bundle should remain').toBeTruthy();
             });
         });
     });
 
-    suite('updateCommitMode()', () => {
+    describe('updateCommitMode()', () => {
         const localLockfilePath = () => path.join(tempDir, 'prompt-registry.local.lock.json');
         
         const readLocalLockfileFromDisk = (): Lockfile | null => {
@@ -820,7 +802,7 @@ suite('LockfileManager', () => {
             fs.writeFileSync(localLockfilePath(), JSON.stringify(lockfile, null, 2));
         };
 
-        test('should move bundle from main lockfile to local lockfile when switching to local-only', async () => {
+        it('should move bundle from main lockfile to local lockfile when switching to local-only', async () => {
             // Requirements: 4.1 - Move bundle from Main_Lockfile to Local_Lockfile
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
@@ -830,15 +812,15 @@ suite('LockfileManager', () => {
             
             // Bundle should be in local lockfile
             const localLockfile = readLocalLockfileFromDisk();
-            assert.ok(localLockfile, 'Local lockfile should exist');
-            assert.ok(localLockfile!.bundles['bundle-0'], 'Bundle should be in local lockfile');
+            expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
+            expect(localLockfile!.bundles['bundle-0'], 'Bundle should be in local lockfile').toBeTruthy();
             
             // Bundle should NOT be in main lockfile (main lockfile should be deleted since it was the only bundle)
             const mainLockfile = readLockfileFromDisk();
-            assert.strictEqual(mainLockfile, null, 'Main lockfile should be deleted when empty');
+            expect(mainLockfile, 'Main lockfile should be deleted when empty').toBe(null);
         });
 
-        test('should move bundle from local lockfile to main lockfile when switching to commit', async () => {
+        it('should move bundle from local lockfile to main lockfile when switching to commit', async () => {
             // Requirements: 4.2 - Move bundle from Local_Lockfile to Main_Lockfile
             const lockfile = createMockLockfile(1);
             writeLocalLockfile(lockfile);
@@ -848,15 +830,15 @@ suite('LockfileManager', () => {
             
             // Bundle should be in main lockfile
             const mainLockfile = readLockfileFromDisk();
-            assert.ok(mainLockfile, 'Main lockfile should exist');
-            assert.ok(mainLockfile!.bundles['bundle-0'], 'Bundle should be in main lockfile');
+            expect(mainLockfile, 'Main lockfile should exist').toBeTruthy();
+            expect(mainLockfile!.bundles['bundle-0'], 'Bundle should be in main lockfile').toBeTruthy();
             
             // Bundle should NOT be in local lockfile (local lockfile should be deleted since it was the only bundle)
             const localLockfile = readLocalLockfileFromDisk();
-            assert.strictEqual(localLockfile, null, 'Local lockfile should be deleted when empty');
+            expect(localLockfile, 'Local lockfile should be deleted when empty').toBe(null);
         });
 
-        test('should update generatedAt timestamp in target lockfile', async () => {
+        it('should update generatedAt timestamp in target lockfile', async () => {
             const lockfile = createMockLockfile(1);
             const originalTimestamp = lockfile.generatedAt;
             writeLockfile(lockfile);
@@ -868,21 +850,18 @@ suite('LockfileManager', () => {
             await manager.updateCommitMode('bundle-0', 'local-only');
             
             const localLockfile = readLocalLockfileFromDisk();
-            assert.ok(localLockfile, 'Local lockfile should exist');
-            assert.notStrictEqual(localLockfile!.generatedAt, originalTimestamp);
+            expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
+            expect(localLockfile!.generatedAt).not.toBe(originalTimestamp);
         });
 
-        test('should throw error if bundle not found in source lockfile', async () => {
+        it('should throw error if bundle not found in source lockfile', async () => {
             // Requirements: 4.6 - Return error if bundle not found in source lockfile
             const manager = LockfileManager.getInstance(tempDir);
             
-            await assert.rejects(
-                async () => manager.updateCommitMode('bundle-0', 'local-only'),
-                /Bundle bundle-0 not found in commit lockfile/
-            );
+            await expect(async () => manager.updateCommitMode('bundle-0', 'local-only')).rejects.toThrow(/Bundle bundle-0 not found in commit lockfile/);
         });
 
-        test('should throw error if bundle not found when switching to commit', async () => {
+        it('should throw error if bundle not found when switching to commit', async () => {
             // Requirements: 4.6 - Return error if bundle not found in source lockfile
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
@@ -890,13 +869,10 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             
             // Bundle is in main lockfile, but we're trying to switch to commit (which looks in local lockfile)
-            await assert.rejects(
-                async () => manager.updateCommitMode('non-existent', 'local-only'),
-                /Bundle non-existent not found in commit lockfile/
-            );
+            await expect(async () => manager.updateCommitMode('non-existent', 'local-only')).rejects.toThrow(/Bundle non-existent not found in commit lockfile/);
         });
 
-        test('should emit onLockfileUpdated event with target lockfile', async () => {
+        it('should emit onLockfileUpdated event with target lockfile', async () => {
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             
@@ -911,12 +887,12 @@ suite('LockfileManager', () => {
             
             await manager.updateCommitMode('bundle-0', 'local-only');
             
-            assert.ok(eventFired, 'Event should be fired');
+            expect(eventFired, 'Event should be fired').toBeTruthy();
             // The event should contain the target lockfile (local lockfile) with the bundle
-            assert.ok(eventLockfile!.bundles['bundle-0'], 'Event lockfile should contain the moved bundle');
+            expect(eventLockfile!.bundles['bundle-0'], 'Event lockfile should contain the moved bundle').toBeTruthy();
         });
 
-        test('should preserve all bundle metadata during move', async () => {
+        it('should preserve all bundle metadata during move', async () => {
             // Requirements: 4.3 - Preserve all bundle metadata during move
             const lockfile = createMockLockfile(1);
             const originalVersion = lockfile.bundles['bundle-0'].version;
@@ -930,15 +906,15 @@ suite('LockfileManager', () => {
             await manager.updateCommitMode('bundle-0', 'local-only');
             
             const localLockfile = readLocalLockfileFromDisk();
-            assert.ok(localLockfile, 'Local lockfile should exist');
-            assert.strictEqual(localLockfile!.bundles['bundle-0'].version, originalVersion, 'Version should be preserved');
-            assert.strictEqual(localLockfile!.bundles['bundle-0'].sourceId, originalSourceId, 'SourceId should be preserved');
-            assert.strictEqual(localLockfile!.bundles['bundle-0'].sourceType, originalSourceType, 'SourceType should be preserved');
-            assert.strictEqual(localLockfile!.bundles['bundle-0'].installedAt, originalInstalledAt, 'InstalledAt should be preserved');
-            assert.deepStrictEqual(localLockfile!.bundles['bundle-0'].files, originalFiles, 'Files should be preserved');
+            expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
+            expect(localLockfile!.bundles['bundle-0'].version, 'Version should be preserved').toBe(originalVersion);
+            expect(localLockfile!.bundles['bundle-0'].sourceId, 'SourceId should be preserved').toBe(originalSourceId);
+            expect(localLockfile!.bundles['bundle-0'].sourceType, 'SourceType should be preserved').toBe(originalSourceType);
+            expect(localLockfile!.bundles['bundle-0'].installedAt, 'InstalledAt should be preserved').toBe(originalInstalledAt);
+            expect(localLockfile!.bundles['bundle-0'].files, 'Files should be preserved').toEqual(originalFiles);
         });
 
-        test('should copy source entry to target lockfile', async () => {
+        it('should copy source entry to target lockfile', async () => {
             // Requirements: 4.3 - Source entry should be migrated
             const lockfile = createMockLockfile(1);
             const sourceId = lockfile.bundles['bundle-0'].sourceId;
@@ -949,13 +925,13 @@ suite('LockfileManager', () => {
             await manager.updateCommitMode('bundle-0', 'local-only');
             
             const localLockfile = readLocalLockfileFromDisk();
-            assert.ok(localLockfile, 'Local lockfile should exist');
-            assert.ok(localLockfile!.sources[sourceId], 'Source should be copied to local lockfile');
-            assert.strictEqual(localLockfile!.sources[sourceId].type, originalSource.type, 'Source type should be preserved');
-            assert.strictEqual(localLockfile!.sources[sourceId].url, originalSource.url, 'Source URL should be preserved');
+            expect(localLockfile, 'Local lockfile should exist').toBeTruthy();
+            expect(localLockfile!.sources[sourceId], 'Source should be copied to local lockfile').toBeTruthy();
+            expect(localLockfile!.sources[sourceId].type, 'Source type should be preserved').toBe(originalSource.type);
+            expect(localLockfile!.sources[sourceId].url, 'Source URL should be preserved').toBe(originalSource.url);
         });
 
-        test('should add local lockfile to git exclude when moving to local-only', async () => {
+        it('should add local lockfile to git exclude when moving to local-only', async () => {
             // Requirements: 4.4 - Add local lockfile to git exclude when moving to local-only
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
@@ -969,16 +945,13 @@ suite('LockfileManager', () => {
             
             // Verify .git/info/exclude has the local lockfile entry
             const excludePath = path.join(gitInfoDir, 'exclude');
-            assert.ok(fs.existsSync(excludePath), '.git/info/exclude should exist');
+            expect(fs.existsSync(excludePath), '.git/info/exclude should exist').toBeTruthy();
             
             const excludeContent = fs.readFileSync(excludePath, 'utf-8');
-            assert.ok(
-                excludeContent.includes('prompt-registry.local.lock.json'),
-                'Local lockfile should be in git exclude'
-            );
+            expect(excludeContent.includes('prompt-registry.local.lock.json'), 'Local lockfile should be in git exclude').toBeTruthy();
         });
 
-        test('should remove local lockfile from git exclude when local lockfile becomes empty', async () => {
+        it('should remove local lockfile from git exclude when local lockfile becomes empty', async () => {
             // Requirements: 4.5 - Remove local lockfile from git exclude when empty
             const lockfile = createMockLockfile(1);
             writeLocalLockfile(lockfile);
@@ -993,17 +966,14 @@ suite('LockfileManager', () => {
             await manager.updateCommitMode('bundle-0', 'commit');
             
             // Local lockfile should be deleted (was the only bundle)
-            assert.strictEqual(fs.existsSync(localLockfilePath()), false, 'Local lockfile should be deleted');
+            expect(fs.existsSync(localLockfilePath()), 'Local lockfile should be deleted').toBe(false);
             
             // Git exclude should no longer have the local lockfile entry
             const excludeContent = fs.readFileSync(excludePath, 'utf-8');
-            assert.ok(
-                !excludeContent.includes('prompt-registry.local.lock.json'),
-                'Local lockfile should be removed from git exclude'
-            );
+            expect(!excludeContent.includes('prompt-registry.local.lock.json'), 'Local lockfile should be removed from git exclude').toBeTruthy();
         });
 
-        test('should preserve other bundles in source lockfile when moving one', async () => {
+        it('should preserve other bundles in source lockfile when moving one', async () => {
             const lockfile = createMockLockfile(2);
             writeLockfile(lockfile);
             
@@ -1012,90 +982,90 @@ suite('LockfileManager', () => {
             
             // bundle-0 should be in local lockfile
             const localLockfile = readLocalLockfileFromDisk();
-            assert.ok(localLockfile!.bundles['bundle-0'], 'bundle-0 should be in local lockfile');
+            expect(localLockfile!.bundles['bundle-0'], 'bundle-0 should be in local lockfile').toBeTruthy();
             
             // bundle-1 should still be in main lockfile
             const mainLockfile = readLockfileFromDisk();
-            assert.ok(mainLockfile, 'Main lockfile should still exist');
-            assert.ok(mainLockfile!.bundles['bundle-1'], 'bundle-1 should still be in main lockfile');
-            assert.ok(!mainLockfile!.bundles['bundle-0'], 'bundle-0 should NOT be in main lockfile');
+            expect(mainLockfile, 'Main lockfile should still exist').toBeTruthy();
+            expect(mainLockfile!.bundles['bundle-1'], 'bundle-1 should still be in main lockfile').toBeTruthy();
+            expect(!mainLockfile!.bundles['bundle-0'], 'bundle-0 should NOT be in main lockfile').toBeTruthy();
         });
     });
 
-    suite('read()', () => {
-        test('should return lockfile when it exists', async () => {
+    describe('read()', () => {
+        it('should return lockfile when it exists', async () => {
             // Requirements: 5.2
             const lockfile = createMockLockfile(2);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.read();
-            assert.ok(result);
-            assert.strictEqual(Object.keys(result!.bundles).length, 2);
+            expect(result).toBeTruthy();
+            expect(Object.keys(result!.bundles).length).toBe(2);
         });
 
-        test('should return null when lockfile does not exist', async () => {
+        it('should return null when lockfile does not exist', async () => {
             // Requirements: 5.1
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.read();
-            assert.strictEqual(result, null);
+            expect(result).toBe(null);
         });
 
-        test('should parse and return valid lockfile structure', async () => {
+        it('should parse and return valid lockfile structure', async () => {
             // Requirements: 5.2
             const lockfile = createMockLockfile(1, { includeHubs: true, includeProfiles: true });
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.read();
-            assert.ok(result!.bundles);
-            assert.ok(result!.sources);
-            assert.ok(result!.hubs);
-            assert.ok(result!.profiles);
+            expect(result!.bundles).toBeTruthy();
+            expect(result!.sources).toBeTruthy();
+            expect(result!.hubs).toBeTruthy();
+            expect(result!.profiles).toBeTruthy();
         });
 
-        test('should handle corrupted lockfile gracefully', async () => {
+        it('should handle corrupted lockfile gracefully', async () => {
             fs.writeFileSync(lockfilePath, 'not valid json');
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.read();
             // Should return null for corrupted file
-            assert.strictEqual(result, null);
+            expect(result).toBe(null);
         });
     });
 
-    suite('validate()', () => {
-        test('should return valid result for valid lockfile', async () => {
+    describe('validate()', () => {
+        it('should return valid result for valid lockfile', async () => {
             // Requirements: 5.2
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.validate();
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should detect missing required fields', async () => {
+        it('should detect missing required fields', async () => {
             const invalidLockfile = { bundles: {} };
             fs.writeFileSync(lockfilePath, JSON.stringify(invalidLockfile));
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.validate();
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
 
-        test('should return schema version in result', async () => {
+        it('should return schema version in result', async () => {
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.validate();
-            assert.ok(result.schemaVersion);
+            expect(result.schemaVersion).toBeTruthy();
         });
 
-        test('should return valid=false when lockfile does not exist', async () => {
+        it('should return valid=false when lockfile does not exist', async () => {
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.validate();
-            assert.strictEqual(result.valid, false);
+            expect(result.valid).toBe(false);
         });
 
-        test('should use fallback schema path when extension not available', async () => {
+        it('should use fallback schema path when extension not available', async () => {
             // Requirements: 11.4 - Schema path resolution with fallback
             // In test environment, extension is not available, so it should fall back to process.cwd()
             const lockfile = createMockLockfile(1);
@@ -1105,10 +1075,10 @@ suite('LockfileManager', () => {
             // Validation should still work using fallback path (process.cwd()/schemas/)
             const result = await manager.validate();
             // If schema is found via fallback, validation should succeed for valid lockfile
-            assert.strictEqual(result.valid, true);
+            expect(result.valid).toBe(true);
         });
 
-        test('should load schema from extension path when available', async () => {
+        it('should load schema from extension path when available', async () => {
             // Requirements: 11.4 - Schema path resolution from extension
             // This test verifies the schema loading works regardless of source
             const lockfile = createMockLockfile(1);
@@ -1138,7 +1108,7 @@ suite('LockfileManager', () => {
             try {
                 const result = await manager.validate();
                 // Schema should be found and validation should work
-                assert.strictEqual(result.valid, true);
+                expect(result.valid).toBe(true);
             } finally {
                 // Restore original
                 if (originalGetExtension) {
@@ -1148,8 +1118,8 @@ suite('LockfileManager', () => {
         });
     });
 
-    suite('detectModifiedFiles()', () => {
-        test('should return empty array when no files modified', async () => {
+    describe('detectModifiedFiles()', () => {
+        it('should return empty array when no files modified', async () => {
             // Requirements: 14.1-14.2
             const manager = LockfileManager.getInstance(tempDir);
             
@@ -1165,10 +1135,10 @@ suite('LockfileManager', () => {
             await manager.createOrUpdate(options);
             
             const result = await manager.detectModifiedFiles('test-bundle');
-            assert.strictEqual(result.length, 0);
+            expect(result.length).toBe(0);
         });
 
-        test('should detect modified files by checksum comparison', async () => {
+        it('should detect modified files by checksum comparison', async () => {
             // Requirements: 14.2
             const manager = LockfileManager.getInstance(tempDir);
             
@@ -1187,11 +1157,11 @@ suite('LockfileManager', () => {
             fs.writeFileSync(testFilePath, 'modified content');
             
             const result = await manager.detectModifiedFiles('test-bundle');
-            assert.strictEqual(result.length, 1);
-            assert.strictEqual(result[0].modificationType, 'modified');
+            expect(result.length).toBe(1);
+            expect(result[0].modificationType).toBe('modified');
         });
 
-        test('should detect missing files', async () => {
+        it('should detect missing files', async () => {
             // Requirements: 14.3
             const manager = LockfileManager.getInstance(tempDir);
             
@@ -1201,10 +1171,10 @@ suite('LockfileManager', () => {
             await manager.createOrUpdate(options);
             
             const result = await manager.detectModifiedFiles('test-bundle');
-            assert.strictEqual(result[0].modificationType, 'missing');
+            expect(result[0].modificationType).toBe('missing');
         });
 
-        test('should include original and current checksums in result', async () => {
+        it('should include original and current checksums in result', async () => {
             // Requirements: 14.2
             const manager = LockfileManager.getInstance(tempDir);
             
@@ -1222,48 +1192,48 @@ suite('LockfileManager', () => {
             fs.writeFileSync(testFilePath, 'modified content');
             
             const result = await manager.detectModifiedFiles('test-bundle');
-            assert.ok(result[0].originalChecksum);
-            assert.ok(result[0].currentChecksum);
-            assert.notStrictEqual(result[0].originalChecksum, result[0].currentChecksum);
+            expect(result[0].originalChecksum).toBeTruthy();
+            expect(result[0].currentChecksum).toBeTruthy();
+            expect(result[0].originalChecksum).not.toBe(result[0].currentChecksum);
         });
 
-        test('should return empty array for non-existent bundle', async () => {
+        it('should return empty array for non-existent bundle', async () => {
             const manager = LockfileManager.getInstance(tempDir);
             const result = await manager.detectModifiedFiles('non-existent');
-            assert.strictEqual(result.length, 0);
+            expect(result.length).toBe(0);
         });
     });
 
-    suite('Events', () => {
-        test('should emit onLockfileUpdated event when lockfile created', async () => {
+    describe('Events', () => {
+        it('should emit onLockfileUpdated event when lockfile created', async () => {
             const manager = LockfileManager.getInstance(tempDir);
             let eventFired = false;
             manager.onLockfileUpdated(() => { eventFired = true; });
             await manager.createOrUpdate(createTestOptions('test-bundle'));
-            assert.strictEqual(eventFired, true);
+            expect(eventFired).toBe(true);
         });
 
-        test('should emit onLockfileUpdated event when lockfile updated', async () => {
+        it('should emit onLockfileUpdated event when lockfile updated', async () => {
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             let eventFired = false;
             manager.onLockfileUpdated(() => { eventFired = true; });
             await manager.createOrUpdate(createTestOptions('new-bundle'));
-            assert.strictEqual(eventFired, true);
+            expect(eventFired).toBe(true);
         });
 
-        test('should emit onLockfileUpdated event when bundle removed', async () => {
+        it('should emit onLockfileUpdated event when bundle removed', async () => {
             const lockfile = createMockLockfile(2);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
             let eventFired = false;
             manager.onLockfileUpdated(() => { eventFired = true; });
             await manager.remove('bundle-0');
-            assert.strictEqual(eventFired, true);
+            expect(eventFired).toBe(true);
         });
 
-        test('should emit onLockfileUpdated event when lockfile deleted', async () => {
+        it('should emit onLockfileUpdated event when lockfile deleted', async () => {
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
             const manager = LockfileManager.getInstance(tempDir);
@@ -1274,44 +1244,44 @@ suite('LockfileManager', () => {
                 receivedNull = lf === null;
             });
             await manager.remove('bundle-0');
-            assert.strictEqual(eventFired, true);
-            assert.strictEqual(receivedNull, true);
+            expect(eventFired).toBe(true);
+            expect(receivedNull).toBe(true);
         });
     });
 
-    suite('getLockfilePath()', () => {
-        test('should return correct lockfile path', () => {
+    describe('getLockfilePath()', () => {
+        it('should return correct lockfile path', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const lockfilePath = manager.getLockfilePath();
-            assert.ok(lockfilePath.endsWith('prompt-registry.lock.json'));
+            expect(lockfilePath.endsWith('prompt-registry.lock.json')).toBeTruthy();
         });
     });
 
-    suite('getLocalLockfilePath()', () => {
-        test('should return correct local lockfile path', () => {
+    describe('getLocalLockfilePath()', () => {
+        it('should return correct local lockfile path', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const localLockfilePath = manager.getLocalLockfilePath();
-            assert.ok(localLockfilePath.endsWith('prompt-registry.local.lock.json'));
+            expect(localLockfilePath.endsWith('prompt-registry.local.lock.json')).toBeTruthy();
         });
 
-        test('should return path in repository root', () => {
+        it('should return path in repository root', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const localLockfilePath = manager.getLocalLockfilePath();
-            assert.ok(localLockfilePath.startsWith(tempDir));
+            expect(localLockfilePath.startsWith(tempDir)).toBeTruthy();
         });
 
-        test('should return different path than main lockfile', () => {
+        it('should return different path than main lockfile', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const mainPath = manager.getLockfilePath();
             const localPath = manager.getLocalLockfilePath();
-            assert.notStrictEqual(mainPath, localPath);
+            expect(mainPath).not.toBe(localPath);
         });
     });
 
-    suite('Lockfile Deletion Error Handling', () => {
+    describe('Lockfile Deletion Error Handling', () => {
         // Requirements: 3.5 - If lockfile deletion fails, log error and continue without throwing
         
-        test('should log error and not throw when lockfile deletion fails', async () => {
+        it('should log error and not throw when lockfile deletion fails', async () => {
             // Requirements: 3.5 - Error is logged, no exception thrown
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
@@ -1327,23 +1297,17 @@ suite('LockfileManager', () => {
             
             // Remove the last bundle - this should trigger lockfile deletion
             // which will fail, but should NOT throw
-            await assert.doesNotReject(
-                async () => manager.remove('bundle-0'),
-                'remove() should not throw when lockfile deletion fails'
-            );
+            await expect(manager.remove('bundle-0')).resolves.not.toThrow();
             
             // Verify error was logged
-            assert.ok(logErrorStub.called, 'Error should be logged');
-            assert.ok(
-                logErrorStub.firstCall.args[0].includes('Failed to delete lockfile'),
-                'Error message should mention lockfile deletion failure'
-            );
+            expect(logErrorStub.called, 'Error should be logged').toBeTruthy();
+            expect(logErrorStub.firstCall.args[0].includes('Failed to delete lockfile'), 'Error message should mention lockfile deletion failure').toBeTruthy();
             
             // Verify unlink was attempted
-            assert.ok(unlinkStub.called, 'unlink should have been called');
+            expect(unlinkStub.called, 'unlink should have been called').toBeTruthy();
         });
 
-        test('should emit onLockfileUpdated with null even when deletion fails', async () => {
+        it('should emit onLockfileUpdated with null even when deletion fails', async () => {
             // Requirements: 3.5 - Continue operation (emit event) even on deletion failure
             const lockfile = createMockLockfile(1);
             writeLockfile(lockfile);
@@ -1365,12 +1329,12 @@ suite('LockfileManager', () => {
             await manager.remove('bundle-0');
             
             // Event should still fire with null even though deletion failed
-            assert.strictEqual(eventFired, true, 'Event should be fired');
-            assert.strictEqual(receivedNull, true, 'Event should receive null');
+            expect(eventFired, 'Event should be fired').toBe(true);
+            expect(receivedNull, 'Event should receive null').toBe(true);
         });
     });
 
-    suite('File Watcher Initialization and Disposal', () => {
+    describe('File Watcher Initialization and Disposal', () => {
         // Requirements: 2.4, 2.5 - File watcher initialization and disposal
         
         let mockFileWatcher: {
@@ -1381,7 +1345,7 @@ suite('LockfileManager', () => {
         };
         let createFileSystemWatcherStub: sinon.SinonStub;
 
-        setup(() => {
+        beforeEach(() => {
             // Create mock file watcher with stubbed methods
             mockFileWatcher = {
                 onDidChange: sandbox.stub().returns({ dispose: sandbox.stub() }),
@@ -1395,7 +1359,7 @@ suite('LockfileManager', () => {
                 .returns(mockFileWatcher as any);
         });
 
-        test('should initialize file watcher on construction', () => {
+        it('should initialize file watcher on construction', () => {
             // Requirements: 2.4 - File watcher is initialized on construction
             LockfileManager.resetInstance();
             
@@ -1403,38 +1367,38 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             
             // Verify createFileSystemWatcher was called
-            assert.ok(createFileSystemWatcherStub.calledOnce, 'createFileSystemWatcher should be called once');
+            expect(createFileSystemWatcherStub.calledOnce, 'createFileSystemWatcher should be called once').toBeTruthy();
             
             // Verify the pattern includes the lockfile name
             const callArgs = createFileSystemWatcherStub.firstCall.args;
-            assert.ok(callArgs[0], 'Pattern should be provided');
+            expect(callArgs[0], 'Pattern should be provided').toBeTruthy();
             
             // Verify event handlers were registered
-            assert.ok(mockFileWatcher.onDidChange.calledOnce, 'onDidChange handler should be registered');
-            assert.ok(mockFileWatcher.onDidCreate.calledOnce, 'onDidCreate handler should be registered');
-            assert.ok(mockFileWatcher.onDidDelete.calledOnce, 'onDidDelete handler should be registered');
+            expect(mockFileWatcher.onDidChange.calledOnce, 'onDidChange handler should be registered').toBeTruthy();
+            expect(mockFileWatcher.onDidCreate.calledOnce, 'onDidCreate handler should be registered').toBeTruthy();
+            expect(mockFileWatcher.onDidDelete.calledOnce, 'onDidDelete handler should be registered').toBeTruthy();
             
             // Clean up
             manager.dispose();
         });
 
-        test('should dispose file watcher on dispose() call', () => {
+        it('should dispose file watcher on dispose() call', () => {
             // Requirements: 2.5 - File watcher is disposed on dispose() call
             LockfileManager.resetInstance();
             
             const manager = LockfileManager.getInstance(tempDir);
             
             // Verify watcher was created
-            assert.ok(createFileSystemWatcherStub.calledOnce);
+            expect(createFileSystemWatcherStub.calledOnce).toBeTruthy();
             
             // Dispose the manager
             manager.dispose();
             
             // Verify file watcher dispose was called
-            assert.ok(mockFileWatcher.dispose.calledOnce, 'File watcher dispose should be called');
+            expect(mockFileWatcher.dispose.calledOnce, 'File watcher dispose should be called').toBeTruthy();
         });
 
-        test('should not fire events after disposal', async () => {
+        it('should not fire events after disposal', async () => {
             // Requirements: 2.5 - No events fire after disposal
             LockfileManager.resetInstance();
             
@@ -1471,12 +1435,12 @@ suite('LockfileManager', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
             
             // Verify no events were fired to listeners after disposal
-            assert.strictEqual(eventCount, 0, 'No events should fire after disposal');
+            expect(eventCount, 'No events should fire after disposal').toBe(0);
             
             disposable.dispose();
         });
 
-        test('should handle file watcher initialization failure gracefully', () => {
+        it('should handle file watcher initialization failure gracefully', () => {
             // Test that the manager handles errors during file watcher setup
             LockfileManager.resetInstance();
             
@@ -1485,19 +1449,19 @@ suite('LockfileManager', () => {
             
             // Creating the manager should not throw
             let manager: LockfileManager | undefined;
-            assert.doesNotThrow(() => {
+            expect(() => {
                 manager = LockfileManager.getInstance(tempDir);
-            }, 'Manager creation should not throw even if file watcher fails');
+            }).not.toThrow();
             
             // Manager should still be functional for basic operations
-            assert.ok(manager, 'Manager should be created');
+            expect(manager, 'Manager should be created').toBeTruthy();
             
             // Clean up
             manager?.dispose();
         });
     });
 
-    suite('getInstalledBundles() - Dual Lockfile Support', () => {
+    describe('getInstalledBundles() - Dual Lockfile Support', () => {
         // Requirements: 3.1, 3.2, 3.3, 3.4 - Unified bundle listing with conflict detection
         
         const localLockfilePath = () => path.join(tempDir, 'prompt-registry.local.lock.json');
@@ -1506,14 +1470,14 @@ suite('LockfileManager', () => {
             fs.writeFileSync(localLockfilePath(), JSON.stringify(lockfile, null, 2));
         };
 
-        test('should return empty array when no lockfiles exist', async () => {
+        it('should return empty array when no lockfiles exist', async () => {
             // Requirements: 3.1 - Read from both lockfiles
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
 
-        test('should return bundles from main lockfile only when local lockfile does not exist', async () => {
+        it('should return bundles from main lockfile only when local lockfile does not exist', async () => {
             // Requirements: 3.1, 3.3 - Read from main lockfile, set commitMode: 'commit'
             const mainLockfile = createMockLockfile(2);
             writeLockfile(mainLockfile);
@@ -1521,11 +1485,11 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 2);
-            assert.ok(bundles.every(b => b.commitMode === 'commit'), 'All bundles from main lockfile should have commitMode: commit');
+            expect(bundles.length).toBe(2);
+            expect(bundles.every(b => b.commitMode === 'commit'), 'All bundles from main lockfile should have commitMode: commit').toBeTruthy();
         });
 
-        test('should return bundles from local lockfile only when main lockfile does not exist', async () => {
+        it('should return bundles from local lockfile only when main lockfile does not exist', async () => {
             // Requirements: 3.1, 3.2 - Read from local lockfile, set commitMode: 'local-only'
             const localLockfile = createMockLockfile(2, { commitMode: 'local-only' });
             writeLocalLockfile(localLockfile);
@@ -1533,11 +1497,11 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 2);
-            assert.ok(bundles.every(b => b.commitMode === 'local-only'), 'All bundles from local lockfile should have commitMode: local-only');
+            expect(bundles.length).toBe(2);
+            expect(bundles.every(b => b.commitMode === 'local-only'), 'All bundles from local lockfile should have commitMode: local-only').toBeTruthy();
         });
 
-        test('should merge bundles from both lockfiles', async () => {
+        it('should merge bundles from both lockfiles', async () => {
             // Requirements: 3.1 - Read from both Main_Lockfile and Local_Lockfile
             const mainLockfile = LockfileBuilder.create()
                 .withSource('main-source', 'github', 'https://github.com/main/repo')
@@ -1555,16 +1519,16 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 3, 'Should have 3 bundles total');
+            expect(bundles.length, 'Should have 3 bundles total').toBe(3);
             
             const mainBundles = bundles.filter(b => b.commitMode === 'commit');
             const localBundles = bundles.filter(b => b.commitMode === 'local-only');
             
-            assert.strictEqual(mainBundles.length, 2, 'Should have 2 bundles from main lockfile');
-            assert.strictEqual(localBundles.length, 1, 'Should have 1 bundle from local lockfile');
+            expect(mainBundles.length, 'Should have 2 bundles from main lockfile').toBe(2);
+            expect(localBundles.length, 'Should have 1 bundle from local lockfile').toBe(1);
         });
 
-        test('should annotate bundles from main lockfile with commitMode: commit', async () => {
+        it('should annotate bundles from main lockfile with commitMode: commit', async () => {
             // Requirements: 3.3 - Set commitMode: 'commit' on bundles from Main_Lockfile
             const mainLockfile = createMockLockfile(1);
             // Even if the entry has a different commitMode, it should be overridden
@@ -1574,11 +1538,11 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].commitMode, 'commit', 'Bundle from main lockfile should have commitMode: commit regardless of entry value');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].commitMode, 'Bundle from main lockfile should have commitMode: commit regardless of entry value').toBe('commit');
         });
 
-        test('should annotate bundles from local lockfile with commitMode: local-only', async () => {
+        it('should annotate bundles from local lockfile with commitMode: local-only', async () => {
             // Requirements: 3.2 - Set commitMode: 'local-only' on bundles from Local_Lockfile
             const localLockfile = createMockLockfile(1);
             // Even if the entry has a different commitMode, it should be overridden
@@ -1588,11 +1552,11 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].commitMode, 'local-only', 'Bundle from local lockfile should have commitMode: local-only regardless of entry value');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].commitMode, 'Bundle from local lockfile should have commitMode: local-only regardless of entry value').toBe('local-only');
         });
 
-        test('should detect conflict when bundle ID exists in both lockfiles', async () => {
+        it('should detect conflict when bundle ID exists in both lockfiles', async () => {
             // Requirements: 3.4 - Display error when bundle ID exists in both lockfiles
             const conflictingBundleId = 'conflicting-bundle';
             
@@ -1615,23 +1579,17 @@ suite('LockfileManager', () => {
             const bundles = await manager.getInstalledBundles();
             
             // Should only return the bundle from main lockfile (first one wins)
-            assert.strictEqual(bundles.length, 1, 'Should only return 1 bundle (conflict skips local)');
-            assert.strictEqual(bundles[0].bundleId, conflictingBundleId);
-            assert.strictEqual(bundles[0].commitMode, 'commit', 'Should be from main lockfile');
+            expect(bundles.length, 'Should only return 1 bundle (conflict skips local)').toBe(1);
+            expect(bundles[0].bundleId).toBe(conflictingBundleId);
+            expect(bundles[0].commitMode, 'Should be from main lockfile').toBe('commit');
             
             // Should display error message
-            assert.ok(showErrorMessageStub.calledOnce, 'Should display error message for conflict');
-            assert.ok(
-                showErrorMessageStub.firstCall.args[0].includes(conflictingBundleId),
-                'Error message should contain the conflicting bundle ID'
-            );
-            assert.ok(
-                showErrorMessageStub.firstCall.args[0].includes('both lockfiles'),
-                'Error message should mention both lockfiles'
-            );
+            expect(showErrorMessageStub.calledOnce, 'Should display error message for conflict').toBeTruthy();
+            expect(showErrorMessageStub.firstCall.args[0].includes(conflictingBundleId), 'Error message should contain the conflicting bundle ID').toBeTruthy();
+            expect(showErrorMessageStub.firstCall.args[0].includes('both lockfiles'), 'Error message should mention both lockfiles').toBeTruthy();
         });
 
-        test('should log error when conflict is detected', async () => {
+        it('should log error when conflict is detected', async () => {
             // Requirements: 3.4 - Log error for conflicts
             const conflictingBundleId = 'conflicting-bundle';
             
@@ -1656,14 +1614,11 @@ suite('LockfileManager', () => {
             await manager.getInstalledBundles();
             
             // Should log error
-            assert.ok(logErrorStub.called, 'Should log error for conflict');
-            assert.ok(
-                logErrorStub.firstCall.args[0].includes(conflictingBundleId),
-                'Log message should contain the conflicting bundle ID'
-            );
+            expect(logErrorStub.called, 'Should log error for conflict').toBeTruthy();
+            expect(logErrorStub.firstCall.args[0].includes(conflictingBundleId), 'Log message should contain the conflicting bundle ID').toBeTruthy();
         });
 
-        test('should handle multiple conflicts correctly', async () => {
+        it('should handle multiple conflicts correctly', async () => {
             // Requirements: 3.4 - Handle multiple conflicts
             const mainLockfile = LockfileBuilder.create()
                 .withSource('main-source', 'github', 'https://github.com/main/repo')
@@ -1687,13 +1642,13 @@ suite('LockfileManager', () => {
             const bundles = await manager.getInstalledBundles();
             
             // Should return 4 bundles: 3 from main + 1 unique from local
-            assert.strictEqual(bundles.length, 4, 'Should return 4 bundles (3 main + 1 unique local)');
+            expect(bundles.length, 'Should return 4 bundles (3 main + 1 unique local)').toBe(4);
             
             // Should display error for each conflict
-            assert.strictEqual(showErrorMessageStub.callCount, 2, 'Should display 2 error messages for 2 conflicts');
+            expect(showErrorMessageStub.callCount, 'Should display 2 error messages for 2 conflicts').toBe(2);
         });
 
-        test('should preserve bundle metadata when merging', async () => {
+        it('should preserve bundle metadata when merging', async () => {
             // Verify that all bundle properties are correctly preserved
             const mainLockfile = LockfileBuilder.create()
                 .withSource('main-source', 'github', 'https://github.com/main/repo')
@@ -1707,16 +1662,16 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].bundleId, 'main-bundle');
-            assert.strictEqual(bundles[0].version, '1.2.3');
-            assert.strictEqual(bundles[0].sourceId, 'main-source');
-            assert.strictEqual(bundles[0].sourceType, 'github');
-            assert.strictEqual(bundles[0].scope, 'repository');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].bundleId).toBe('main-bundle');
+            expect(bundles[0].version).toBe('1.2.3');
+            expect(bundles[0].sourceId).toBe('main-source');
+            expect(bundles[0].sourceType).toBe('github');
+            expect(bundles[0].scope).toBe('repository');
         });
     });
 
-    suite('Backward Compatibility - Legacy SourceId Format', () => {
+    describe('Backward Compatibility - Legacy SourceId Format', () => {
         /**
          * Tests for backward compatibility with legacy hub-prefixed sourceId format.
          * 
@@ -1728,7 +1683,7 @@ suite('LockfileManager', () => {
          * - Requirement 3.2: Bundle updates should write new sourceId format
          */
 
-        test('should read lockfile with legacy hub-prefixed sourceId correctly', async () => {
+        it('should read lockfile with legacy hub-prefixed sourceId correctly', async () => {
             // Requirements: 3.1 - Legacy sourceIds should resolve correctly
             // Legacy format: hub-{hubId}-{sourceId}
             const legacySourceId = 'hub-my-hub-github-source';
@@ -1746,14 +1701,14 @@ suite('LockfileManager', () => {
             const bundles = await manager.getInstalledBundles();
             
             // Bundle should be read correctly with legacy sourceId
-            assert.strictEqual(bundles.length, 1, 'Should read 1 bundle');
-            assert.strictEqual(bundles[0].bundleId, 'test-bundle');
-            assert.strictEqual(bundles[0].version, '1.0.0');
-            assert.strictEqual(bundles[0].sourceId, legacySourceId, 'Legacy sourceId should be preserved');
-            assert.strictEqual(bundles[0].sourceType, 'github');
+            expect(bundles.length, 'Should read 1 bundle').toBe(1);
+            expect(bundles[0].bundleId).toBe('test-bundle');
+            expect(bundles[0].version).toBe('1.0.0');
+            expect(bundles[0].sourceId, 'Legacy sourceId should be preserved').toBe(legacySourceId);
+            expect(bundles[0].sourceType).toBe('github');
         });
 
-        test('should read lockfile with multiple legacy sourceIds correctly', async () => {
+        it('should read lockfile with multiple legacy sourceIds correctly', async () => {
             // Requirements: 3.1 - Multiple legacy sourceIds should all resolve
             const legacySourceId1 = 'hub-test-hub-source1';
             const legacySourceId2 = 'hub-another-hub-gitlab-source';
@@ -1769,19 +1724,19 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 2, 'Should read 2 bundles');
+            expect(bundles.length, 'Should read 2 bundles').toBe(2);
             
             const bundle1 = bundles.find(b => b.bundleId === 'bundle-1');
             const bundle2 = bundles.find(b => b.bundleId === 'bundle-2');
             
-            assert.ok(bundle1, 'bundle-1 should exist');
-            assert.strictEqual(bundle1!.sourceId, legacySourceId1);
+            expect(bundle1, 'bundle-1 should exist').toBeTruthy();
+            expect(bundle1!.sourceId).toBe(legacySourceId1);
             
-            assert.ok(bundle2, 'bundle-2 should exist');
-            assert.strictEqual(bundle2!.sourceId, legacySourceId2);
+            expect(bundle2, 'bundle-2 should exist').toBeTruthy();
+            expect(bundle2!.sourceId).toBe(legacySourceId2);
         });
 
-        test('should read lockfile with mixed legacy and new sourceId formats', async () => {
+        it('should read lockfile with mixed legacy and new sourceId formats', async () => {
             // Requirements: 3.1 - System should handle both formats in same lockfile
             const legacySourceId = 'hub-old-hub-github-source';
             const newSourceId = 'github-a1b2c3d4e5f6'; // New format: {type}-{hash}
@@ -1797,19 +1752,19 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 2, 'Should read both bundles');
+            expect(bundles.length, 'Should read both bundles').toBe(2);
             
             const legacyBundle = bundles.find(b => b.bundleId === 'legacy-bundle');
             const newBundle = bundles.find(b => b.bundleId === 'new-bundle');
             
-            assert.ok(legacyBundle, 'Legacy bundle should exist');
-            assert.strictEqual(legacyBundle!.sourceId, legacySourceId, 'Legacy sourceId preserved');
+            expect(legacyBundle, 'Legacy bundle should exist').toBeTruthy();
+            expect(legacyBundle!.sourceId, 'Legacy sourceId preserved').toBe(legacySourceId);
             
-            assert.ok(newBundle, 'New bundle should exist');
-            assert.strictEqual(newBundle!.sourceId, newSourceId, 'New sourceId preserved');
+            expect(newBundle, 'New bundle should exist').toBeTruthy();
+            expect(newBundle!.sourceId, 'New sourceId preserved').toBe(newSourceId);
         });
 
-        test('should write new sourceId format when bundle is updated', async () => {
+        it('should write new sourceId format when bundle is updated', async () => {
             // Requirements: 3.2 - Bundle update should write new sourceId format
             // When createOrUpdate is called with a new sourceId, it should be written
             const newSourceId = 'github-b5c6d7e8';
@@ -1839,20 +1794,13 @@ suite('LockfileManager', () => {
             
             // Read the lockfile from disk to verify the new format was written
             const updatedLockfile = readLockfileFromDisk();
-            assert.ok(updatedLockfile, 'Lockfile should exist');
+            expect(updatedLockfile, 'Lockfile should exist').toBeTruthy();
             
             // Bundle should have new sourceId
-            assert.strictEqual(
-                updatedLockfile!.bundles['test-bundle'].sourceId,
-                newSourceId,
-                'Bundle should have new sourceId format'
-            );
+            expect(updatedLockfile!.bundles['test-bundle'].sourceId, 'Bundle should have new sourceId format').toBe(newSourceId);
             
             // New source entry should exist
-            assert.ok(
-                updatedLockfile!.sources[newSourceId],
-                'New source entry should exist'
-            );
+            expect(updatedLockfile!.sources[newSourceId], 'New source entry should exist').toBeTruthy();
             
             // Note: Legacy source is NOT automatically cleaned up on update.
             // Source cleanup only happens when bundles are removed (orphan cleanup).
@@ -1860,7 +1808,7 @@ suite('LockfileManager', () => {
             // The important thing is that the bundle now uses the new sourceId format.
         });
 
-        test('should preserve legacy sourceId when bundle is not updated', async () => {
+        it('should preserve legacy sourceId when bundle is not updated', async () => {
             // Requirements: 3.1 - Legacy sourceIds should continue to work without migration
             const legacySourceId = 'hub-preserved-hub-source';
             
@@ -1888,30 +1836,19 @@ suite('LockfileManager', () => {
             
             // Read the lockfile from disk
             const updatedLockfile = readLockfileFromDisk();
-            assert.ok(updatedLockfile, 'Lockfile should exist');
+            expect(updatedLockfile, 'Lockfile should exist').toBeTruthy();
             
             // Original bundle should still have legacy sourceId
-            assert.strictEqual(
-                updatedLockfile!.bundles['preserved-bundle'].sourceId,
-                legacySourceId,
-                'Legacy sourceId should be preserved for unchanged bundle'
-            );
+            expect(updatedLockfile!.bundles['preserved-bundle'].sourceId, 'Legacy sourceId should be preserved for unchanged bundle').toBe(legacySourceId);
             
             // Legacy source should still exist
-            assert.ok(
-                updatedLockfile!.sources[legacySourceId],
-                'Legacy source should still exist'
-            );
+            expect(updatedLockfile!.sources[legacySourceId], 'Legacy source should still exist').toBeTruthy();
             
             // New bundle should have new sourceId
-            assert.strictEqual(
-                updatedLockfile!.bundles['new-bundle'].sourceId,
-                newSourceId,
-                'New bundle should have new sourceId'
-            );
+            expect(updatedLockfile!.bundles['new-bundle'].sourceId, 'New bundle should have new sourceId').toBe(newSourceId);
         });
 
-        test('should handle legacy sourceId with many segments correctly', async () => {
+        it('should handle legacy sourceId with many segments correctly', async () => {
             // Requirements: 3.1 - Legacy format can have 3+ segments
             // Example: hub-my-hub-github-enterprise-source (5 segments)
             const legacySourceId = 'hub-my-hub-github-enterprise-source';
@@ -1925,8 +1862,8 @@ suite('LockfileManager', () => {
             const manager = LockfileManager.getInstance(tempDir);
             const bundles = await manager.getInstalledBundles();
             
-            assert.strictEqual(bundles.length, 1, 'Should read 1 bundle');
-            assert.strictEqual(bundles[0].sourceId, legacySourceId, 'Multi-segment legacy sourceId preserved');
+            expect(bundles.length, 'Should read 1 bundle').toBe(1);
+            expect(bundles[0].sourceId, 'Multi-segment legacy sourceId preserved').toBe(legacySourceId);
         });
     });
 });

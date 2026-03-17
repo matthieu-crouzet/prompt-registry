@@ -7,27 +7,38 @@
  * Feature: fix-github-authentication-priority
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as fc from 'fast-check';
+import nock from 'nock';
 import { GitHubAdapter } from '../../src/adapters/GitHubAdapter';
 import { RegistrySource } from '../../src/types/registry';
 import { Logger } from '../../src/utils/logger';
-import { 
-    ErrorCheckers, 
-    LoggerHelpers, 
-    PropertyTestConfig, 
-    createMockHttpResponse, 
-    stubHttpsWithResponse 
+import {
+    ErrorCheckers,
+    LoggerHelpers,
+    PropertyTestConfig,
 } from '../helpers/propertyTestHelpers';
 
-suite('GitHubAdapter Property-Based Tests', () => {
+/**
+ * Set up nock to intercept HTTPS requests to api.github.com/test.
+ * Works with both ESM and CJS imports (unlike sinon https stubs).
+ */
+function nockHttpsResponse(statusCode: number, responseBody?: string, contentType?: string) {
+    nock.cleanAll();
+    const body = responseBody ?? JSON.stringify({ message: 'Error' });
+    const ct = contentType ?? 'application/json';
+    nock('https://api.github.com')
+        .get('/test')
+        .reply(statusCode, body, { 'content-type': ct });
+}
+
+describe('GitHubAdapter Property-Based Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let loggerStub: sinon.SinonStubbedInstance<Logger>;
     let loggerHelpers: LoggerHelpers;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Stub logger to prevent console output during tests
@@ -42,8 +53,9 @@ suite('GitHubAdapter Property-Based Tests', () => {
         loggerHelpers = new LoggerHelpers(loggerStub);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
+        nock.cleanAll();
     });
 
     /**
@@ -90,8 +102,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * The test correctly identifies that explicit tokens are prioritized, but cannot
      * test the full fallback chain due to real VSCode auth interfering with mocks.
      */
-    test.skip('Property 1: Authentication Priority Order', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
+    it.skip('Property 1: Authentication Priority Order', async function() {
         await fc.assert(
             fc.asyncProperty(authConfigGenerator(), async (config: {
                 hasExplicitToken: boolean;
@@ -157,43 +168,43 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         // Explicit token should be used first
                         if (token !== config.explicitToken.trim() || method !== 'explicit') {
                             console.log(`Priority test failed: Expected explicit token, got method=${method}`);
-                            assert.strictEqual(token, config.explicitToken.trim());
-                            assert.strictEqual(method, 'explicit');
+                            expect(token).toBe(config.explicitToken.trim());
+                            expect(method).toBe('explicit');
                         }
                         
                         // VSCode and gh CLI should NOT be called when explicit token is present
                         if (getSessionStub.called || execStub.called) {
                             console.log('Priority test failed: Other auth methods called when explicit token available');
-                            assert.fail('VSCode/gh CLI should not be attempted when explicit token is available');
+                            expect.fail('VSCode/gh CLI should not be attempted when explicit token is available');
                         }
                     } else if (config.hasVSCodeAuth) {
                         // VSCode should be used second
                         if (token !== config.vscodeToken || method !== 'vscode') {
                             console.log(`Priority test failed: Expected VSCode token, got method=${method}`);
-                            assert.strictEqual(token, config.vscodeToken);
-                            assert.strictEqual(method, 'vscode');
+                            expect(token).toBe(config.vscodeToken);
+                            expect(method).toBe('vscode');
                         }
                         
                         // gh CLI should NOT be called when VSCode succeeds
                         if (execStub.called) {
                             console.log('Priority test failed: gh CLI called when VSCode auth succeeded');
-                            assert.fail('gh CLI should not be attempted when VSCode auth succeeds');
+                            expect.fail('gh CLI should not be attempted when VSCode auth succeeds');
                         }
                     } else if (config.hasGhCli && config.ghCliToken.trim().length > 0) {
                         // gh CLI should be used third
                         if (token !== config.ghCliToken.trim() || method !== 'gh-cli') {
                             console.log(`Priority test failed: Expected gh CLI token, got method=${method}`);
-                            assert.strictEqual(token, config.ghCliToken.trim());
-                            assert.strictEqual(method, 'gh-cli');
+                            expect(token).toBe(config.ghCliToken.trim());
+                            expect(method).toBe('gh-cli');
                         }
                     } else {
                         // No authentication available
                         if (token === undefined && method !== 'none') {
                             console.log(`Priority test failed: Expected method=none, got method=${method}`);
-                            assert.strictEqual(method, 'none');
+                            expect(method).toBe('none');
                         } else if (token !== undefined && !['vscode', 'gh-cli'].includes(method)) {
                             console.log(`Priority test failed: Unexpected method=${method} with token present`);
-                            assert.fail('Auth method should be vscode or gh-cli when token exists');
+                            expect.fail('Auth method should be vscode or gh-cli when token exists');
                         }
                     }
                 } finally {
@@ -210,7 +221,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * This test verifies that when an explicit token is provided, it is used
      * without attempting other authentication methods.
      */
-    test('Explicit token is used first when provided', async () => {
+    it('Explicit token is used first when provided', async () => {
         const explicitToken = 'ghp_test_explicit_token_12345678';
         const source: RegistrySource = {
             id: 'test-source',
@@ -226,14 +237,14 @@ suite('GitHubAdapter Property-Based Tests', () => {
         const token = await (adapter as any).getAuthenticationToken();
         const method = adapter.getAuthenticationMethod();
 
-        assert.strictEqual(token, explicitToken, 'Should use explicit token');
-        assert.strictEqual(method, 'explicit', 'Auth method should be explicit');
+        expect(token, 'Should use explicit token').toBe(explicitToken);
+        expect(method, 'Auth method should be explicit').toBe('explicit');
     });
 
     /**
      * Test that whitespace-only tokens are treated as no token
      */
-    test('Whitespace-only explicit token is ignored', async () => {
+    it('Whitespace-only explicit token is ignored', async () => {
         const source: RegistrySource = {
             id: 'test-source',
             name: 'Test Source',
@@ -249,17 +260,16 @@ suite('GitHubAdapter Property-Based Tests', () => {
         const method = adapter.getAuthenticationMethod();
 
         // Should not use the whitespace token
-        assert.notStrictEqual(method, 'explicit', 'Should not use whitespace-only token as explicit');
+        expect(method, 'Should not use whitespace-only token as explicit').not.toBe('explicit');
         
         // Will fall back to VSCode or gh CLI or none depending on environment
-        assert.ok(['vscode', 'gh-cli', 'none'].includes(method), 
-            'Should fall back to other auth methods when explicit token is whitespace');
+        expect(['vscode', 'gh-cli', 'none'].includes(method), 'Should fall back to other auth methods when explicit token is whitespace').toBeTruthy();
     });
 
     /**
      * Test that explicit token is trimmed
      */
-    test('Explicit token is trimmed before use', async () => {
+    it('Explicit token is trimmed before use', async () => {
         const explicitToken = '  ghp_test_token_with_spaces  ';
         const source: RegistrySource = {
             id: 'test-source',
@@ -274,8 +284,8 @@ suite('GitHubAdapter Property-Based Tests', () => {
         const adapter = new GitHubAdapter(source);
         const token = await (adapter as any).getAuthenticationToken();
 
-        assert.strictEqual(token, explicitToken.trim(), 'Token should be trimmed');
-        assert.strictEqual(adapter.getAuthenticationMethod(), 'explicit');
+        expect(token, 'Token should be trimmed').toBe(explicitToken.trim());
+        expect(adapter.getAuthenticationMethod()).toBe('explicit');
     });
 
     /**
@@ -286,9 +296,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any cached authentication token, when the GitHub API returns a 401 or 403 response,
      * the GitHub Adapter should invalidate the cached token and attempt the next authentication method.
      */
-    test('Property 4: Auth Error Cache Invalidation', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 4: Auth Error Cache Invalidation', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -310,14 +318,14 @@ suite('GitHubAdapter Property-Based Tests', () => {
 
                     // First authentication should use explicit token
                     const firstToken = await (adapter as any).getAuthenticationToken();
-                    assert.strictEqual(firstToken, config.firstToken.trim());
-                    assert.strictEqual(adapter.getAuthenticationMethod(), 'explicit');
+                    expect(firstToken).toBe(config.firstToken.trim());
+                    expect(adapter.getAuthenticationMethod()).toBe('explicit');
 
                     // Simulate auth error by invalidating cache
                     adapter.invalidateAuthCache();
 
                     // After invalidation, cache should be cleared
-                    assert.strictEqual(adapter.getAuthenticationMethod(), 'none');
+                    expect(adapter.getAuthenticationMethod()).toBe('none');
                 }
             ),
             { numRuns: TEST_CONFIG.RUNS.QUICK, ...TEST_CONFIG.FAST_CHECK_OPTIONS }
@@ -332,9 +340,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any request where all authentication methods have been attempted and failed,
      * the GitHub Adapter should provide an error message that lists all attempted methods.
      */
-    test('Property 5: Exhaustion Summary', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 5: Exhaustion Summary', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -356,14 +362,14 @@ suite('GitHubAdapter Property-Based Tests', () => {
 
                     // Get token and invalidate to simulate failure
                     const token = await (adapter as any).getAuthenticationToken();
-                    assert.ok(token, 'Should get explicit token');
+                    expect(token, 'Should get explicit token').toBeTruthy();
                     
                     const method = adapter.getAuthenticationMethod();
                     adapter.invalidateAuthCache('Simulated auth failure');
                     
                     // Verify the method was tracked
                     const attemptedMethods = (adapter as any).attemptedMethods as Set<string>;
-                    assert.ok(attemptedMethods.has(method), 'Method should be tracked after invalidation');
+                    expect(attemptedMethods.has(method), 'Method should be tracked after invalidation').toBeTruthy();
                 }
             ),
             { numRuns: TEST_CONFIG.RUNS.QUICK, ...TEST_CONFIG.FAST_CHECK_OPTIONS }
@@ -378,9 +384,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any token invalidation event, the GitHub Adapter should log the reason
      * for invalidation (status code and error message).
      */
-    test('Property 6: Invalidation Logging', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 6: Invalidation Logging', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -407,7 +411,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
 
                         // Get initial token
                         await (adapter as any).getAuthenticationToken();
-                        assert.strictEqual(adapter.getAuthenticationMethod(), 'explicit');
+                        expect(adapter.getAuthenticationMethod()).toBe('explicit');
 
                         // Reset logger stub to capture invalidation logs
                         loggerHelpers.resetHistory();
@@ -422,13 +426,13 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         
                         if (!loggerCalled) {
                             console.log('Invalidation logging test failed: No logger calls detected');
-                            assert.fail('Should log invalidation event');
+                            expect.fail('Should log invalidation event');
                         }
 
                         // Check that some log call mentions invalidation
                         if (!loggerHelpers.hasLogContaining('invalidat')) {
                             console.log('Invalidation logging test failed: No log message contains "invalidat"');
-                            assert.fail('Should log message containing "invalidat"');
+                            expect.fail('Should log message containing "invalidat"');
                         }
                     } finally {
                         iterationSandbox.restore();
@@ -447,9 +451,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any response from the GitHub API, the GitHub Adapter should check the
      * Content-Type header before attempting to parse the response body.
      */
-    test('Property 7: Content-Type Validation', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 7: Content-Type Validation', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -460,7 +462,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
                     const source = createTestSource();
                     const adapter = new GitHubAdapter(source);
 
-                    stubHttpsWithResponse(sandbox, config.statusCode, '{"message": "test"}', config.contentType);
+                    nockHttpsResponse(config.statusCode, '{"message": "test"}', config.contentType);
 
                     // Attempt to make a request
                     try {
@@ -468,14 +470,14 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         
                         // Success expected for JSON responses
                         if (!config.contentType.includes('application/json') && config.statusCode === 200) {
-                            assert.fail('Should have validated Content-Type');
+                            expect.fail('Should have validated Content-Type');
                         }
                     } catch (error: unknown) {
                         const err = error as Error;
                         
                         // For non-JSON content types, expect appropriate error handling
                         if (config.statusCode === 200 && !config.contentType.includes('application/json')) {
-                            assert.ok(ErrorCheckers.indicatesHtmlDetection(err) || err.message.includes('Content-Type'));
+                            expect(ErrorCheckers.indicatesHtmlDetection(err) || err.message.includes('Content-Type')).toBeTruthy();
                         }
                     }
                 }
@@ -492,9 +494,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any response with Content-Type "text/html", the GitHub Adapter should
      * recognize it as an error response and not attempt JSON parsing.
      */
-    test('Property 8: HTML Error Recognition', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 8: HTML Error Recognition', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -504,15 +504,15 @@ suite('GitHubAdapter Property-Based Tests', () => {
                     const source = createTestSource();
                     const adapter = new GitHubAdapter(source);
 
-                    stubHttpsWithResponse(sandbox, 401, config.htmlBody, 'text/html; charset=utf-8');
+                    nockHttpsResponse(401, config.htmlBody, 'text/html; charset=utf-8');
 
                     // Attempt to make a request
                     try {
                         await (adapter as any).makeRequest('https://api.github.com/test');
-                        assert.fail('HTML response should be recognized as error');
+                        expect.fail('HTML response should be recognized as error');
                     } catch (error: unknown) {
                         const err = error as Error;
-                        assert.ok(ErrorCheckers.indicatesHtmlDetection(err), 'Error should indicate HTML response was detected');
+                        expect(ErrorCheckers.indicatesHtmlDetection(err), 'Error should indicate HTML response was detected').toBeTruthy();
                     }
                 }
             ),
@@ -528,9 +528,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any HTML error response, the GitHub Adapter should attempt to extract
      * meaningful error information from the HTML body.
      */
-    test('Property 9: HTML Error Extraction', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 9: HTML Error Extraction', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -550,20 +548,17 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         const adapter = new GitHubAdapter(source);
                         const htmlBody = config.htmlTemplate(config.errorText);
 
-                        stubHttpsWithResponse(iterationSandbox, 401, htmlBody, 'text/html');
+                        nockHttpsResponse(401, htmlBody, 'text/html');
 
                         // Attempt to make a request
                         try {
                             await (adapter as any).makeRequest('https://api.github.com/test');
-                            assert.fail('Should have thrown error for HTML response');
+                            expect.fail('Should have thrown error for HTML response');
                         } catch (error: unknown) {
                             const err = error as Error;
                             
                             // Always verify HTML was recognized
-                            assert.ok(
-                                ErrorCheckers.indicatesHtmlDetection(err),
-                                'Error should indicate HTML response was detected'
-                            );
+                            expect(ErrorCheckers.indicatesHtmlDetection(err), 'Error should indicate HTML response was detected').toBeTruthy();
                             
                             // Check if extraction occurred (best-effort, non-failing)
                             const hasExtractedText = err.message.includes(config.errorText);
@@ -588,9 +583,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any HTML error response, the GitHub Adapter should provide a clear error
      * message indicating authentication failure rather than a JSON parsing error.
      */
-    test('Property 10: HTML Error Messaging', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 10: HTML Error Messaging', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -605,19 +598,19 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         const adapter = new GitHubAdapter(source);
                         const htmlContent = `<html><body>${config.htmlBody}</body></html>`;
 
-                        stubHttpsWithResponse(iterationSandbox, config.statusCode, htmlContent, 'text/html');
+                        nockHttpsResponse(config.statusCode, htmlContent, 'text/html');
 
                         // Attempt to make a request
                         try {
                             await (adapter as any).makeRequest('https://api.github.com/test');
-                            assert.fail('Should have thrown error for HTML response');
+                            expect.fail('Should have thrown error for HTML response');
                         } catch (error: unknown) {
                             const err = error as Error;
                             
                             // Verify error is NOT a JSON parse error
                             if (ErrorCheckers.isJsonParseError(err)) {
                                 console.log(`HTML messaging test failed: Error is about JSON parsing, not auth: ${err.message}`);
-                                assert.fail('Error should indicate authentication issue, not JSON parsing');
+                                expect.fail('Error should indicate authentication issue, not JSON parsing');
                             }
                             
                             // Verify error indicates auth issue (lenient check)
@@ -642,9 +635,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any response body that does not match valid JSON format, the GitHub Adapter
      * should handle the parsing error gracefully without crashing.
      */
-    test('Property 11: Graceful JSON Parsing', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 11: Graceful JSON Parsing', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -654,7 +645,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
                     const source = createTestSource();
                     const adapter = new GitHubAdapter(source);
 
-                    stubHttpsWithResponse(sandbox, 401, config.invalidJson);
+                    nockHttpsResponse(401, config.invalidJson);
 
                     // Attempt to make a request
                     try {
@@ -663,8 +654,8 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         const err = error as Error;
                         
                         // Verify we got a graceful error, not a crash
-                        assert.ok(err instanceof Error, 'Should throw Error instance');
-                        assert.ok(err.message.length > 0, 'Error should have a message');
+                        expect(err instanceof Error, 'Should throw Error instance').toBeTruthy();
+                        expect(err.message.length > 0, 'Error should have a message').toBeTruthy();
                     }
                 }
             ),
@@ -680,9 +671,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any authentication failure, the GitHub Adapter should log the authentication
      * method used, the request URL (sanitized), and the error details.
      */
-    test('Property 12: Comprehensive Error Logging', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 12: Comprehensive Error Logging', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -698,19 +687,19 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         const adapter = new GitHubAdapter(source);
                         const testUrl = `https://api.github.com${config.urlPath}`;
 
-                        stubHttpsWithResponse(iterationSandbox, config.statusCode);
+                        nockHttpsResponse(config.statusCode);
                         loggerHelpers.resetHistory();
 
                         // Attempt to make a request
                         try {
                             await (adapter as any).makeRequest(testUrl);
-                            assert.fail('Should have thrown error');
+                            expect.fail('Should have thrown error');
                         } catch (error: unknown) {
                             const errorCalls = loggerStub.error.getCalls();
                             
                             if (errorCalls.length === 0) {
                                 console.log('Comprehensive logging test failed: No error logs captured');
-                                assert.fail('Should have logged error');
+                                expect.fail('Should have logged error');
                             }
 
                             // Check that logs include authentication method
@@ -735,7 +724,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
                                 console.log('Comprehensive logging test: No log mentions URL');
                             }
 
-                            assert.ok(errorCalls.length > 0, 'Should have logged error details');
+                            expect(errorCalls.length > 0, 'Should have logged error details').toBeTruthy();
                         }
                     } finally {
                         iterationSandbox.restore();
@@ -754,9 +743,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any log entry containing authentication token information, the GitHub Adapter
      * should include only the first 8 characters of the token followed by ellipsis.
      */
-    test('Property 13: Token Sanitization in Logs', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 13: Token Sanitization in Logs', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -786,7 +773,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
 
                         if (fullTokenInLogs) {
                             console.log('Token sanitization test failed: Full token found in logs');
-                            assert.fail('Full token should not appear in logs');
+                            expect.fail('Full token should not appear in logs');
                         }
 
                         // Check that token prefix appears with ellipsis or truncation (optional)
@@ -817,9 +804,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any HTTP error response (401, 403, 404), the GitHub Adapter should include
      * error-specific troubleshooting suggestions in the error message.
      */
-    test('Property 14: Error-Specific Suggestions', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 14: Error-Specific Suggestions', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -833,11 +818,11 @@ suite('GitHubAdapter Property-Based Tests', () => {
                         const source = createTestSource(config.token);
                         const adapter = new GitHubAdapter(source);
 
-                        stubHttpsWithResponse(iterationSandbox, config.statusCode);
+                        nockHttpsResponse(config.statusCode);
 
                         try {
                             await (adapter as any).makeRequest('https://api.github.com/test');
-                            assert.fail('Should have thrown error');
+                            expect.fail('Should have thrown error');
                         } catch (error: unknown) {
                             const err = error as Error;
                             const errorMsg = err.message.toLowerCase();
@@ -866,8 +851,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
                                 }
                             }
 
-                            assert.ok(errorMsg.includes(config.statusCode.toString()), 
-                                'Error should mention status code');
+                            expect(errorMsg.includes(config.statusCode.toString()), 'Error should mention status code').toBeTruthy();
                         }
                     } finally {
                         iterationSandbox.restore();
@@ -886,9 +870,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
      * For any error where all authentication methods have been exhausted, the error
      * message should list all methods that were attempted.
      */
-    test('Property 15: Exhaustion Method Listing', async function() {
-        this.timeout(TEST_CONFIG.TIMEOUT);
-        
+    it('Property 15: Exhaustion Method Listing', async function() {
         await fc.assert(
             fc.asyncProperty(
                 fc.record({
@@ -913,11 +895,11 @@ suite('GitHubAdapter Property-Based Tests', () => {
 
                         const adapter = new GitHubAdapter(source);
 
-                        stubHttpsWithResponse(iterationSandbox, 401, JSON.stringify({ message: 'Bad credentials' }));
+                        nockHttpsResponse(401, JSON.stringify({ message: 'Bad credentials' }));
 
                         try {
                             await (adapter as any).makeRequest('https://api.github.com/test');
-                            assert.fail('Should have thrown error after exhausting methods');
+                            expect.fail('Should have thrown error after exhausting methods');
                         } catch (error: unknown) {
                             const err = error as Error;
                             const errorMsg = err.message.toLowerCase();
@@ -936,7 +918,7 @@ suite('GitHubAdapter Property-Based Tests', () => {
                                 console.log(`Exhaustion listing test: Error doesn't mention explicit method: ${err.message}`);
                             }
 
-                            assert.ok(err.message.length > 0, 'Should have error message');
+                            expect(err.message.length > 0, 'Should have error message').toBeTruthy();
                         }
                     } finally {
                         iterationSandbox.restore();

@@ -1,4 +1,3 @@
-import * as assert from 'assert';
 import { HubSyncHistory, SyncHistoryEntry } from '../../src/commands/HubSyncHistory';
 import { HubManager } from '../../src/services/HubManager';
 import { HubStorage } from '../../src/storage/HubStorage';
@@ -7,13 +6,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-suite('Hub Sync History', () => {
+describe('Hub Sync History', () => {
     let storage: HubStorage;
     let hubManager: HubManager;
     let syncHistory: HubSyncHistory;
     let testDir: string;
 
-    setup(async () => {
+    beforeEach(async () => {
         const globalStorageUri = vscode.Uri.file(path.join(__dirname, '../../test-workspace', '.test-storage'));
         testDir = globalStorageUri.fsPath;
 
@@ -28,7 +27,7 @@ suite('Hub Sync History', () => {
         syncHistory = new HubSyncHistory(hubManager);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(testDir)) {
             fs.rmSync(testDir, { recursive: true, force: true });
         }
@@ -84,8 +83,8 @@ suite('Hub Sync History', () => {
         await storage.saveHub(hubId, hubConfig, reference);
     }
 
-    suite('Record Sync Operation', () => {
-        test('should record successful sync operation', async () => {
+    describe('Record Sync Operation', () => {
+        it('should record successful sync operation', async () => {
             const changes = {
                 added: [],
                 updated: [],
@@ -100,16 +99,16 @@ suite('Hub Sync History', () => {
             await syncHistory.recordSync('test-hub', 'test-profile', changes, previousState, 'success');
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 1);
-            assert.strictEqual(history[0].hubId, 'test-hub');
-            assert.strictEqual(history[0].profileId, 'test-profile');
-            assert.strictEqual(history[0].status, 'success');
-            assert.strictEqual(history[0].changes.added.length, 0);
-            assert.strictEqual(history[0].changes.updated.length, 0);
-            assert.strictEqual(history[0].changes.removed.length, 0);
+            expect(history.length).toBe(1);
+            expect(history[0].hubId).toBe('test-hub');
+            expect(history[0].profileId).toBe('test-profile');
+            expect(history[0].status).toBe('success');
+            expect(history[0].changes.added.length).toBe(0);
+            expect(history[0].changes.updated.length).toBe(0);
+            expect(history[0].changes.removed.length).toBe(0);
         });
 
-        test('should record sync with bundle additions', async () => {
+        it('should record sync with bundle additions', async () => {
             const changes = {
                 added: [{ id: 'bundle-2', version: '1.0.0', source: 'test-source', required: false }],
                 updated: [],
@@ -124,13 +123,13 @@ suite('Hub Sync History', () => {
             await syncHistory.recordSync('test-hub', 'test-profile', changes, previousState, 'success');
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 1);
-            assert.strictEqual(history[0].changes.added.length, 1);
-            assert.strictEqual(history[0].changes.added[0].id, 'bundle-2');
-            assert.strictEqual(history[0].changes.added[0].version, '1.0.0');
+            expect(history.length).toBe(1);
+            expect(history[0].changes.added.length).toBe(1);
+            expect(history[0].changes.added[0].id).toBe('bundle-2');
+            expect(history[0].changes.added[0].version).toBe('1.0.0');
         });
 
-        test('should record sync with bundle updates', async () => {
+        it('should record sync with bundle updates', async () => {
             const changes = {
                 added: [],
                 updated: [{ id: 'bundle-1', oldVersion: '1.0.0', newVersion: '2.0.0' }],
@@ -145,14 +144,14 @@ suite('Hub Sync History', () => {
             await syncHistory.recordSync('test-hub', 'test-profile', changes, previousState, 'success');
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 1);
-            assert.strictEqual(history[0].changes.updated.length, 1);
-            assert.strictEqual(history[0].changes.updated[0].id, 'bundle-1');
-            assert.strictEqual(history[0].changes.updated[0].oldVersion, '1.0.0');
-            assert.strictEqual(history[0].changes.updated[0].newVersion, '2.0.0');
+            expect(history.length).toBe(1);
+            expect(history[0].changes.updated.length).toBe(1);
+            expect(history[0].changes.updated[0].id).toBe('bundle-1');
+            expect(history[0].changes.updated[0].oldVersion).toBe('1.0.0');
+            expect(history[0].changes.updated[0].newVersion).toBe('2.0.0');
         });
 
-        test('should record sync with bundle removals', async () => {
+        it('should record sync with bundle removals', async () => {
             const changes = {
                 added: [],
                 updated: [],
@@ -167,12 +166,12 @@ suite('Hub Sync History', () => {
             await syncHistory.recordSync('test-hub', 'test-profile', changes, previousState, 'success');
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 1);
-            assert.strictEqual(history[0].changes.removed.length, 1);
-            assert.strictEqual(history[0].changes.removed[0], 'bundle-1');
+            expect(history.length).toBe(1);
+            expect(history[0].changes.removed.length).toBe(1);
+            expect(history[0].changes.removed[0]).toBe('bundle-1');
         });
 
-        test('should record metadata changes in sync', async () => {
+        it('should record metadata changes in sync', async () => {
             const changes = {
                 added: [],
                 updated: [],
@@ -187,18 +186,18 @@ suite('Hub Sync History', () => {
             await syncHistory.recordSync('test-hub', 'test-profile', changes, previousState, 'success');
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 1);
-            assert.strictEqual(history[0].changes.metadataChanged, true);
+            expect(history.length).toBe(1);
+            expect(history[0].changes.metadataChanged).toBe(true);
         });
     });
 
-    suite('Get Sync History', () => {
-        test('should return empty array for profile with no sync history', async () => {
+    describe('Get Sync History', () => {
+        it('should return empty array for profile with no sync history', async () => {
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 0);
+            expect(history.length).toBe(0);
         });
 
-        test('should return sync history in chronological order', async () => {
+        it('should return sync history in chronological order', async () => {
             const previousState = {
                 bundles: [{ id: 'bundle-1', version: '1.0.0', source: 'test-source', required: false }],
                 activatedAt: new Date().toISOString()
@@ -235,14 +234,14 @@ suite('Hub Sync History', () => {
             );
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 2);
+            expect(history.length).toBe(2);
             // Most recent first
-            assert.ok(new Date(history[0].timestamp) >= new Date(history[1].timestamp));
-            assert.strictEqual(history[0].changes.added[0].id, 'bundle-3');
-            assert.strictEqual(history[1].changes.added[0].id, 'bundle-2');
+            expect(new Date(history[0].timestamp) >= new Date(history[1].timestamp)).toBeTruthy();
+            expect(history[0].changes.added[0].id).toBe('bundle-3');
+            expect(history[1].changes.added[0].id).toBe('bundle-2');
         });
 
-        test('should limit history to specified count', async () => {
+        it('should limit history to specified count', async () => {
             const previousState = {
                 bundles: [{ id: 'bundle-1', version: '1.0.0', source: 'test-source', required: false }],
                 activatedAt: new Date().toISOString()
@@ -266,12 +265,12 @@ suite('Hub Sync History', () => {
             }
 
             const history = await syncHistory.getHistory('test-hub', 'test-profile', 3);
-            assert.strictEqual(history.length, 3);
+            expect(history.length).toBe(3);
         });
     });
 
-    suite('Format History Entry', () => {
-        test('should format history entry with all change types', async () => {
+    describe('Format History Entry', () => {
+        it('should format history entry with all change types', async () => {
             const entry: SyncHistoryEntry = {
                 hubId: 'test-hub',
                 profileId: 'test-profile',
@@ -291,11 +290,11 @@ suite('Hub Sync History', () => {
 
             const formatted = syncHistory.formatHistoryEntry(entry);
 
-            assert.ok(formatted.includes('bundle-1 — Updated (1.0.0 → 2.0.0)'));
-            assert.ok(formatted.includes('bundle-2 (1.0.0) — Added [NEW]'));
+            expect(formatted.includes('bundle-1 — Updated (1.0.0 → 2.0.0)')).toBeTruthy();
+            expect(formatted.includes('bundle-2 (1.0.0) — Added [NEW]')).toBeTruthy();
         });
 
-        test('should format history entry with timestamp', async () => {
+        it('should format history entry with timestamp', async () => {
             const entry: SyncHistoryEntry = {
                 hubId: 'test-hub',
                 profileId: 'test-profile',
@@ -315,11 +314,11 @@ suite('Hub Sync History', () => {
 
             const formatted = syncHistory.formatHistoryEntry(entry);
 
-            assert.ok(formatted.includes('Synced at:'));
-            assert.ok(formatted.includes(new Date(entry.timestamp).toLocaleString()));
+            expect(formatted.includes('Synced at:')).toBeTruthy();
+            expect(formatted.includes(new Date(entry.timestamp).toLocaleString())).toBeTruthy();
         });
 
-        test('should format history entry with status', async () => {
+        it('should format history entry with status', async () => {
             const entry: SyncHistoryEntry = {
                 hubId: 'test-hub',
                 profileId: 'test-profile',
@@ -339,12 +338,12 @@ suite('Hub Sync History', () => {
 
             const formatted = syncHistory.formatHistoryEntry(entry);
 
-            assert.ok(formatted.includes('Status: success'));
+            expect(formatted.includes('Status: success')).toBeTruthy();
         });
     });
 
-    suite('Create History QuickPick Items', () => {
-        test('should create QuickPick items for history entries', async () => {
+    describe('Create History QuickPick Items', () => {
+        it('should create QuickPick items for history entries', async () => {
             const entry: SyncHistoryEntry = {
                 hubId: 'test-hub',
                 profileId: 'test-profile',
@@ -364,12 +363,12 @@ suite('Hub Sync History', () => {
 
             const items = syncHistory.createHistoryQuickPickItems([entry]);
 
-            assert.strictEqual(items.length, 1);
-            assert.ok(items[0].label.includes('1 change'));
-            assert.strictEqual(items[0].entry, entry);
+            expect(items.length).toBe(1);
+            expect(items[0].label.includes('1 change')).toBeTruthy();
+            expect(items[0].entry).toBe(entry);
         });
 
-        test('should include change summary in QuickPick description', async () => {
+        it('should include change summary in QuickPick description', async () => {
             const entry: SyncHistoryEntry = {
                 hubId: 'test-hub',
                 profileId: 'test-profile',
@@ -389,11 +388,11 @@ suite('Hub Sync History', () => {
 
             const items = syncHistory.createHistoryQuickPickItems([entry]);
 
-            assert.ok(items[0].description?.includes('1 added'));
-            assert.ok(items[0].description?.includes('1 updated'));
+            expect(items[0].description?.includes('1 added')).toBeTruthy();
+            expect(items[0].description?.includes('1 updated')).toBeTruthy();
         });
 
-        test('should format timestamps in QuickPick items', async () => {
+        it('should format timestamps in QuickPick items', async () => {
             const entry: SyncHistoryEntry = {
                 hubId: 'test-hub',
                 profileId: 'test-profile',
@@ -414,12 +413,12 @@ suite('Hub Sync History', () => {
             const items = syncHistory.createHistoryQuickPickItems([entry]);
 
             // Should include formatted date
-            assert.ok(items[0].label.match(/\d{4}-\d{2}-\d{2}/));
+            expect(items[0].label.match(/\d{4}-\d{2}-\d{2}/)).toBeTruthy();
         });
     });
 
-    suite('Rollback to History Entry', () => {
-        test('should rollback profile to previous state', async () => {
+    describe('Rollback to History Entry', () => {
+        it('should rollback profile to previous state', async () => {
             await createTestHub('test-hub');
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
 
@@ -446,13 +445,13 @@ suite('Hub Sync History', () => {
             await syncHistory.rollbackToEntry('test-hub', 'test-profile', entry, { installBundles: false });
 
             const state = await storage.getProfileActivationState('test-hub', 'test-profile');
-            assert.ok(state);
-            assert.strictEqual(state.syncedBundles.length, 2);
-            assert.ok(state.syncedBundles.includes('bundle-1'));
-            assert.ok(state.syncedBundles.includes('bundle-2'));
+            expect(state).toBeTruthy();
+            expect(state.syncedBundles.length).toBe(2);
+            expect(state.syncedBundles.includes('bundle-1')).toBeTruthy();
+            expect(state.syncedBundles.includes('bundle-2')).toBeTruthy();
         });
 
-        test('should record rollback as new history entry', async () => {
+        it('should record rollback as new history entry', async () => {
             await createTestHub('test-hub');
             await hubManager.activateProfile('test-hub', 'test-profile', { installBundles: false });
 
@@ -477,11 +476,11 @@ suite('Hub Sync History', () => {
             await syncHistory.rollbackToEntry('test-hub', 'test-profile', entry, { installBundles: false });
 
             const historyAfter = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(historyAfter.length, historyBefore.length + 1);
-            assert.strictEqual(historyAfter[0].status, 'rollback');
+            expect(historyAfter.length).toBe(historyBefore.length + 1);
+            expect(historyAfter[0].status).toBe('rollback');
         });
 
-        test('should throw error when rolling back non-active profile', async () => {
+        it('should throw error when rolling back non-active profile', async () => {
             await createTestHub('test-hub');
 
             const entry: SyncHistoryEntry = {
@@ -501,15 +500,12 @@ suite('Hub Sync History', () => {
                 }
             };
 
-            await assert.rejects(
-                async () => await syncHistory.rollbackToEntry('test-hub', 'test-profile', entry, { installBundles: false }),
-                /Profile test-profile is not active in hub test-hub/
-            );
+            await expect(async () => await syncHistory.rollbackToEntry('test-hub', 'test-profile', entry, { installBundles: false })).rejects.toThrow(/Profile test-profile is not active in hub test-hub/);
         });
     });
 
-    suite('Clear History', () => {
-        test('should clear all history for a profile', async () => {
+    describe('Clear History', () => {
+        it('should clear all history for a profile', async () => {
             const previousState = {
                 bundles: [{ id: 'bundle-1', version: '1.0.0', source: 'test-source', required: false }],
                 activatedAt: new Date().toISOString()
@@ -532,15 +528,15 @@ suite('Hub Sync History', () => {
             }
 
             let history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 3);
+            expect(history.length).toBe(3);
 
             await syncHistory.clearHistory('test-hub', 'test-profile');
 
             history = await syncHistory.getHistory('test-hub', 'test-profile');
-            assert.strictEqual(history.length, 0);
+            expect(history.length).toBe(0);
         });
 
-        test('should clear history only for specified profile', async () => {
+        it('should clear history only for specified profile', async () => {
             const previousState = {
                 bundles: [{ id: 'bundle-1', version: '1.0.0', source: 'test-source', required: false }],
                 activatedAt: new Date().toISOString()
@@ -580,8 +576,8 @@ suite('Hub Sync History', () => {
             const history1 = await syncHistory.getHistory('test-hub', 'test-profile');
             const history2 = await syncHistory.getHistory('test-hub', 'test-profile-2');
 
-            assert.strictEqual(history1.length, 0);
-            assert.strictEqual(history2.length, 1);
+            expect(history1.length).toBe(0);
+            expect(history2.length).toBe(1);
         });
     });
 });

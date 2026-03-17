@@ -3,7 +3,6 @@
  * Tests for VS Code commands that manage hubs
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
@@ -44,7 +43,7 @@ class MockRegistryManager {
 }
 
 
-suite('HubCommands', () => {
+describe('HubCommands', () => {
     let commands: HubCommands;
     let hubManager: HubManager;
     let storage: HubStorage;
@@ -52,7 +51,7 @@ suite('HubCommands', () => {
     let context: vscode.ExtensionContext;
     let registryManager: MockRegistryManager;
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hubcommands');
         if (fs.existsSync(tempDir)) {
@@ -81,49 +80,49 @@ suite('HubCommands', () => {
         commands = new HubCommands(hubManager, registryManager as any, context);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    suite.skip('Command Registration (skipped - commands not registered in test mode)', () => {
-        test('should register all hub commands', () => {
-            assert.ok(commands);
-            assert.strictEqual(context.subscriptions.length, 4);
+    describe.skip('Command Registration (skipped - commands not registered in test mode)', () => {
+        it('should register all hub commands', () => {
+            expect(commands).toBeTruthy();
+            expect(context.subscriptions.length).toBe(4);
         });
 
-        test('should register importHub command', () => {
+        it('should register importHub command', () => {
             const importCmd = context.subscriptions.find((s: any) => 
                 s.command === 'promptregistry.importHub'
             );
-            assert.ok(importCmd);
+            expect(importCmd).toBeTruthy();
         });
 
-        test('should register listHubs command', () => {
+        it('should register listHubs command', () => {
             const listCmd = context.subscriptions.find((s: any) => 
                 s.command === 'promptregistry.listHubs'
             );
-            assert.ok(listCmd);
+            expect(listCmd).toBeTruthy();
         });
 
-        test('should register syncHub command', () => {
+        it('should register syncHub command', () => {
             const syncCmd = context.subscriptions.find((s: any) => 
                 s.command === 'promptregistry.syncHub'
             );
-            assert.ok(syncCmd);
+            expect(syncCmd).toBeTruthy();
         });
 
-        test('should register deleteHub command', () => {
+        it('should register deleteHub command', () => {
             const deleteCmd = context.subscriptions.find((s: any) => 
                 s.command === 'promptregistry.deleteHub'
             );
-            assert.ok(deleteCmd);
+            expect(deleteCmd).toBeTruthy();
         });
     });
 
-    suite.skip('Import Hub Command (requires vscode UI mocks)', () => {
-        test('should import hub from GitHub URL', async () => {
+    describe.skip('Import Hub Command (requires vscode UI mocks)', () => {
+        it('should import hub from GitHub URL', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             
             // Mock user input
@@ -134,23 +133,23 @@ suite('HubCommands', () => {
             // Execute import
             const result = await commands.importHub();
             
-            assert.ok(result);
+            expect(result).toBeTruthy();
             
             // Verify hub was imported
             const hubs = await hubManager.listHubs();
-            assert.ok(hubs.length > 0);
+            expect(hubs.length > 0).toBeTruthy();
         });
 
-        test('should handle cancellation gracefully', async () => {
+        it('should handle cancellation gracefully', async () => {
             // Mock user cancels input
             const showQuickPickStub = () => Promise.resolve(undefined);
             
             const result = await commands.importHub();
             
-            assert.strictEqual(result, undefined);
+            expect(result).toBe(undefined);
         });
 
-        test('should show error message on import failure', async () => {
+        it('should show error message on import failure', async () => {
             // Mock invalid input
             const showInputBoxStub = () => Promise.resolve('test-hub');
             const showQuickPickStub = () => Promise.resolve({ label: 'GitHub', value: 'github' });
@@ -166,10 +165,10 @@ suite('HubCommands', () => {
             }
 
             // Verify error was shown (would need proper mock)
-            // assert.ok(errorShown);
+            // expect(errorShown).toBeTruthy();
         });
 
-        test('should validate hub ID input', async () => {
+        it('should validate hub ID input', async () => {
             // Test with invalid hub ID
             const showInputBoxStub = () => Promise.resolve('../invalid-id');
             
@@ -178,22 +177,22 @@ suite('HubCommands', () => {
             
             // Hub should not be imported with invalid ID
             const hubs = await hubManager.listHubs();
-            assert.strictEqual(hubs.length, 0);
+            expect(hubs.length).toBe(0);
         });
     });
 
-    suite('List Hubs Command', () => {
-        test('should show empty message when no hubs', async () => {
+    describe('List Hubs Command', () => {
+        it('should show empty message when no hubs', async () => {
             let infoShown = false;
             const showInformationMessageStub = () => { infoShown = true; };
 
             await commands.listHubs();
 
             // Would verify with proper mock
-            // assert.ok(infoShown);
+            // expect(infoShown).toBeTruthy();
         });
 
-        test('should display hub list with metadata', async () => {
+        it('should display hub list with metadata', async () => {
             // Import a hub first
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -205,7 +204,7 @@ suite('HubCommands', () => {
             // Verify output (would need proper mock to check QuickPick items)
         });
 
-        test('should allow selection of hub for details', async () => {
+        it('should allow selection of hub for details', async () => {
             // Import a hub
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -220,8 +219,8 @@ suite('HubCommands', () => {
         });
     });
 
-    suite('Sync Hub Command', () => {
-        test('should sync selected hub', async () => {
+    describe('Sync Hub Command', () => {
+        it('should sync selected hub', async () => {
             // Import a hub first
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -235,7 +234,7 @@ suite('HubCommands', () => {
             // Verify sync was called (would need spy/mock)
         });
 
-        test('should sync all hubs when selected', async () => {
+        it('should sync all hubs when selected', async () => {
             // Import multiple hubs
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -250,7 +249,7 @@ suite('HubCommands', () => {
             // Verify all hubs were synced
         });
 
-        test('should show error on sync failure', async () => {
+        it('should show error on sync failure', async () => {
             // Mock hub manager to fail
             let errorShown = false;
             const showErrorMessageStub = () => { errorShown = true; };
@@ -261,7 +260,7 @@ suite('HubCommands', () => {
             // Would verify error was shown
         });
 
-        test('should show progress during sync', async () => {
+        it('should show progress during sync', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
             await hubManager.importHub(ref, 'test-hub');
@@ -271,8 +270,8 @@ suite('HubCommands', () => {
         });
     });
 
-    suite.skip('Delete Hub Command (requires vscode UI mocks)', () => {
-        test('should delete selected hub after confirmation', async () => {
+    describe.skip('Delete Hub Command (requires vscode UI mocks)', () => {
+        it('should delete selected hub after confirmation', async () => {
             // Import a hub first
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -285,10 +284,10 @@ suite('HubCommands', () => {
 
             // Verify hub was deleted
             const hubs = await hubManager.listHubs();
-            assert.strictEqual(hubs.length, 0);
+            expect(hubs.length).toBe(0);
         });
 
-        test('should not delete if user cancels', async () => {
+        it('should not delete if user cancels', async () => {
             // Import a hub
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -301,10 +300,10 @@ suite('HubCommands', () => {
 
             // Verify hub still exists
             const hubs = await hubManager.listHubs();
-            assert.strictEqual(hubs.length, 1);
+            expect(hubs.length).toBe(1);
         });
 
-        test('should show error if hub not found', async () => {
+        it('should show error if hub not found', async () => {
             let errorShown = false;
             const showErrorMessageStub = () => { errorShown = true; };
 
@@ -313,7 +312,7 @@ suite('HubCommands', () => {
             // Would verify error was shown
         });
 
-        test('should allow selection from list when no ID provided', async () => {
+        it('should allow selection from list when no ID provided', async () => {
             // Import a hub
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -327,12 +326,12 @@ suite('HubCommands', () => {
 
             // Verify hub was deleted
             const hubs = await hubManager.listHubs();
-            assert.strictEqual(hubs.length, 0);
+            expect(hubs.length).toBe(0);
         });
     });
 
-    suite.skip('Error Handling (requires vscode UI mocks)', () => {
-        test('should handle hub manager errors gracefully', async () => {
+    describe.skip('Error Handling (requires vscode UI mocks)', () => {
+        it('should handle hub manager errors gracefully', async () => {
             // Force an error by using invalid storage path
             const badStorage = new HubStorage('/invalid/path/that/cannot/exist');
             const validator = new MockSchemaValidator();
@@ -343,7 +342,7 @@ suite('HubCommands', () => {
             await badCommands.listHubs();
         });
 
-        test('should show user-friendly error messages', async () => {
+        it('should show user-friendly error messages', async () => {
             let errorMessage = '';
             const showErrorMessageStub = (msg: string) => { errorMessage = msg; };
 
@@ -354,8 +353,8 @@ suite('HubCommands', () => {
         });
     });
 
-    suite('User Experience', () => {
-        test('should show success message after import', async () => {
+    describe('User Experience', () => {
+        it('should show success message after import', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             
             let successShown = false;
@@ -364,17 +363,17 @@ suite('HubCommands', () => {
             // Would verify success message with proper mock
         });
 
-        test('should show progress indicator for long operations', async () => {
+        it('should show progress indicator for long operations', async () => {
             // Would verify progress indicator appears during import/sync
         });
 
-        test('should provide helpful error context', async () => {
+        it('should provide helpful error context', async () => {
             // Error messages should include actionable information
         });
     });
 
-    suite('Source Deduplication', () => {
-        test('should not create duplicate sources when importing hub', async () => {
+    describe('Source Deduplication', () => {
+        it('should not create duplicate sources when importing hub', async () => {
             // This test verifies that HubManager.importHub() handles sources
             // and HubCommands.importHub() doesn't duplicate the work
             
@@ -411,8 +410,7 @@ suite('HubCommands', () => {
             const sourceCount = addedSources.length;
             
             // If there are more than 2 sources, we have duplicates
-            assert.strictEqual(sourceCount, 2, 
-                `Expected 2 sources but got ${sourceCount}: ${addedSources.join(', ')}`);
+            expect(sourceCount, `Expected 2 sources but got ${sourceCount}: ${addedSources.join(', ')}`).toBe(2);
             
         });
     });

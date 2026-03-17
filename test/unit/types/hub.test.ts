@@ -1,4 +1,3 @@
-import * as assert from 'assert';
 import { 
   HubReference, 
   HubConfig,
@@ -12,83 +11,68 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 
-suite('Hub Types - TDD Implementation', () => {
-  suite('validateHubReference', () => {
-    test('should validate valid GitHub reference', () => {
+describe('Hub Types - TDD Implementation', () => {
+  describe('validateHubReference', () => {
+    it('should validate valid GitHub reference', () => {
       const ref: HubReference = {
         type: 'github',
         location: 'promptregistry/official-hub',
         ref: 'main'
       };
       
-      assert.doesNotThrow(() => validateHubReference(ref));
+      expect(() => validateHubReference(ref)).not.toThrow();
     });
 
-    test('should reject path traversal in local paths', () => {
+    it('should reject path traversal in local paths', () => {
       const ref: HubReference = {
         type: 'local',
         location: '../../etc/passwd'
       };
       
-      assert.throws(
-        () => validateHubReference(ref),
-        /Path traversal detected/
-      );
+      expect(() => validateHubReference(ref)).toThrow(/Path traversal detected/);
     });
 
-    test('should reject non-HTTPS URLs', () => {
+    it('should reject non-HTTPS URLs', () => {
       const ref: HubReference = {
         type: 'url',
         location: 'http://example.com/hub.yml'
       };
       
-      assert.throws(
-        () => validateHubReference(ref),
-        /Only HTTPS URLs are allowed/
-      );
+      expect(() => validateHubReference(ref)).toThrow(/Only HTTPS URLs are allowed/);
     });
 
-    test('should reject invalid GitHub format', () => {
+    it('should reject invalid GitHub format', () => {
       const ref: HubReference = {
         type: 'github',
         location: 'invalid-format'
       };
       
-      assert.throws(
-        () => validateHubReference(ref),
-        /Invalid GitHub repository format/
-      );
+      expect(() => validateHubReference(ref)).toThrow(/Invalid GitHub repository format/);
     });
 
-    test('should reject empty location', () => {
+    it('should reject empty location', () => {
       const ref: HubReference = {
         type: 'github',
         location: ''
       };
       
-      assert.throws(
-        () => validateHubReference(ref),
-        /Location cannot be empty/
-      );
+      expect(() => validateHubReference(ref)).toThrow(/Location cannot be empty/);
     });
 
-    test('should reject FTP URLs', () => {
+    it('should reject FTP URLs', () => {
       const ref: HubReference = {
         type: 'url',
         location: 'ftp://malicious.com/hub.yml'
       };
       
-      assert.throws(
-        () => validateHubReference(ref),
-        /Only HTTPS URLs are allowed/
-      );
+      expect(() => validateHubReference(ref)).toThrow(/Only HTTPS URLs are allowed/);
     });
   });
 
-  suite('validateHubConfig', () => {
+  describe('validateHubConfig', () => {
     let validConfig: HubConfig;
 
-    setup(() => {
+    beforeEach(() => {
       const fixtureContent = fs.readFileSync(
         path.join(__dirname, '../../fixtures/hubs/valid-hub-config.yml'),
         'utf-8'
@@ -96,173 +80,173 @@ suite('Hub Types - TDD Implementation', () => {
       validConfig = yaml.load(fixtureContent) as HubConfig;
     });
 
-    test('should validate complete valid hub config', () => {
+    it('should validate complete valid hub config', () => {
       const result = validateHubConfig(validConfig);
       
-      assert.strictEqual(result.valid, true);
-      assert.strictEqual(result.errors.length, 0);
+      expect(result.valid).toBe(true);
+      expect(result.errors.length).toBe(0);
     });
 
-    test('should reject config without version', () => {
+    it('should reject config without version', () => {
       const config = { ...validConfig };
       delete (config as any).version;
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.includes('version is required'));
+      expect(result.valid).toBe(false);
+      expect(result.errors.includes('version is required')).toBeTruthy();
     });
 
-    test('should reject config with invalid version format', () => {
+    it('should reject config with invalid version format', () => {
       const config = { ...validConfig, version: 'invalid' };
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.some((e: string) => e.includes('semver')));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e: string) => e.includes('semver'))).toBeTruthy();
     });
 
-    test('should reject config without metadata', () => {
+    it('should reject config without metadata', () => {
       const config = { ...validConfig };
       delete (config as any).metadata;
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.includes('metadata is required'));
+      expect(result.valid).toBe(false);
+      expect(result.errors.includes('metadata is required')).toBeTruthy();
     });
 
-    test('should reject config without sources', () => {
+    it('should reject config without sources', () => {
       const config = { ...validConfig };
       delete (config as any).sources;
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.includes('sources is required'));
+      expect(result.valid).toBe(false);
+      expect(result.errors.includes('sources is required')).toBeTruthy();
     });
 
-    test('should validate config with empty profiles array', () => {
+    it('should validate config with empty profiles array', () => {
       const config = { ...validConfig, profiles: [] };
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, true);
+      expect(result.valid).toBe(true);
     });
 
-    test('should detect bundle referencing non-existent source', () => {
+    it('should detect bundle referencing non-existent source', () => {
       const config = { ...validConfig };
       config.profiles[0].bundles[0].source = 'non-existent-source';
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.some((e: string) => e.includes('non-existent source')));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e: string) => e.includes('non-existent source'))).toBeTruthy();
     });
 
-    test('should validate checksum format - reject invalid', () => {
+    it('should validate checksum format - reject invalid', () => {
       const config = { ...validConfig };
       config.metadata.checksum = 'invalid-checksum';
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.some((e: string) => e.includes('checksum')));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e: string) => e.includes('checksum'))).toBeTruthy();
     });
 
-    test('should validate checksum format - accept sha256', () => {
+    it('should validate checksum format - accept sha256', () => {
       const config = { ...validConfig };
       config.metadata.checksum = 'sha256:abc123def456';
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, true);
+      expect(result.valid).toBe(true);
     });
 
-    test('should validate checksum format - accept sha512', () => {
+    it('should validate checksum format - accept sha512', () => {
       const config = { ...validConfig };
       config.metadata.checksum = 'sha512:abc123def456789';
       
       const result = validateHubConfig(config);
       
-      assert.strictEqual(result.valid, true);
+      expect(result.valid).toBe(true);
     });
   });
 
-  suite('sanitizeHubId', () => {
-    test('should accept valid alphanumeric IDs', () => {
-      assert.doesNotThrow(() => sanitizeHubId('valid-hub-id'));
-      assert.doesNotThrow(() => sanitizeHubId('hub123'));
-      assert.doesNotThrow(() => sanitizeHubId('my_hub'));
+  describe('sanitizeHubId', () => {
+    it('should accept valid alphanumeric IDs', () => {
+      expect(() => sanitizeHubId('valid-hub-id')).not.toThrow();
+      expect(() => sanitizeHubId('hub123')).not.toThrow();
+      expect(() => sanitizeHubId('my_hub')).not.toThrow();
     });
 
-    test('should reject IDs with path traversal', () => {
-      assert.throws(() => sanitizeHubId('../etc'), /Invalid hub ID/);
-      assert.throws(() => sanitizeHubId('../../passwd'), /Invalid hub ID/);
+    it('should reject IDs with path traversal', () => {
+      expect(() => sanitizeHubId('../etc')).toThrow(/Invalid hub ID/);
+      expect(() => sanitizeHubId('../../passwd')).toThrow(/Invalid hub ID/);
     });
 
-    test('should reject IDs with slashes', () => {
-      assert.throws(() => sanitizeHubId('hub/id'), /Invalid hub ID/);
-      assert.throws(() => sanitizeHubId('hub\\id'), /Invalid hub ID/);
+    it('should reject IDs with slashes', () => {
+      expect(() => sanitizeHubId('hub/id')).toThrow(/Invalid hub ID/);
+      expect(() => sanitizeHubId('hub\\id')).toThrow(/Invalid hub ID/);
     });
 
-    test('should reject IDs with special characters', () => {
-      assert.throws(() => sanitizeHubId('hub@id'), /Invalid hub ID/);
-      assert.throws(() => sanitizeHubId('hub#id'), /Invalid hub ID/);
+    it('should reject IDs with special characters', () => {
+      expect(() => sanitizeHubId('hub@id')).toThrow(/Invalid hub ID/);
+      expect(() => sanitizeHubId('hub#id')).toThrow(/Invalid hub ID/);
     });
 
-    test('should reject empty IDs', () => {
-      assert.throws(() => sanitizeHubId(''), /Invalid hub ID/);
+    it('should reject empty IDs', () => {
+      expect(() => sanitizeHubId('')).toThrow(/Invalid hub ID/);
     });
 
-    test('should reject very long IDs', () => {
+    it('should reject very long IDs', () => {
       const longId = 'a'.repeat(256);
-      assert.throws(() => sanitizeHubId(longId), /Invalid hub ID/);
+      expect(() => sanitizeHubId(longId)).toThrow(/Invalid hub ID/);
     });
   });
 
-  suite('Security utilities', () => {
-    suite('isValidProtocol', () => {
-      test('should accept HTTPS protocol', () => {
-        assert.strictEqual(isValidProtocol('https:'), true);
+  describe('Security utilities', () => {
+    describe('isValidProtocol', () => {
+      it('should accept HTTPS protocol', () => {
+        expect(isValidProtocol('https:')).toBe(true);
       });
 
-      test('should reject HTTP protocol', () => {
-        assert.strictEqual(isValidProtocol('http:'), false);
+      it('should reject HTTP protocol', () => {
+        expect(isValidProtocol('http:')).toBe(false);
       });
 
-      test('should reject FTP protocol', () => {
-        assert.strictEqual(isValidProtocol('ftp:'), false);
+      it('should reject FTP protocol', () => {
+        expect(isValidProtocol('ftp:')).toBe(false);
       });
 
-      test('should reject file protocol', () => {
-        assert.strictEqual(isValidProtocol('file:'), false);
+      it('should reject file protocol', () => {
+        expect(isValidProtocol('file:')).toBe(false);
       });
     });
 
-    suite('hasPathTraversal', () => {
-      test('should detect .. in path', () => {
-        assert.strictEqual(hasPathTraversal('../etc'), true);
-        assert.strictEqual(hasPathTraversal('../../passwd'), true);
-        assert.strictEqual(hasPathTraversal('/home/../etc'), true);
+    describe('hasPathTraversal', () => {
+      it('should detect .. in path', () => {
+        expect(hasPathTraversal('../etc')).toBe(true);
+        expect(hasPathTraversal('../../passwd')).toBe(true);
+        expect(hasPathTraversal('/home/../etc')).toBe(true);
       });
 
-      test('should not flag valid paths', () => {
-        assert.strictEqual(hasPathTraversal('/home/user/config.yml'), false);
-        assert.strictEqual(hasPathTraversal('config/hub.yml'), false);
+      it('should not flag valid paths', () => {
+        expect(hasPathTraversal('/home/user/config.yml')).toBe(false);
+        expect(hasPathTraversal('config/hub.yml')).toBe(false);
       });
 
-      test('should handle encoded path traversal', () => {
-        assert.strictEqual(hasPathTraversal('%2e%2e/etc'), true);
-        assert.strictEqual(hasPathTraversal('..%2Fetc'), true);
+      it('should handle encoded path traversal', () => {
+        expect(hasPathTraversal('%2e%2e/etc')).toBe(true);
+        expect(hasPathTraversal('..%2Fetc')).toBe(true);
       });
     });
   });
 
-  suite('Security tests - malicious inputs', () => {
+  describe('Security tests - malicious inputs', () => {
     let maliciousConfig: any;
 
-    setup(() => {
+    beforeEach(() => {
       const fixtureContent = fs.readFileSync(
         path.join(__dirname, '../../fixtures/hubs/malicious-hub-config.yml'),
         'utf-8'
@@ -270,22 +254,22 @@ suite('Hub Types - TDD Implementation', () => {
       maliciousConfig = yaml.load(fixtureContent);
     });
 
-    test('should reject config with path traversal in source ID', () => {
+    it('should reject config with path traversal in source ID', () => {
       const result = validateHubConfig(maliciousConfig);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.some((e: string) => 
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e: string) => 
         e.includes('path traversal') || e.includes('../')
-      ));
+      )).toBeTruthy();
     });
 
-    test('should reject config with path traversal in bundle ID', () => {
+    it('should reject config with path traversal in bundle ID', () => {
       const result = validateHubConfig(maliciousConfig);
       
-      assert.strictEqual(result.valid, false);
-      assert.ok(result.errors.some((e: string) => 
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e: string) => 
         e.includes('traversal') || e.includes('../')
-      ));
+      )).toBeTruthy();
     });
   });
 });

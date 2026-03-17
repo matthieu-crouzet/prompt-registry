@@ -6,7 +6,6 @@
  * Requirements: 1.1, 1.8, 2.5
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -18,13 +17,13 @@ import { RegistryStorage } from '../../src/storage/RegistryStorage';
 import { InstallationScope } from '../../src/types/registry';
 import { IScopeService } from '../../src/services/IScopeService';
 
-suite('ScopeServiceFactory', () => {
+describe('ScopeServiceFactory', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let workspaceRoot: string;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create mock extension context
@@ -70,12 +69,12 @@ suite('ScopeServiceFactory', () => {
         workspaceRoot = path.join(os.tmpdir(), 'test-workspace');
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('create()', () => {
-        test('should return UserScopeService for user scope', () => {
+    describe('create()', () => {
+        it('should return UserScopeService for user scope', () => {
             // Arrange
             const scope: InstallationScope = 'user';
 
@@ -83,11 +82,11 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert
-            assert.ok(service, 'Service should be created');
-            assert.ok(service instanceof UserScopeService, 'Should return UserScopeService instance');
+            expect(service, 'Service should be created').toBeTruthy();
+            expect(service instanceof UserScopeService, 'Should return UserScopeService instance').toBeTruthy();
         });
 
-        test('should return UserScopeService for workspace scope', () => {
+        it('should return UserScopeService for workspace scope', () => {
             // Arrange
             const scope: InstallationScope = 'workspace';
 
@@ -95,11 +94,11 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert
-            assert.ok(service, 'Service should be created');
-            assert.ok(service instanceof UserScopeService, 'Should return UserScopeService instance for workspace scope');
+            expect(service, 'Service should be created').toBeTruthy();
+            expect(service instanceof UserScopeService, 'Should return UserScopeService instance for workspace scope').toBeTruthy();
         });
 
-        test('should return RepositoryScopeService for repository scope', () => {
+        it('should return RepositoryScopeService for repository scope', () => {
             // Arrange
             const scope: InstallationScope = 'repository';
 
@@ -107,25 +106,21 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert
-            assert.ok(service, 'Service should be created');
-            assert.ok(service instanceof RepositoryScopeService, 'Should return RepositoryScopeService instance');
+            expect(service, 'Service should be created').toBeTruthy();
+            expect(service instanceof RepositoryScopeService, 'Should return RepositoryScopeService instance').toBeTruthy();
         });
 
-        test('should throw error for unknown scope', () => {
+        it('should throw error for unknown scope', () => {
             // Arrange
             const unknownScope = 'unknown' as InstallationScope;
 
             // Act & Assert
-            assert.throws(
-                () => ScopeServiceFactory.create(unknownScope, mockContext, workspaceRoot, mockStorage),
-                /Unknown installation scope/,
-                'Should throw error for unknown scope'
-            );
+            expect(() => ScopeServiceFactory.create(unknownScope, mockContext, workspaceRoot, mockStorage)).toThrow(/Unknown installation scope/);
         });
     });
 
-    suite('IScopeService interface compliance', () => {
-        test('UserScopeService should implement IScopeService', () => {
+    describe('IScopeService interface compliance', () => {
+        it('UserScopeService should implement IScopeService', () => {
             // Arrange
             const scope: InstallationScope = 'user';
 
@@ -133,13 +128,13 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert - verify interface methods exist
-            assert.ok(typeof service.syncBundle === 'function', 'Should have syncBundle method');
-            assert.ok(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method');
-            assert.ok(typeof service.getTargetPath === 'function', 'Should have getTargetPath method');
-            assert.ok(typeof service.getStatus === 'function', 'Should have getStatus method');
+            expect(typeof service.syncBundle === 'function', 'Should have syncBundle method').toBeTruthy();
+            expect(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method').toBeTruthy();
+            expect(typeof service.getTargetPath === 'function', 'Should have getTargetPath method').toBeTruthy();
+            expect(typeof service.getStatus === 'function', 'Should have getStatus method').toBeTruthy();
         });
 
-        test('RepositoryScopeService should implement IScopeService', () => {
+        it('RepositoryScopeService should implement IScopeService', () => {
             // Arrange
             const scope: InstallationScope = 'repository';
 
@@ -147,15 +142,15 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert - verify interface methods exist
-            assert.ok(typeof service.syncBundle === 'function', 'Should have syncBundle method');
-            assert.ok(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method');
-            assert.ok(typeof service.getTargetPath === 'function', 'Should have getTargetPath method');
-            assert.ok(typeof service.getStatus === 'function', 'Should have getStatus method');
+            expect(typeof service.syncBundle === 'function', 'Should have syncBundle method').toBeTruthy();
+            expect(typeof service.unsyncBundle === 'function', 'Should have unsyncBundle method').toBeTruthy();
+            expect(typeof service.getTargetPath === 'function', 'Should have getTargetPath method').toBeTruthy();
+            expect(typeof service.getStatus === 'function', 'Should have getStatus method').toBeTruthy();
         });
     });
 
-    suite('Factory configuration', () => {
-        test('should pass context to UserScopeService', () => {
+    describe('Factory configuration', () => {
+        it('should pass context to UserScopeService', () => {
             // Arrange
             const scope: InstallationScope = 'user';
 
@@ -163,10 +158,10 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert - UserScopeService should be created with context
-            assert.ok(service instanceof UserScopeService);
+            expect(service instanceof UserScopeService).toBeTruthy();
         });
 
-        test('should pass workspaceRoot and storage to RepositoryScopeService', () => {
+        it('should pass workspaceRoot and storage to RepositoryScopeService', () => {
             // Arrange
             const scope: InstallationScope = 'repository';
 
@@ -174,43 +169,35 @@ suite('ScopeServiceFactory', () => {
             const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
 
             // Assert - RepositoryScopeService should be created with workspaceRoot and storage
-            assert.ok(service instanceof RepositoryScopeService);
+            expect(service instanceof RepositoryScopeService).toBeTruthy();
         });
 
-        test('should throw error when repository scope requested without workspaceRoot', () => {
+        it('should throw error when repository scope requested without workspaceRoot', () => {
             // Arrange
             const scope: InstallationScope = 'repository';
 
             // Act & Assert
-            assert.throws(
-                () => ScopeServiceFactory.create(scope, mockContext, undefined as any, mockStorage),
-                /workspaceRoot is required for repository scope/,
-                'Should throw error when workspaceRoot is missing for repository scope'
-            );
+            expect(() => ScopeServiceFactory.create(scope, mockContext, undefined as any, mockStorage)).toThrow(/workspaceRoot is required for repository scope/);
         });
 
-        test('should throw error when repository scope requested without storage', () => {
+        it('should throw error when repository scope requested without storage', () => {
             // Arrange
             const scope: InstallationScope = 'repository';
 
             // Act & Assert
-            assert.throws(
-                () => ScopeServiceFactory.create(scope, mockContext, workspaceRoot, undefined as any),
-                /storage is required for repository scope/,
-                'Should throw error when storage is missing for repository scope'
-            );
+            expect(() => ScopeServiceFactory.create(scope, mockContext, workspaceRoot, undefined as any)).toThrow(/storage is required for repository scope/);
         });
     });
 
-    suite('Scope type mapping', () => {
-        test('should map all valid InstallationScope values', () => {
+    describe('Scope type mapping', () => {
+        it('should map all valid InstallationScope values', () => {
             // Arrange
             const validScopes: InstallationScope[] = ['user', 'workspace', 'repository'];
 
             // Act & Assert
             for (const scope of validScopes) {
                 const service = ScopeServiceFactory.create(scope, mockContext, workspaceRoot, mockStorage);
-                assert.ok(service, `Should create service for scope: ${scope}`);
+                expect(service, `Should create service for scope: ${scope}`).toBeTruthy();
             }
         });
     });

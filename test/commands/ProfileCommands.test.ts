@@ -2,33 +2,32 @@
  * Profile Management Commands Unit Tests
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { ProfileCommands } from '../../src/commands/ProfileCommands';
 import { RegistryManager } from '../../src/services/RegistryManager';
 
-suite('Profile Management Commands', () => {
+describe('Profile Management Commands', () => {
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('createProfile', () => {
-        test('should prompt for profile name', async () => {
+    describe('createProfile', () => {
+        it('should prompt for profile name', async () => {
             const showInputBoxStub = sandbox.stub(vscode.window, 'showInputBox');
             showInputBoxStub.resolves('My Profile');
 
             const result = await showInputBoxStub({ prompt: 'Enter profile name' });
-            assert.strictEqual(result, 'My Profile');
+            expect(result).toBe('My Profile');
         });
 
-        test('should validate profile name uniqueness', async () => {
+        it('should validate profile name uniqueness', async () => {
             const existingProfiles = [
                 { id: 'profile-1', name: 'Profile 1' },
                 { id: 'profile-2', name: 'Profile 2' },
@@ -37,10 +36,10 @@ suite('Profile Management Commands', () => {
             const newName = 'Profile 1';
             const isDuplicate = existingProfiles.some(p => p.name === newName);
 
-            assert.strictEqual(isDuplicate, true);
+            expect(isDuplicate).toBe(true);
         });
 
-        test('should allow custom bundle selection', async () => {
+        it('should allow custom bundle selection', async () => {
             const availableBundles = [
                 { id: 'bundle-1', name: 'Bundle 1' },
                 { id: 'bundle-2', name: 'Bundle 2' },
@@ -49,12 +48,12 @@ suite('Profile Management Commands', () => {
 
             const selectedBundles = ['bundle-1', 'bundle-3'];
 
-            assert.strictEqual(selectedBundles.length, 2);
-            assert.ok(selectedBundles.includes('bundle-1'));
-            assert.ok(selectedBundles.includes('bundle-3'));
+            expect(selectedBundles.length).toBe(2);
+            expect(selectedBundles.includes('bundle-1')).toBeTruthy();
+            expect(selectedBundles.includes('bundle-3')).toBeTruthy();
         });
 
-        test('should show expanded icon list with search keywords', async () => {
+        it('should show expanded icon list with search keywords', async () => {
             const registryManagerStub = sandbox.createStubInstance(RegistryManager);
             registryManagerStub.listProfiles.resolves([]);
             registryManagerStub.createProfile.resolves({} as any);
@@ -79,19 +78,19 @@ suite('Profile Management Commands', () => {
             await profileCommands.createProfile();
 
             const iconCall = showQuickPickStub.firstCall;
-            assert.ok(iconCall, 'showQuickPick should be called for icons');
+            expect(iconCall, 'showQuickPick should be called for icons').toBeTruthy();
             
             const items = iconCall.args[0] as vscode.QuickPickItem[];
-            assert.ok(items.length > 20, 'Should have a larger pool of icons');
+            expect(items.length > 20, 'Should have a larger pool of icons').toBeTruthy();
             
             const rocketIcon = items.find(i => i.label.includes('🚀'));
-            assert.ok(rocketIcon);
-            assert.ok(rocketIcon.description && rocketIcon.description.toLowerCase().includes('launch'), 'Rocket icon should be searchable by "launch"');
+            expect(rocketIcon).toBeTruthy();
+            expect(rocketIcon.description && rocketIcon.description.toLowerCase().includes('launch'), 'Rocket icon should be searchable by "launch"').toBeTruthy();
         });
     });
 
-    suite('editProfile', () => {
-        test('should allow renaming profile', async () => {
+    describe('editProfile', () => {
+        it('should allow renaming profile', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'Old Name',
@@ -100,11 +99,11 @@ suite('Profile Management Commands', () => {
 
             const updated = { ...profile, name: 'New Name' };
 
-            assert.strictEqual(updated.name, 'New Name');
-            assert.strictEqual(updated.id, profile.id);
+            expect(updated.name).toBe('New Name');
+            expect(updated.id).toBe(profile.id);
         });
 
-        test('should allow adding bundles to profile', async () => {
+        it('should allow adding bundles to profile', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -116,11 +115,11 @@ suite('Profile Management Commands', () => {
                 bundles: [...profile.bundles, 'bundle-2'],
             };
 
-            assert.strictEqual(updated.bundles.length, 2);
-            assert.ok(updated.bundles.includes('bundle-2'));
+            expect(updated.bundles.length).toBe(2);
+            expect(updated.bundles.includes('bundle-2')).toBeTruthy();
         });
 
-        test('should allow removing bundles from profile', async () => {
+        it('should allow removing bundles from profile', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -132,11 +131,11 @@ suite('Profile Management Commands', () => {
                 bundles: profile.bundles.filter(b => b !== 'bundle-2'),
             };
 
-            assert.strictEqual(updated.bundles.length, 2);
-            assert.ok(!updated.bundles.includes('bundle-2'));
+            expect(updated.bundles.length).toBe(2);
+            expect(!updated.bundles.includes('bundle-2')).toBeTruthy();
         });
 
-        test('should preserve profile ID when editing', async () => {
+        it('should preserve profile ID when editing', async () => {
             const profile = {
                 id: 'profile-abc',
                 name: 'My Profile',
@@ -149,12 +148,12 @@ suite('Profile Management Commands', () => {
                 bundles: ['new-bundle'],
             };
 
-            assert.strictEqual(updated.id, 'profile-abc');
+            expect(updated.id).toBe('profile-abc');
         });
     });
 
-    suite('activateProfile', () => {
-        test('should mark profile as active', async () => {
+    describe('activateProfile', () => {
+        it('should mark profile as active', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -163,10 +162,10 @@ suite('Profile Management Commands', () => {
 
             const activated = { ...profile, active: true };
 
-            assert.strictEqual(activated.active, true);
+            expect(activated.active).toBe(true);
         });
 
-        test('should deactivate other profiles', async () => {
+        it('should deactivate other profiles', async () => {
             const profiles = [
                 { id: 'profile-1', name: 'Profile 1', active: true },
                 { id: 'profile-2', name: 'Profile 2', active: false },
@@ -178,11 +177,11 @@ suite('Profile Management Commands', () => {
                 active: p.id === 'profile-2',
             }));
 
-            assert.strictEqual(updated.filter(p => p.active).length, 1);
-            assert.strictEqual(updated.find(p => p.id === 'profile-2')?.active, true);
+            expect(updated.filter(p => p.active).length).toBe(1);
+            expect(updated.find(p => p.id === 'profile-2')?.active).toBe(true);
         });
 
-        test('should install profile bundles', async () => {
+        it('should install profile bundles', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -192,10 +191,10 @@ suite('Profile Management Commands', () => {
             // Simulate bundle installation
             const installedBundles = [...profile.bundles];
 
-            assert.strictEqual(installedBundles.length, 2);
+            expect(installedBundles.length).toBe(2);
         });
 
-        test('should sync bundles to Copilot', async () => {
+        it('should sync bundles to Copilot', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -205,12 +204,12 @@ suite('Profile Management Commands', () => {
             // Simulate sync operation
             const synced = true;
 
-            assert.strictEqual(synced, true);
+            expect(synced).toBe(true);
         });
     });
 
-    suite('deactivateProfile', () => {
-        test('should mark profile as inactive', async () => {
+    describe('deactivateProfile', () => {
+        it('should mark profile as inactive', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -219,10 +218,10 @@ suite('Profile Management Commands', () => {
 
             const deactivated = { ...profile, active: false };
 
-            assert.strictEqual(deactivated.active, false);
+            expect(deactivated.active).toBe(false);
         });
 
-        test('should prompt for cleanup options', async () => {
+        it('should prompt for cleanup options', async () => {
             const showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick');
             showQuickPickStub.resolves({ label: 'Keep bundles installed' } as any);
 
@@ -231,10 +230,10 @@ suite('Profile Management Commands', () => {
                 { label: 'Uninstall bundles' },
             ]);
 
-            assert.ok(result);
+            expect(result).toBeTruthy();
         });
 
-        test('should optionally uninstall bundles', async () => {
+        it('should optionally uninstall bundles', async () => {
             const profile = {
                 id: 'profile-1',
                 bundles: ['bundle-1', 'bundle-2'],
@@ -245,19 +244,19 @@ suite('Profile Management Commands', () => {
             if (uninstallBundles) {
                 // Simulate bundle removal
                 const remainingBundles: string[] = [];
-                assert.strictEqual(remainingBundles.length, 0);
+                expect(remainingBundles.length).toBe(0);
             }
         });
     });
 
-    suite('deleteProfile', () => {
-        test('should prompt for confirmation', async () => {
+    describe('deleteProfile', () => {
+        it('should prompt for confirmation', async () => {
             // Simulated confirmation
             const confirmed = true;
-            assert.strictEqual(confirmed, true);
+            expect(confirmed).toBe(true);
         });
 
-        test('should prevent deleting active profile', async () => {
+        it('should prevent deleting active profile', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -266,10 +265,10 @@ suite('Profile Management Commands', () => {
 
             const canDelete = !profile.active;
 
-            assert.strictEqual(canDelete, false);
+            expect(canDelete).toBe(false);
         });
 
-        test('should remove profile from storage', async () => {
+        it('should remove profile from storage', async () => {
             const profiles = [
                 { id: 'profile-1', name: 'Profile 1' },
                 { id: 'profile-2', name: 'Profile 2' },
@@ -277,13 +276,13 @@ suite('Profile Management Commands', () => {
 
             const updated = profiles.filter(p => p.id !== 'profile-1');
 
-            assert.strictEqual(updated.length, 1);
-            assert.ok(!updated.find(p => p.id === 'profile-1'));
+            expect(updated.length).toBe(1);
+            expect(!updated.find(p => p.id === 'profile-1')).toBeTruthy();
         });
     });
 
-    suite('exportProfile', () => {
-        test('should serialize profile to JSON', async () => {
+    describe('exportProfile', () => {
+        it('should serialize profile to JSON', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -294,11 +293,11 @@ suite('Profile Management Commands', () => {
             const json = JSON.stringify(profile);
             const parsed = JSON.parse(json);
 
-            assert.strictEqual(parsed.id, profile.id);
-            assert.strictEqual(parsed.name, profile.name);
+            expect(parsed.id).toBe(profile.id);
+            expect(parsed.name).toBe(profile.name);
         });
 
-        test('should include bundle configurations', async () => {
+        it('should include bundle configurations', async () => {
             const profile = {
                 id: 'profile-1',
                 name: 'My Profile',
@@ -309,31 +308,31 @@ suite('Profile Management Commands', () => {
                 },
             };
 
-            assert.ok(profile.bundleConfigs);
-            assert.strictEqual(Object.keys(profile.bundleConfigs).length, 2);
+            expect(profile.bundleConfigs).toBeTruthy();
+            expect(Object.keys(profile.bundleConfigs).length).toBe(2);
         });
 
-        test('should prompt for export location', async () => {
+        it('should prompt for export location', async () => {
             const showSaveDialogStub = sandbox.stub(vscode.window, 'showSaveDialog');
             showSaveDialogStub.resolves({ fsPath: '/path/to/profile.json' } as vscode.Uri);
 
             const result = await showSaveDialogStub({});
 
-            assert.ok(result?.fsPath.endsWith('.json'));
+            expect(result?.fsPath.endsWith('.json')).toBeTruthy();
         });
     });
 
-    suite('importProfile', () => {
-        test('should prompt for profile file', async () => {
+    describe('importProfile', () => {
+        it('should prompt for profile file', async () => {
             const showOpenDialogStub = sandbox.stub(vscode.window, 'showOpenDialog');
             showOpenDialogStub.resolves([{ fsPath: '/path/to/profile.json' } as vscode.Uri]);
 
             const result = await showOpenDialogStub({});
 
-            assert.ok(result && result.length > 0);
+            expect(result && result.length > 0).toBeTruthy();
         });
 
-        test('should validate imported profile structure', async () => {
+        it('should validate imported profile structure', async () => {
             const importedData = {
                 id: 'profile-1',
                 name: 'Imported Profile',
@@ -342,10 +341,10 @@ suite('Profile Management Commands', () => {
 
             const isValid = importedData.id && importedData.name && Array.isArray(importedData.bundles);
 
-            assert.strictEqual(isValid, true);
+            expect(isValid).toBe(true);
         });
 
-        test('should handle duplicate profile names', async () => {
+        it('should handle duplicate profile names', async () => {
             const existingProfiles = [
                 { id: 'profile-1', name: 'My Profile' },
             ];
@@ -357,10 +356,10 @@ suite('Profile Management Commands', () => {
 
             const isDuplicate = existingProfiles.some(p => p.name === imported.name);
 
-            assert.strictEqual(isDuplicate, true);
+            expect(isDuplicate).toBe(true);
         });
 
-        test('should generate new ID for imported profile', async () => {
+        it('should generate new ID for imported profile', async () => {
             const imported = {
                 id: 'old-id',
                 name: 'Imported Profile',
@@ -370,23 +369,23 @@ suite('Profile Management Commands', () => {
             const newId = `imported-${Date.now()}`;
             const updated = { ...imported, id: newId };
 
-            assert.notStrictEqual(updated.id, imported.id);
-            assert.ok(updated.id.startsWith('imported-'));
+            expect(updated.id).not.toBe(imported.id);
+            expect(updated.id.startsWith('imported-')).toBeTruthy();
         });
     });
 
-    suite('listProfiles', () => {
-        test('should show all profiles', async () => {
+    describe('listProfiles', () => {
+        it('should show all profiles', async () => {
             const profiles = [
                 { id: 'profile-1', name: 'Profile 1', active: true },
                 { id: 'profile-2', name: 'Profile 2', active: false },
                 { id: 'profile-3', name: 'Profile 3', active: false },
             ];
 
-            assert.strictEqual(profiles.length, 3);
+            expect(profiles.length).toBe(3);
         });
 
-        test('should indicate active profile', async () => {
+        it('should indicate active profile', async () => {
             const profiles = [
                 { id: 'profile-1', name: 'Profile 1', active: true },
                 { id: 'profile-2', name: 'Profile 2', active: false },
@@ -394,11 +393,11 @@ suite('Profile Management Commands', () => {
 
             const activeProfile = profiles.find(p => p.active);
 
-            assert.ok(activeProfile);
-            assert.strictEqual(activeProfile.id, 'profile-1');
+            expect(activeProfile).toBeTruthy();
+            expect(activeProfile.id).toBe('profile-1');
         });
 
-        test('should sort profiles by name', async () => {
+        it('should sort profiles by name', async () => {
             const profiles = [
                 { id: 'profile-1', name: 'Charlie' },
                 { id: 'profile-2', name: 'Alpha' },
@@ -407,14 +406,14 @@ suite('Profile Management Commands', () => {
 
             const sorted = [...profiles].sort((a, b) => a.name.localeCompare(b.name));
 
-            assert.strictEqual(sorted[0].name, 'Alpha');
-            assert.strictEqual(sorted[1].name, 'Bravo');
-            assert.strictEqual(sorted[2].name, 'Charlie');
+            expect(sorted[0].name).toBe('Alpha');
+            expect(sorted[1].name).toBe('Bravo');
+            expect(sorted[2].name).toBe('Charlie');
         });
     });
 
-    suite('Profile Switching', () => {
-        test('should handle profile switch lifecycle', async () => {
+    describe('Profile Switching', () => {
+        it('should handle profile switch lifecycle', async () => {
             let profiles = [
                 { id: 'profile-1', name: 'Profile 1', active: true, bundles: ['bundle-1'] },
                 { id: 'profile-2', name: 'Profile 2', active: false, bundles: ['bundle-2'] },
@@ -428,11 +427,11 @@ suite('Profile Management Commands', () => {
 
             const activeProfile = profiles.find(p => p.active);
 
-            assert.strictEqual(activeProfile?.id, 'profile-2');
-            assert.strictEqual(profiles.filter(p => p.active).length, 1);
+            expect(activeProfile?.id).toBe('profile-2');
+            expect(profiles.filter(p => p.active).length).toBe(1);
         });
 
-        test('should maintain profile state during switch', async () => {
+        it('should maintain profile state during switch', async () => {
             const profile1 = {
                 id: 'profile-1',
                 name: 'Profile 1',
@@ -444,8 +443,8 @@ suite('Profile Management Commands', () => {
             const deactivated = { ...profile1, active: false };
 
             // Settings should be preserved
-            assert.deepStrictEqual(deactivated.settings, profile1.settings);
-            assert.deepStrictEqual(deactivated.bundles, profile1.bundles);
+            expect(deactivated.settings).toEqual(profile1.settings);
+            expect(deactivated.bundles).toEqual(profile1.bundles);
         });
     });
 });

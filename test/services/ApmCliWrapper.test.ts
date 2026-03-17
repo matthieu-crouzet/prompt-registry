@@ -3,19 +3,18 @@
  * Tests APM CLI command execution wrapper
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as os from 'os';
 import { ApmCliWrapper, ApmInstallResult } from '../../src/services/ApmCliWrapper';
 import { ApmRuntimeManager } from '../../src/services/ApmRuntimeManager';
 
-suite('ApmCliWrapper', () => {
+describe('ApmCliWrapper', () => {
     let sandbox: sinon.SinonSandbox;
     let wrapper: ApmCliWrapper;
     let mockRuntime: sinon.SinonStubbedInstance<ApmRuntimeManager>;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Mock runtime manager
@@ -30,45 +29,45 @@ suite('ApmCliWrapper', () => {
         wrapper = new ApmCliWrapper();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         ApmRuntimeManager.resetInstance();
     });
 
-    suite('Constructor', () => {
-        test('should create instance', () => {
-            assert.ok(wrapper);
+    describe('Constructor', () => {
+        it('should create instance', () => {
+            expect(wrapper).toBeTruthy();
         });
     });
 
-    suite('isRuntimeAvailable', () => {
-        test('should return true when APM is installed', async () => {
+    describe('isRuntimeAvailable', () => {
+        it('should return true when APM is installed', async () => {
             mockRuntime.getStatus.resolves({ installed: true, uvxAvailable: false });
             
             const available = await wrapper.isRuntimeAvailable();
             
-            assert.strictEqual(available, true);
+            expect(available).toBe(true);
         });
 
-        test('should return true when uvx is available even if APM is not installed', async () => {
+        it('should return true when uvx is available even if APM is not installed', async () => {
             mockRuntime.getStatus.resolves({ installed: false, uvxAvailable: true });
             
             const available = await wrapper.isRuntimeAvailable();
             
-            assert.strictEqual(available, true);
+            expect(available).toBe(true);
         });
 
-        test('should return false when neither is available', async () => {
+        it('should return false when neither is available', async () => {
             mockRuntime.getStatus.resolves({ installed: false, uvxAvailable: false });
             
             const available = await wrapper.isRuntimeAvailable();
             
-            assert.strictEqual(available, false);
+            expect(available).toBe(false);
         });
     });
 
-    suite('getVersion', () => {
-        test('should return version when APM is installed', async () => {
+    describe('getVersion', () => {
+        it('should return version when APM is installed', async () => {
             mockRuntime.getStatus.resolves({ 
                 installed: true, 
                 version: '2.0.0' 
@@ -76,83 +75,83 @@ suite('ApmCliWrapper', () => {
             
             const version = await wrapper.getVersion();
             
-            assert.strictEqual(version, '2.0.0');
+            expect(version).toBe('2.0.0');
         });
 
-        test('should return undefined when APM is not installed', async () => {
+        it('should return undefined when APM is not installed', async () => {
             mockRuntime.getStatus.resolves({ installed: false });
             
             const version = await wrapper.getVersion();
             
-            assert.strictEqual(version, undefined);
+            expect(version).toBe(undefined);
         });
     });
 
-    suite('validatePackageRef', () => {
-        test('should accept valid owner/repo format', () => {
-            assert.ok(wrapper.validatePackageRef('owner/repo'));
+    describe('validatePackageRef', () => {
+        it('should accept valid owner/repo format', () => {
+            expect(wrapper.validatePackageRef('owner/repo')).toBeTruthy();
         });
 
-        test('should accept owner/repo/path format', () => {
-            assert.ok(wrapper.validatePackageRef('owner/repo/some/path'));
+        it('should accept owner/repo/path format', () => {
+            expect(wrapper.validatePackageRef('owner/repo/some/path')).toBeTruthy();
         });
 
-        test('should reject empty string', () => {
-            assert.strictEqual(wrapper.validatePackageRef(''), false);
+        it('should reject empty string', () => {
+            expect(wrapper.validatePackageRef('')).toBe(false);
         });
 
-        test('should reject strings with spaces', () => {
-            assert.strictEqual(wrapper.validatePackageRef('owner /repo'), false);
+        it('should reject strings with spaces', () => {
+            expect(wrapper.validatePackageRef('owner /repo')).toBe(false);
         });
 
-        test('should reject strings without slash', () => {
-            assert.strictEqual(wrapper.validatePackageRef('ownerrepo'), false);
+        it('should reject strings without slash', () => {
+            expect(wrapper.validatePackageRef('ownerrepo')).toBe(false);
         });
 
-        test('should reject strings starting with slash', () => {
-            assert.strictEqual(wrapper.validatePackageRef('/owner/repo'), false);
+        it('should reject strings starting with slash', () => {
+            expect(wrapper.validatePackageRef('/owner/repo')).toBe(false);
         });
 
-        test('should reject strings ending with slash', () => {
-            assert.strictEqual(wrapper.validatePackageRef('owner/repo/'), false);
+        it('should reject strings ending with slash', () => {
+            expect(wrapper.validatePackageRef('owner/repo/')).toBe(false);
         });
 
-        test('should reject strings with special characters', () => {
-            assert.strictEqual(wrapper.validatePackageRef('owner/repo;rm -rf'), false);
+        it('should reject strings with special characters', () => {
+            expect(wrapper.validatePackageRef('owner/repo;rm -rf')).toBe(false);
         });
 
-        test('should reject strings with shell metacharacters', () => {
-            assert.strictEqual(wrapper.validatePackageRef('owner/repo$(whoami)'), false);
+        it('should reject strings with shell metacharacters', () => {
+            expect(wrapper.validatePackageRef('owner/repo$(whoami)')).toBe(false);
         });
     });
 
-    suite('install', () => {
-        test('should return error when runtime not available', async () => {
+    describe('install', () => {
+        it('should return error when runtime not available', async () => {
             mockRuntime.getStatus.resolves({ installed: false, uvxAvailable: false });
             
             const result = await wrapper.install('owner/repo', '/tmp/target');
             
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error?.includes('not installed'));
+            expect(result.success).toBe(false);
+            expect(result.error?.includes('not installed')).toBeTruthy();
         });
 
-        test('should reject invalid package reference', async () => {
+        it('should reject invalid package reference', async () => {
             const result = await wrapper.install('invalid', '/tmp/target');
             
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error?.includes('Invalid package reference'));
+            expect(result.success).toBe(false);
+            expect(result.error?.includes('Invalid package reference')).toBeTruthy();
         });
 
-        test('should reject path traversal in target directory', async () => {
+        it('should reject path traversal in target directory', async () => {
             const result = await wrapper.install('owner/repo', '/tmp/../etc/target');
             
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error?.includes('Invalid') || result.error?.includes('path'));
+            expect(result.success).toBe(false);
+            expect(result.error?.includes('Invalid') || result.error?.includes('path')).toBeTruthy();
         });
     });
 
-    suite('Security', () => {
-        test('should sanitize package references', () => {
+    describe('Security', () => {
+        it('should sanitize package references', () => {
             // Should reject anything with shell metacharacters
             const dangerous = [
                 'owner/repo; rm -rf /',
@@ -164,42 +163,38 @@ suite('ApmCliWrapper', () => {
             ];
             
             for (const ref of dangerous) {
-                assert.strictEqual(
-                    wrapper.validatePackageRef(ref), 
-                    false, 
-                    `Should reject: ${ref}`
-                );
+                expect(wrapper.validatePackageRef(ref), `Should reject: ${ref}`).toBe(false);
             }
         });
 
-        test('should not allow absolute paths as package refs', () => {
-            assert.strictEqual(wrapper.validatePackageRef('/etc/passwd'), false);
-            assert.strictEqual(wrapper.validatePackageRef('C:\\Windows\\System32'), false);
+        it('should not allow absolute paths as package refs', () => {
+            expect(wrapper.validatePackageRef('/etc/passwd')).toBe(false);
+            expect(wrapper.validatePackageRef('C:\\Windows\\System32')).toBe(false);
         });
 
-        test('should not allow URLs as package refs', () => {
-            assert.strictEqual(wrapper.validatePackageRef('http://evil.com/malware'), false);
-            assert.strictEqual(wrapper.validatePackageRef('https://evil.com/malware'), false);
+        it('should not allow URLs as package refs', () => {
+            expect(wrapper.validatePackageRef('http://evil.com/malware')).toBe(false);
+            expect(wrapper.validatePackageRef('https://evil.com/malware')).toBe(false);
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle runtime errors gracefully', async () => {
+    describe('Error Handling', () => {
+        it('should handle runtime errors gracefully', async () => {
             mockRuntime.getStatus.rejects(new Error('Runtime error'));
             
             const result = await wrapper.install('owner/repo', '/tmp/target');
             
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error);
+            expect(result.success).toBe(false);
+            expect(result.error).toBeTruthy();
         });
 
-        test('should provide meaningful error messages', async () => {
+        it('should provide meaningful error messages', async () => {
             mockRuntime.getStatus.resolves({ installed: false, uvxAvailable: false });
             
             const result = await wrapper.install('owner/repo', '/tmp/target');
             
-            assert.ok(result.error);
-            assert.ok(result.error.length > 10); // Not just "error"
+            expect(result.error).toBeTruthy();
+            expect(result.error.length > 10).toBeTruthy(); // Not just "error"
         });
     });
 });

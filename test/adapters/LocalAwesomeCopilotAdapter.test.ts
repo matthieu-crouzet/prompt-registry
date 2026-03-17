@@ -3,13 +3,12 @@
  * Tests local filesystem-based awesome-copilot collection loading
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import { LocalAwesomeCopilotAdapter } from '../../src/adapters/LocalAwesomeCopilotAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('LocalAwesomeCopilotAdapter', () => {
+describe('LocalAwesomeCopilotAdapter', () => {
     const fixturesPath = path.join(__dirname, '../fixtures/local-awesome-collections');
     
     const mockSource: RegistrySource = {
@@ -21,155 +20,152 @@ suite('LocalAwesomeCopilotAdapter', () => {
         priority: 1,
     };
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid local path', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid local path', () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'local-awesome-copilot');
+            expect(adapter.type).toBe('local-awesome-copilot');
         });
 
-        test('should accept file:// URL', () => {
+        it('should accept file:// URL', () => {
             const source = { ...mockSource, url: `file://${fixturesPath}` };
             const adapter = new LocalAwesomeCopilotAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should throw error for invalid path format', () => {
+        it('should throw error for invalid path format', () => {
             const source = { ...mockSource, url: 'http://invalid.com/path' };
-            assert.throws(() => new LocalAwesomeCopilotAdapter(source), /Invalid local path/);
+            expect(() => new LocalAwesomeCopilotAdapter(source)).toThrow(/Invalid local path/);
         });
 
-        test('should use default collectionsPath config', () => {
+        it('should use default collectionsPath config', () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
             // Default should be 'collections'
         });
 
-        test('should accept custom collectionsPath config', () => {
+        it('should accept custom collectionsPath config', () => {
             const source = { 
                 ...mockSource, 
                 config: { collectionsPath: 'custom-collections' } 
             };
             const adapter = new LocalAwesomeCopilotAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
     });
 
-    suite('fetchMetadata', () => {
-        test('should fetch local collections metadata', async () => {
+    describe('fetchMetadata', () => {
+        it('should fetch local collections metadata', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
-            assert.ok(metadata);
-            assert.strictEqual(typeof metadata.name, 'string');
-            assert.strictEqual(typeof metadata.description, 'string');
-            assert.strictEqual(typeof metadata.bundleCount, 'number');
-            assert.ok(metadata.bundleCount >= 0);
-            assert.ok(metadata.lastUpdated);
+            expect(metadata).toBeTruthy();
+            expect(typeof metadata.name).toBe('string');
+            expect(typeof metadata.description).toBe('string');
+            expect(typeof metadata.bundleCount).toBe('number');
+            expect(metadata.bundleCount >= 0).toBeTruthy();
+            expect(metadata.lastUpdated).toBeTruthy();
         });
 
-        test('should report correct collection count', async () => {
+        it('should report correct collection count', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const metadata = await adapter.fetchMetadata();
 
             // We have 3 collections in fixtures
-            assert.strictEqual(metadata.bundleCount, 3);
+            expect(metadata.bundleCount).toBe(3);
         });
 
-        test('should throw error for non-existent directory', async () => {
+        it('should throw error for non-existent directory', async () => {
             const source = { ...mockSource, url: '/non/existent/path' };
             const adapter = new LocalAwesomeCopilotAdapter(source);
 
-            await assert.rejects(
-                () => adapter.fetchMetadata(),
-                /Collections directory does not exist/
-            );
+            await expect(() => adapter.fetchMetadata()).rejects.toThrow(/Collections directory does not exist/);
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should discover all collection files', async () => {
+    describe('fetchBundles', () => {
+        it('should discover all collection files', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.ok(Array.isArray(bundles));
-            assert.strictEqual(bundles.length, 3);
+            expect(Array.isArray(bundles)).toBeTruthy();
+            expect(bundles.length).toBe(3);
 
             // Check collection IDs
             const bundleIds = bundles.map(b => b.id).sort();
-            assert.deepStrictEqual(bundleIds, ['python-dev', 'skills-collection', 'test-collection']);
+            expect(bundleIds).toEqual(['python-dev', 'skills-collection', 'test-collection']);
         });
 
-        test('should parse YAML collections correctly', async () => {
+        it('should parse YAML collections correctly', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             const testBundle = bundles.find(b => b.id === 'test-collection');
-            assert.ok(testBundle);
-            assert.strictEqual(testBundle.name, 'Test Collection');
-            assert.strictEqual(testBundle.version, '1.0.0');
-            assert.strictEqual(testBundle.description, 'A test collection for unit testing');
-            assert.strictEqual(testBundle.author, 'Local Developer');
-            assert.ok(Array.isArray(testBundle.tags));
-            assert.ok(testBundle.tags.includes('test'));
-            assert.ok(testBundle.tags.includes('azure'));
+            expect(testBundle).toBeTruthy();
+            expect(testBundle.name).toBe('Test Collection');
+            expect(testBundle.version).toBe('1.0.0');
+            expect(testBundle.description).toBe('A test collection for unit testing');
+            expect(testBundle.author).toBe('Local Developer');
+            expect(Array.isArray(testBundle.tags)).toBeTruthy();
+            expect(testBundle.tags.includes('test')).toBeTruthy();
+            expect(testBundle.tags.includes('azure')).toBeTruthy();
         });
 
-        test('should include all bundle metadata', async () => {
+        it('should include all bundle metadata', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             for (const bundle of bundles) {
-                assert.ok(bundle.id);
-                assert.ok(bundle.name);
-                assert.strictEqual(bundle.version, '1.0.0');
-                assert.ok(bundle.description);
-                assert.ok(bundle.author);
-                assert.strictEqual(bundle.sourceId, 'test-local-awesome');
-                assert.ok(Array.isArray(bundle.environments));
-                assert.ok(Array.isArray(bundle.tags));
-                assert.ok(bundle.lastUpdated);
-                assert.ok(bundle.downloadUrl);
-                assert.ok(bundle.manifestUrl);
-                assert.strictEqual(bundle.license, 'MIT');
+                expect(bundle.id).toBeTruthy();
+                expect(bundle.name).toBeTruthy();
+                expect(bundle.version).toBe('1.0.0');
+                expect(bundle.description).toBeTruthy();
+                expect(bundle.author).toBeTruthy();
+                expect(bundle.sourceId).toBe('test-local-awesome');
+                expect(Array.isArray(bundle.environments)).toBeTruthy();
+                expect(Array.isArray(bundle.tags)).toBeTruthy();
+                expect(bundle.lastUpdated).toBeTruthy();
+                expect(bundle.downloadUrl).toBeTruthy();
+                expect(bundle.manifestUrl).toBeTruthy();
+                expect(bundle.license).toBe('MIT');
             }
         });
 
-        test('should handle file:// URLs in download/manifest URLs', async () => {
+        it('should handle file:// URLs in download/manifest URLs', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             for (const bundle of bundles) {
-                assert.ok(bundle.downloadUrl.startsWith('file://'));
-                assert.ok(bundle.manifestUrl.startsWith('file://'));
-                assert.ok(bundle.manifestUrl.includes('.collection.yml'));
+                expect(bundle.downloadUrl.startsWith('file://')).toBeTruthy();
+                expect(bundle.manifestUrl.startsWith('file://')).toBeTruthy();
+                expect(bundle.manifestUrl.includes('.collection.yml')).toBeTruthy();
             }
         });
 
-        test('should infer environments from tags', async () => {
+        it('should infer environments from tags', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             const testBundle = bundles.find(b => b.id === 'test-collection');
-            assert.ok(testBundle);
+            expect(testBundle).toBeTruthy();
             // Should have 'cloud' environment from 'azure' tag
-            assert.ok(testBundle.environments.includes('cloud'));
+            expect(testBundle.environments.includes('cloud')).toBeTruthy();
         });
 
-        test('should calculate item breakdown', async () => {
+        it('should calculate item breakdown', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             const testBundle = bundles.find(b => b.id === 'test-collection');
-            assert.ok(testBundle);
+            expect(testBundle).toBeTruthy();
             
             // Check that breakdown metadata was added
             const breakdown = (testBundle as any).breakdown;
-            assert.ok(breakdown);
-            assert.strictEqual(breakdown.prompts, 1);
-            assert.strictEqual(breakdown.instructions, 1);
+            expect(breakdown).toBeTruthy();
+            expect(breakdown.prompts).toBe(1);
+            expect(breakdown.instructions).toBe(1);
         });
 
-        test('should cache results for performance', async () => {
+        it('should cache results for performance', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             
             const start1 = Date.now();
@@ -181,134 +177,125 @@ suite('LocalAwesomeCopilotAdapter', () => {
             const time2 = Date.now() - start2;
 
             // Second call should be faster (cached)
-            assert.ok(time2 < time1 || time2 < 10, 'Second call should use cache');
-            assert.deepStrictEqual(bundles1, bundles2);
+            expect(time2 < time1 || time2 < 10, 'Second call should use cache').toBeTruthy();
+            expect(bundles1).toEqual(bundles2);
         });
 
-        test('should skip non-collection files', async () => {
+        it('should skip non-collection files', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
             // Only .collection.yml files should be processed
-            assert.ok(bundles.every(b => b.id && b.name));
+            expect(bundles.every(b => b.id && b.name)).toBeTruthy();
         });
     });
 
-    suite('validate', () => {
-        test('should validate accessible collections directory', async () => {
+    describe('validate', () => {
+        it('should validate accessible collections directory', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
-            assert.strictEqual(result.bundlesFound, 3);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
+            expect(result.bundlesFound).toBe(3);
         });
 
-        test('should fail validation for non-existent directory', async () => {
+        it('should fail validation for non-existent directory', async () => {
             const source = { ...mockSource, url: '/non/existent/path' };
             const adapter = new LocalAwesomeCopilotAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
-            assert.ok(result.errors[0].includes('Collections directory does not exist'));
-            assert.strictEqual(result.bundlesFound, 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
+            expect(result.errors[0].includes('Collections directory does not exist')).toBeTruthy();
+            expect(result.bundlesFound).toBe(0);
         });
 
-        test('should fail validation for directory without collections', async () => {
+        it('should fail validation for directory without collections', async () => {
             // Use a directory that exists but has no collections subdirectory
             const source = { ...mockSource, url: path.join(__dirname, '../fixtures') };
             const adapter = new LocalAwesomeCopilotAdapter(source);
             const result = await adapter.validate();
 
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
     });
 
-    suite('getDownloadUrl', () => {
-        test('should generate correct file:// URL for collection', () => {
+    describe('getDownloadUrl', () => {
+        it('should generate correct file:// URL for collection', () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const url = adapter.getDownloadUrl('test-collection', '1.0.0');
 
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('test-collection.collection.yml'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('test-collection.collection.yml')).toBeTruthy();
         });
     });
 
-    suite('getManifestUrl', () => {
-        test('should generate correct manifest URL', () => {
+    describe('getManifestUrl', () => {
+        it('should generate correct manifest URL', () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const url = adapter.getManifestUrl('test-collection', '1.0.0');
 
-            assert.ok(url.startsWith('file://'));
-            assert.ok(url.includes('test-collection.collection.yml'));
-            assert.ok(url.includes('collections'));
+            expect(url.startsWith('file://')).toBeTruthy();
+            expect(url.includes('test-collection.collection.yml')).toBeTruthy();
+            expect(url.includes('collections')).toBeTruthy();
         });
 
-        test('should match download URL', () => {
+        it('should match download URL', () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const manifestUrl = adapter.getManifestUrl('test-collection');
             const downloadUrl = adapter.getDownloadUrl('test-collection');
 
             // For local awesome copilot, manifest and download URLs are the same
-            assert.strictEqual(manifestUrl, downloadUrl);
+            expect(manifestUrl).toBe(downloadUrl);
         });
     });
 
-    suite('downloadBundle', () => {
-        test('should create zip archive from collection', async () => {
+    describe('downloadBundle', () => {
+        it('should create zip archive from collection', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             const testBundle = bundles.find(b => b.id === 'test-collection');
             
-            assert.ok(testBundle);
+            expect(testBundle).toBeTruthy();
             const buffer = await adapter.downloadBundle(testBundle);
 
-            assert.ok(Buffer.isBuffer(buffer));
-            assert.ok(buffer.length > 0);
+            expect(Buffer.isBuffer(buffer)).toBeTruthy();
+            expect(buffer.length > 0).toBeTruthy();
         });
 
-        test('should include deployment manifest in archive', async () => {
+        it('should include deployment manifest in archive', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             const testBundle = bundles.find(b => b.id === 'test-collection');
             
-            assert.ok(testBundle);
+            expect(testBundle).toBeTruthy();
             const buffer = await adapter.downloadBundle(testBundle);
 
             // Archive should contain manifest
             // This is a basic check - full archive inspection would need unzip
-            assert.ok(buffer.length > 100); // Reasonable size for manifest + files
+            expect(buffer.length > 100).toBeTruthy(); // Reasonable size for manifest + files
         });
 
-        test('should include skill nested subdirectories recursively in archive', async () => {
+        it('should include skill nested subdirectories recursively in archive', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
             const skillsBundle = bundles.find(b => b.id === 'skills-collection');
 
-            assert.ok(skillsBundle, 'skills-collection bundle must be discoverable');
+            expect(skillsBundle, 'skills-collection bundle must be discoverable').toBeTruthy();
             const buffer = await adapter.downloadBundle(skillsBundle);
 
             const zip = new AdmZip(buffer);
             const entryNames = zip.getEntries().map(e => e.entryName);
 
-            assert.ok(entryNames.includes('deployment-manifest.yml'), 'archive must contain deployment-manifest.yml');
-            assert.ok(
-                entryNames.some(e => e === 'skills/analyzer/SKILL.md'),
-                'archive must contain skills/analyzer/SKILL.md'
-            );
-            assert.ok(
-                entryNames.some(e => e === 'skills/analyzer/templates/analysis-template.md'),
-                'archive must contain skills/analyzer/templates/analysis-template.md (nested subdirectory)'
-            );
-            assert.ok(
-                entryNames.some(e => e === 'skills/reporter/SKILL.md'),
-                'archive must contain skills/reporter/SKILL.md'
-            );
+            expect(entryNames.includes('deployment-manifest.yml'), 'archive must contain deployment-manifest.yml').toBeTruthy();
+            expect(entryNames.some(e => e === 'skills/analyzer/SKILL.md'), 'archive must contain skills/analyzer/SKILL.md').toBeTruthy();
+            expect(entryNames.some(e => e === 'skills/analyzer/templates/analysis-template.md'), 'archive must contain skills/analyzer/templates/analysis-template.md (nested subdirectory)').toBeTruthy();
+            expect(entryNames.some(e => e === 'skills/reporter/SKILL.md'), 'archive must contain skills/reporter/SKILL.md').toBeTruthy();
         });
 
-        test('should handle bundle without stored collectionFile', async () => {
+        it('should handle bundle without stored collectionFile', async () => {
             const adapter = new LocalAwesomeCopilotAdapter(mockSource);
             const testBundle = {
                 id: 'test-collection',
@@ -329,54 +316,54 @@ suite('LocalAwesomeCopilotAdapter', () => {
             };
 
             const buffer = await adapter.downloadBundle(testBundle);
-            assert.ok(Buffer.isBuffer(buffer));
+            expect(Buffer.isBuffer(buffer)).toBeTruthy();
         });
     });
 
-    suite('Path Handling', () => {
-        test('should handle absolute paths', () => {
+    describe('Path Handling', () => {
+        it('should handle absolute paths', () => {
             const source = { ...mockSource, url: fixturesPath };
             const adapter = new LocalAwesomeCopilotAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should handle file:// URLs', () => {
+        it('should handle file:// URLs', () => {
             const source = { ...mockSource, url: `file://${fixturesPath}` };
             const adapter = new LocalAwesomeCopilotAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should normalize paths correctly', async () => {
+        it('should normalize paths correctly', async () => {
             const source = { ...mockSource, url: fixturesPath + '//' };
             const adapter = new LocalAwesomeCopilotAdapter(source);
             
             // Should still work despite extra slashes
             const bundles = await adapter.fetchBundles();
-            assert.ok(bundles.length > 0);
+            expect(bundles.length > 0).toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should handle missing item files gracefully', async () => {
+    describe('Error Handling', () => {
+        it('should handle missing item files gracefully', async () => {
             // Create a collection that references non-existent files
             const source = { ...mockSource };
             const adapter = new LocalAwesomeCopilotAdapter(source);
             
             // This should work for fetchBundles (parsing only)
             const bundles = await adapter.fetchBundles();
-            assert.ok(bundles.length > 0);
+            expect(bundles.length > 0).toBeTruthy();
         });
 
-        test('should provide helpful error messages', async () => {
+        it('should provide helpful error messages', async () => {
             const source = { ...mockSource, url: '/completely/invalid/path' };
             const adapter = new LocalAwesomeCopilotAdapter(source);
 
             try {
                 await adapter.fetchBundles();
-                assert.fail('Should have thrown an error');
+                expect.fail('Should have thrown an error');
             } catch (error: any) {
-                assert.ok(error.message.includes('local awesome-copilot collections'));
-                assert.ok(error.message.includes('Collections directory does not exist'));
+                expect(error.message.includes('local awesome-copilot collections')).toBeTruthy();
+                expect(error.message.includes('Collections directory does not exist')).toBeTruthy();
             }
         });
     });

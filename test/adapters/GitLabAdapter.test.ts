@@ -2,12 +2,11 @@
  * GitLabAdapter Unit Tests
  */
 
-import * as assert from 'assert';
 import nock from 'nock';
 import { GitLabAdapter } from '../../src/adapters/GitLabAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('GitLabAdapter', () => {
+describe('GitLabAdapter', () => {
     const mockSource: RegistrySource = {
         id: 'test-gitlab-source',
         name: 'Test GitLab Source',
@@ -18,31 +17,31 @@ suite('GitLabAdapter', () => {
         token: 'test-gitlab-token',
     };
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
     });
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid GitLab URL', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid GitLab URL', () => {
             const adapter = new GitLabAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'gitlab');
+            expect(adapter.type).toBe('gitlab');
         });
 
-        test('should accept GitLab SSH URL', () => {
+        it('should accept GitLab SSH URL', () => {
             const source = { ...mockSource, url: 'git@gitlab.com:test-group/test-project.git' };
             const adapter = new GitLabAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should accept self-hosted GitLab URL', () => {
+        it('should accept self-hosted GitLab URL', () => {
             const source = { ...mockSource, url: 'https://gitlab.company.com/group/project' };
             const adapter = new GitLabAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should fetch bundles from GitLab repository', async () => {
+    describe('fetchBundles', () => {
+        it('should fetch bundles from GitLab repository', async () => {
             const mockReleases = [
                 {
                     tag_name: 'v1.0.0',
@@ -64,10 +63,10 @@ suite('GitLabAdapter', () => {
             const adapter = new GitLabAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.ok(bundles.length >= 0);
+            expect(bundles.length >= 0).toBeTruthy();
         });
 
-        test('should handle authentication with private token', async () => {
+        it('should handle authentication with private token', async () => {
             const mockReleases: any[] = [];
 
             nock('https://gitlab.com', {
@@ -82,50 +81,44 @@ suite('GitLabAdapter', () => {
             await adapter.fetchBundles();
         });
 
-        test('should handle 404 for non-existent repository', async () => {
+        it('should handle 404 for non-existent repository', async () => {
             nock('https://gitlab.com')
                 .get(/\/api\/v4\/projects\/.*\/releases/)
                 .reply(404);
 
             const adapter = new GitLabAdapter(mockSource);
-            await assert.rejects(
-                async () => await adapter.fetchBundles(),
-                /404|Not found/
-            );
+            await expect(async () => await adapter.fetchBundles()).rejects.toThrow(/404|Not found/);
         });
 
-        test('should handle rate limiting', async () => {
+        it('should handle rate limiting', async () => {
             nock('https://gitlab.com')
                 .get(/\/api\/v4\/projects\/.*\/releases/)
                 .reply(429, { message: 'Rate limit exceeded' });
 
             const adapter = new GitLabAdapter(mockSource);
-            await assert.rejects(
-                async () => await adapter.fetchBundles(),
-                /429|Rate limit/
-            );
+            await expect(async () => await adapter.fetchBundles()).rejects.toThrow(/429|Rate limit/);
         });
     });
 
-    suite('getDownloadUrl', () => {
-        test('should construct download URL for GitLab archive', () => {
+    describe('getDownloadUrl', () => {
+        it('should construct download URL for GitLab archive', () => {
             const adapter = new GitLabAdapter(mockSource);
             const url = adapter.getDownloadUrl('bundle-1', '1.0.0');
 
-            assert.ok(url.includes('gitlab.com'));
-            assert.ok(url.includes('test-group') || url.includes('test-project'));
+            expect(url.includes('gitlab.com')).toBeTruthy();
+            expect(url.includes('test-group') || url.includes('test-project')).toBeTruthy();
         });
 
-        test('should handle version tags in download URL', () => {
+        it('should handle version tags in download URL', () => {
             const adapter = new GitLabAdapter(mockSource);
             const url = adapter.getDownloadUrl('bundle-1', 'v2.0.0');
 
-            assert.ok(url.includes('2.0.0') || url.includes('v2.0.0'));
+            expect(url.includes('2.0.0') || url.includes('v2.0.0')).toBeTruthy();
         });
     });
 
-    suite('Self-hosted GitLab', () => {
-        test('should work with custom GitLab instance', async () => {
+    describe('Self-hosted GitLab', () => {
+        it('should work with custom GitLab instance', async () => {
             const customSource: RegistrySource = {
                 ...mockSource,
                 url: 'https://gitlab.company.com/engineering/prompts',

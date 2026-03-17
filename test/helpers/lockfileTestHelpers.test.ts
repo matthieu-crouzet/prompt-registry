@@ -4,7 +4,6 @@
  * Verifies that the LockfileBuilder, factory functions, and generators
  * work correctly for creating test lockfile data.
  */
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import {
     LockfileBuilder,
@@ -19,33 +18,33 @@ import {
     LOCKFILE_DEFAULTS
 } from './lockfileTestHelpers';
 
-suite('lockfileTestHelpers', () => {
-    suite('LockfileBuilder', () => {
-        test('should create empty lockfile with defaults', () => {
+describe('lockfileTestHelpers', () => {
+    describe('LockfileBuilder', () => {
+        it('should create empty lockfile with defaults', () => {
             const lockfile = LockfileBuilder.create().build();
 
-            assert.strictEqual(lockfile.$schema, LOCKFILE_DEFAULTS.SCHEMA_URL);
-            assert.strictEqual(lockfile.version, LOCKFILE_DEFAULTS.VERSION);
-            assert.strictEqual(lockfile.generatedBy, LOCKFILE_DEFAULTS.GENERATED_BY);
-            assert.deepStrictEqual(lockfile.bundles, {});
-            assert.deepStrictEqual(lockfile.sources, {});
-            assert.ok(lockfile.generatedAt);
+            expect(lockfile.$schema).toBe(LOCKFILE_DEFAULTS.SCHEMA_URL);
+            expect(lockfile.version).toBe(LOCKFILE_DEFAULTS.VERSION);
+            expect(lockfile.generatedBy).toBe(LOCKFILE_DEFAULTS.GENERATED_BY);
+            expect(lockfile.bundles).toEqual({});
+            expect(lockfile.sources).toEqual({});
+            expect(lockfile.generatedAt).toBeTruthy();
         });
 
-        test('should add bundle with default values', () => {
+        it('should add bundle with default values', () => {
             const lockfile = LockfileBuilder.create()
                 .withBundle('test-bundle', '1.0.0', 'test-source')
                 .build();
 
-            assert.ok(lockfile.bundles['test-bundle']);
-            assert.strictEqual(lockfile.bundles['test-bundle'].version, '1.0.0');
-            assert.strictEqual(lockfile.bundles['test-bundle'].sourceId, 'test-source');
-            assert.strictEqual(lockfile.bundles['test-bundle'].sourceType, 'github');
-            assert.strictEqual(lockfile.bundles['test-bundle'].commitMode, 'commit');
-            assert.deepStrictEqual(lockfile.bundles['test-bundle'].files, []);
+            expect(lockfile.bundles['test-bundle']).toBeTruthy();
+            expect(lockfile.bundles['test-bundle'].version).toBe('1.0.0');
+            expect(lockfile.bundles['test-bundle'].sourceId).toBe('test-source');
+            expect(lockfile.bundles['test-bundle'].sourceType).toBe('github');
+            expect(lockfile.bundles['test-bundle'].commitMode).toBe('commit');
+            expect(lockfile.bundles['test-bundle'].files).toEqual([]);
         });
 
-        test('should add bundle with custom options', () => {
+        it('should add bundle with custom options', () => {
             const lockfile = LockfileBuilder.create()
                 .withBundle('test-bundle', '2.0.0', 'gitlab-source', {
                     sourceType: 'gitlab',
@@ -55,12 +54,12 @@ suite('lockfileTestHelpers', () => {
                 .build();
 
             const bundle = lockfile.bundles['test-bundle'];
-            assert.strictEqual(bundle.sourceType, 'gitlab');
-            assert.strictEqual(bundle.commitMode, 'local-only');
-            assert.strictEqual(bundle.checksum, 'abc123');
+            expect(bundle.sourceType).toBe('gitlab');
+            expect(bundle.commitMode).toBe('local-only');
+            expect(bundle.checksum).toBe('abc123');
         });
 
-        test('should add bundle with files', () => {
+        it('should add bundle with files', () => {
             const files = [
                 { path: '.github/prompts/test.prompt.md', checksum: 'abc123' }
             ];
@@ -68,52 +67,52 @@ suite('lockfileTestHelpers', () => {
                 .withBundleAndFiles('test-bundle', '1.0.0', 'test-source', files)
                 .build();
 
-            assert.deepStrictEqual(lockfile.bundles['test-bundle'].files, files);
+            expect(lockfile.bundles['test-bundle'].files).toEqual(files);
         });
 
-        test('should add source entry', () => {
+        it('should add source entry', () => {
             const lockfile = LockfileBuilder.create()
                 .withSource('github-source', 'github', 'https://github.com/owner/repo', 'main')
                 .build();
 
-            assert.ok(lockfile.sources['github-source']);
-            assert.strictEqual(lockfile.sources['github-source'].type, 'github');
-            assert.strictEqual(lockfile.sources['github-source'].url, 'https://github.com/owner/repo');
-            assert.strictEqual(lockfile.sources['github-source'].branch, 'main');
+            expect(lockfile.sources['github-source']).toBeTruthy();
+            expect(lockfile.sources['github-source'].type).toBe('github');
+            expect(lockfile.sources['github-source'].url).toBe('https://github.com/owner/repo');
+            expect(lockfile.sources['github-source'].branch).toBe('main');
         });
 
-        test('should add source entry without branch', () => {
+        it('should add source entry without branch', () => {
             const lockfile = LockfileBuilder.create()
                 .withSource('http-source', 'http', 'https://example.com/bundles')
                 .build();
 
-            assert.ok(lockfile.sources['http-source']);
-            assert.strictEqual(lockfile.sources['http-source'].branch, undefined);
+            expect(lockfile.sources['http-source']).toBeTruthy();
+            expect(lockfile.sources['http-source'].branch).toBe(undefined);
         });
 
-        test('should add hub entry', () => {
+        it('should add hub entry', () => {
             const lockfile = LockfileBuilder.create()
                 .withHub('my-hub', 'My Hub', 'https://hub.example.com')
                 .build();
 
-            assert.ok(lockfile.hubs);
-            assert.ok(lockfile.hubs!['my-hub']);
-            assert.strictEqual(lockfile.hubs!['my-hub'].name, 'My Hub');
-            assert.strictEqual(lockfile.hubs!['my-hub'].url, 'https://hub.example.com');
+            expect(lockfile.hubs).toBeTruthy();
+            expect(lockfile.hubs!['my-hub']).toBeTruthy();
+            expect(lockfile.hubs!['my-hub'].name).toBe('My Hub');
+            expect(lockfile.hubs!['my-hub'].url).toBe('https://hub.example.com');
         });
 
-        test('should add profile entry', () => {
+        it('should add profile entry', () => {
             const lockfile = LockfileBuilder.create()
                 .withProfile('my-profile', 'My Profile', ['bundle-1', 'bundle-2'])
                 .build();
 
-            assert.ok(lockfile.profiles);
-            assert.ok(lockfile.profiles!['my-profile']);
-            assert.strictEqual(lockfile.profiles!['my-profile'].name, 'My Profile');
-            assert.deepStrictEqual(lockfile.profiles!['my-profile'].bundleIds, ['bundle-1', 'bundle-2']);
+            expect(lockfile.profiles).toBeTruthy();
+            expect(lockfile.profiles!['my-profile']).toBeTruthy();
+            expect(lockfile.profiles!['my-profile'].name).toBe('My Profile');
+            expect(lockfile.profiles!['my-profile'].bundleIds).toEqual(['bundle-1', 'bundle-2']);
         });
 
-        test('should support fluent chaining', () => {
+        it('should support fluent chaining', () => {
             const lockfile = LockfileBuilder.create()
                 .withVersion('2.0.0')
                 .withGeneratedBy('test-extension@1.0.0')
@@ -124,151 +123,151 @@ suite('lockfileTestHelpers', () => {
                 .withProfile('profile-1', 'Test Profile', ['bundle-1', 'bundle-2'])
                 .build();
 
-            assert.strictEqual(lockfile.version, '2.0.0');
-            assert.strictEqual(lockfile.generatedBy, 'test-extension@1.0.0');
-            assert.strictEqual(Object.keys(lockfile.bundles).length, 2);
-            assert.strictEqual(Object.keys(lockfile.sources).length, 1);
-            assert.ok(lockfile.hubs);
-            assert.ok(lockfile.profiles);
+            expect(lockfile.version).toBe('2.0.0');
+            expect(lockfile.generatedBy).toBe('test-extension@1.0.0');
+            expect(Object.keys(lockfile.bundles).length).toBe(2);
+            expect(Object.keys(lockfile.sources).length).toBe(1);
+            expect(lockfile.hubs).toBeTruthy();
+            expect(lockfile.profiles).toBeTruthy();
         });
     });
 
-    suite('createMockLockfile', () => {
-        test('should create lockfile with specified bundle count', () => {
+    describe('createMockLockfile', () => {
+        it('should create lockfile with specified bundle count', () => {
             const lockfile = createMockLockfile(3);
 
-            assert.strictEqual(Object.keys(lockfile.bundles).length, 3);
-            assert.ok(lockfile.bundles['bundle-0']);
-            assert.ok(lockfile.bundles['bundle-1']);
-            assert.ok(lockfile.bundles['bundle-2']);
+            expect(Object.keys(lockfile.bundles).length).toBe(3);
+            expect(lockfile.bundles['bundle-0']).toBeTruthy();
+            expect(lockfile.bundles['bundle-1']).toBeTruthy();
+            expect(lockfile.bundles['bundle-2']).toBeTruthy();
         });
 
-        test('should create empty lockfile with zero bundles', () => {
+        it('should create empty lockfile with zero bundles', () => {
             const lockfile = createMockLockfile(0);
 
-            assert.strictEqual(Object.keys(lockfile.bundles).length, 0);
-            assert.strictEqual(Object.keys(lockfile.sources).length, 1); // Source still exists
+            expect(Object.keys(lockfile.bundles).length).toBe(0);
+            expect(Object.keys(lockfile.sources).length).toBe(1); // Source still exists
         });
 
-        test('should include files when requested', () => {
+        it('should include files when requested', () => {
             const lockfile = createMockLockfile(1, { includeFiles: true });
 
-            assert.ok(lockfile.bundles['bundle-0'].files.length > 0);
-            assert.ok(lockfile.bundles['bundle-0'].files[0].path);
-            assert.ok(lockfile.bundles['bundle-0'].files[0].checksum);
-            assert.strictEqual(lockfile.bundles['bundle-0'].files[0].checksum.length, 64);
+            expect(lockfile.bundles['bundle-0'].files.length > 0).toBeTruthy();
+            expect(lockfile.bundles['bundle-0'].files[0].path).toBeTruthy();
+            expect(lockfile.bundles['bundle-0'].files[0].checksum).toBeTruthy();
+            expect(lockfile.bundles['bundle-0'].files[0].checksum.length).toBe(64);
         });
 
-        test('should include hubs when requested', () => {
+        it('should include hubs when requested', () => {
             const lockfile = createMockLockfile(1, { includeHubs: true });
 
-            assert.ok(lockfile.hubs);
-            assert.ok(lockfile.hubs!['mock-hub']);
-            assert.strictEqual(lockfile.hubs!['mock-hub'].name, 'Mock Hub');
+            expect(lockfile.hubs).toBeTruthy();
+            expect(lockfile.hubs!['mock-hub']).toBeTruthy();
+            expect(lockfile.hubs!['mock-hub'].name).toBe('Mock Hub');
         });
 
-        test('should include profiles when requested', () => {
+        it('should include profiles when requested', () => {
             const lockfile = createMockLockfile(2, { includeProfiles: true });
 
-            assert.ok(lockfile.profiles);
-            assert.ok(lockfile.profiles!['mock-profile']);
-            assert.deepStrictEqual(lockfile.profiles!['mock-profile'].bundleIds, ['bundle-0', 'bundle-1']);
+            expect(lockfile.profiles).toBeTruthy();
+            expect(lockfile.profiles!['mock-profile']).toBeTruthy();
+            expect(lockfile.profiles!['mock-profile'].bundleIds).toEqual(['bundle-0', 'bundle-1']);
         });
 
-        test('should use specified commit mode', () => {
+        it('should use specified commit mode', () => {
             const lockfile = createMockLockfile(2, { commitMode: 'local-only' });
 
-            assert.strictEqual(lockfile.bundles['bundle-0'].commitMode, 'local-only');
-            assert.strictEqual(lockfile.bundles['bundle-1'].commitMode, 'local-only');
+            expect(lockfile.bundles['bundle-0'].commitMode).toBe('local-only');
+            expect(lockfile.bundles['bundle-1'].commitMode).toBe('local-only');
         });
 
-        test('should use specified source type', () => {
+        it('should use specified source type', () => {
             const lockfile = createMockLockfile(1, { sourceType: 'gitlab' });
 
-            assert.strictEqual(lockfile.bundles['bundle-0'].sourceType, 'gitlab');
-            assert.strictEqual(lockfile.sources['mock-source'].type, 'gitlab');
+            expect(lockfile.bundles['bundle-0'].sourceType).toBe('gitlab');
+            expect(lockfile.sources['mock-source'].type).toBe('gitlab');
         });
     });
 
-    suite('Factory functions', () => {
-        test('createMockBundleEntry should create valid entry', () => {
+    describe('Factory functions', () => {
+        it('createMockBundleEntry should create valid entry', () => {
             const entry = createMockBundleEntry('test-bundle', '1.0.0');
 
-            assert.strictEqual(entry.version, '1.0.0');
-            assert.strictEqual(entry.sourceId, 'mock-source');
-            assert.strictEqual(entry.sourceType, 'github');
-            assert.strictEqual(entry.commitMode, 'commit');
-            assert.ok(entry.installedAt);
-            assert.deepStrictEqual(entry.files, []);
+            expect(entry.version).toBe('1.0.0');
+            expect(entry.sourceId).toBe('mock-source');
+            expect(entry.sourceType).toBe('github');
+            expect(entry.commitMode).toBe('commit');
+            expect(entry.installedAt).toBeTruthy();
+            expect(entry.files).toEqual([]);
         });
 
-        test('createMockBundleEntry should accept overrides', () => {
+        it('createMockBundleEntry should accept overrides', () => {
             const entry = createMockBundleEntry('test-bundle', '2.0.0', {
                 sourceId: 'custom-source',
                 sourceType: 'local',
                 commitMode: 'local-only'
             });
 
-            assert.strictEqual(entry.sourceId, 'custom-source');
-            assert.strictEqual(entry.sourceType, 'local');
-            assert.strictEqual(entry.commitMode, 'local-only');
+            expect(entry.sourceId).toBe('custom-source');
+            expect(entry.sourceType).toBe('local');
+            expect(entry.commitMode).toBe('local-only');
         });
 
-        test('createMockFileEntry should create valid entry', () => {
+        it('createMockFileEntry should create valid entry', () => {
             const entry = createMockFileEntry('.github/prompts/test.prompt.md');
 
-            assert.strictEqual(entry.path, '.github/prompts/test.prompt.md');
-            assert.strictEqual(entry.checksum.length, 64);
-            assert.ok(/^[0-9a-f]{64}$/.test(entry.checksum));
+            expect(entry.path).toBe('.github/prompts/test.prompt.md');
+            expect(entry.checksum.length).toBe(64);
+            expect(/^[0-9a-f]{64}$/.test(entry.checksum)).toBeTruthy();
         });
 
-        test('createMockFileEntry should accept custom checksum', () => {
+        it('createMockFileEntry should accept custom checksum', () => {
             const checksum = 'a'.repeat(64);
             const entry = createMockFileEntry('.github/prompts/test.prompt.md', checksum);
 
-            assert.strictEqual(entry.checksum, checksum);
+            expect(entry.checksum).toBe(checksum);
         });
 
-        test('createMockSourceEntry should create valid entry', () => {
+        it('createMockSourceEntry should create valid entry', () => {
             const entry = createMockSourceEntry('github', 'https://github.com/test/repo', 'main');
 
-            assert.strictEqual(entry.type, 'github');
-            assert.strictEqual(entry.url, 'https://github.com/test/repo');
-            assert.strictEqual(entry.branch, 'main');
+            expect(entry.type).toBe('github');
+            expect(entry.url).toBe('https://github.com/test/repo');
+            expect(entry.branch).toBe('main');
         });
 
-        test('createMockSourceEntry should work without branch', () => {
+        it('createMockSourceEntry should work without branch', () => {
             const entry = createMockSourceEntry('http', 'https://example.com');
 
-            assert.strictEqual(entry.type, 'http');
-            assert.strictEqual(entry.url, 'https://example.com');
-            assert.strictEqual(entry.branch, undefined);
+            expect(entry.type).toBe('http');
+            expect(entry.url).toBe('https://example.com');
+            expect(entry.branch).toBe(undefined);
         });
 
-        test('createMockHubEntry should create valid entry', () => {
+        it('createMockHubEntry should create valid entry', () => {
             const entry = createMockHubEntry('Test Hub', 'https://hub.test.com');
 
-            assert.strictEqual(entry.name, 'Test Hub');
-            assert.strictEqual(entry.url, 'https://hub.test.com');
+            expect(entry.name).toBe('Test Hub');
+            expect(entry.url).toBe('https://hub.test.com');
         });
 
-        test('createMockProfileEntry should create valid entry', () => {
+        it('createMockProfileEntry should create valid entry', () => {
             const entry = createMockProfileEntry('Test Profile', ['bundle-1', 'bundle-2']);
 
-            assert.strictEqual(entry.name, 'Test Profile');
-            assert.deepStrictEqual(entry.bundleIds, ['bundle-1', 'bundle-2']);
+            expect(entry.name).toBe('Test Profile');
+            expect(entry.bundleIds).toEqual(['bundle-1', 'bundle-2']);
         });
 
-        test('generateMockChecksum should create valid SHA256 checksum', () => {
+        it('generateMockChecksum should create valid SHA256 checksum', () => {
             const checksum = generateMockChecksum();
 
-            assert.strictEqual(checksum.length, 64);
-            assert.ok(/^[0-9a-f]{64}$/.test(checksum));
+            expect(checksum.length).toBe(64);
+            expect(/^[0-9a-f]{64}$/.test(checksum)).toBeTruthy();
         });
     });
 
-    suite('LockfileGenerators', () => {
-        test('checksum generator should produce valid SHA256 checksums', () => {
+    describe('LockfileGenerators', () => {
+        it('checksum generator should produce valid SHA256 checksums', () => {
             fc.assert(
                 fc.property(LockfileGenerators.checksum(), (checksum) => {
                     return checksum.length === 64 && /^[0-9a-f]{64}$/.test(checksum);
@@ -277,7 +276,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('version generator should produce valid semver strings', () => {
+        it('version generator should produce valid semver strings', () => {
             fc.assert(
                 fc.property(LockfileGenerators.version(), (version) => {
                     return /^\d+\.\d+\.\d+$/.test(version);
@@ -286,7 +285,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('bundleId generator should produce valid IDs', () => {
+        it('bundleId generator should produce valid IDs', () => {
             fc.assert(
                 fc.property(LockfileGenerators.bundleId(), (id) => {
                     return id.length > 0 && /^[a-z0-9-]+$/.test(id);
@@ -295,7 +294,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('sourceType generator should produce valid types', () => {
+        it('sourceType generator should produce valid types', () => {
             const validTypes = [
                 'github', 'gitlab', 'http', 'local', 'awesome-copilot',
                 'local-awesome-copilot', 'apm', 'local-apm', 'olaf', 'local-olaf'
@@ -308,7 +307,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('commitMode generator should produce valid modes', () => {
+        it('commitMode generator should produce valid modes', () => {
             fc.assert(
                 fc.property(LockfileGenerators.commitMode(), (mode) => {
                     return mode === 'commit' || mode === 'local-only';
@@ -317,7 +316,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('isoTimestamp generator should produce valid ISO timestamps', () => {
+        it('isoTimestamp generator should produce valid ISO timestamps', () => {
             fc.assert(
                 fc.property(LockfileGenerators.isoTimestamp(), (timestamp) => {
                     const date = new Date(timestamp);
@@ -327,7 +326,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('fileEntry generator should produce valid entries', () => {
+        it('fileEntry generator should produce valid entries', () => {
             fc.assert(
                 fc.property(LockfileGenerators.fileEntry(), (entry) => {
                     return (
@@ -340,7 +339,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('sourceEntry generator should produce valid entries', () => {
+        it('sourceEntry generator should produce valid entries', () => {
             fc.assert(
                 fc.property(LockfileGenerators.sourceEntry(), (entry) => {
                     return (
@@ -352,7 +351,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('bundleEntry generator should produce valid entries', () => {
+        it('bundleEntry generator should produce valid entries', () => {
             fc.assert(
                 fc.property(LockfileGenerators.bundleEntry(), (entry) => {
                     return (
@@ -367,7 +366,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('consistentLockfile generator should produce lockfiles with matching source references', () => {
+        it('consistentLockfile generator should produce lockfiles with matching source references', () => {
             fc.assert(
                 fc.property(LockfileGenerators.consistentLockfile(), (lockfile) => {
                     // All bundles should reference sources that exist
@@ -383,7 +382,7 @@ suite('lockfileTestHelpers', () => {
             );
         });
 
-        test('lockfile generator should produce valid lockfiles', () => {
+        it('lockfile generator should produce valid lockfiles', () => {
             fc.assert(
                 fc.property(LockfileGenerators.lockfile({ minBundles: 1, maxBundles: 3 }), (lockfile) => {
                     return (

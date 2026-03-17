@@ -5,7 +5,6 @@
  * Validates that the auto-update preference is properly presented and stored.
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as fc from 'fast-check';
@@ -17,7 +16,7 @@ import { createScopeQuickPickItems } from '../../src/utils/scopeSelectionUI';
 import { BundleGenerators, PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { BundleBuilder } from '../helpers/bundleTestHelpers';
 
-suite('BundleInstallationCommands - Property Tests', () => {
+describe('BundleInstallationCommands - Property Tests', () => {
     // ===== Test Setup =====
     let sandbox: sinon.SinonSandbox;
     let mockRegistryManager: sinon.SinonStubbedInstance<RegistryManager>;
@@ -169,7 +168,7 @@ suite('BundleInstallationCommands - Property Tests', () => {
     };
 
     // ===== Test Lifecycle =====
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create stubbed instances
@@ -194,7 +193,7 @@ suite('BundleInstallationCommands - Property Tests', () => {
         commands = new BundleInstallationCommands(mockRegistryManager as any);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         // Restore original workspace folders
         (vscode.workspace as any).workspaceFolders = originalWorkspaceFolders;
@@ -210,8 +209,8 @@ suite('BundleInstallationCommands - Property Tests', () => {
      * For any bundle installation, the system should present an auto-update
      * preference choice and store the user's selection.
      */
-    suite('Property 11: Auto-update checkbox during installation', () => {
-        test('should present auto-update choice for any bundle installation', async () => {
+    describe('Property 11: Auto-update checkbox during installation', () => {
+        it('should present auto-update choice for any bundle installation', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -231,39 +230,39 @@ suite('BundleInstallationCommands - Property Tests', () => {
                         await commands.installBundle(bundleId);
 
                         // Verify: Scope selection dialog was shown via createQuickPick
-                        assert.strictEqual(mockCreateQuickPick.callCount, 1, 'Should show scope selection dialog');
+                        expect(mockCreateQuickPick.callCount, 'Should show scope selection dialog').toBe(1);
                         
                         // Verify: Auto-update quick pick was shown via showQuickPick
-                        assert.strictEqual(mockShowQuickPick.callCount, 1, 'Should show auto-update quick pick');
+                        expect(mockShowQuickPick.callCount, 'Should show auto-update quick pick').toBe(1);
                         
                         // Verify: Auto-update quick pick has correct options
                         const autoUpdateCall = mockShowQuickPick.firstCall;
-                        assert.ok(autoUpdateCall, 'Should have auto-update quick pick call');
+                        expect(autoUpdateCall, 'Should have auto-update quick pick call').toBeTruthy();
                         
                         const autoUpdateOptions = autoUpdateCall.args[0];
-                        assert.ok(Array.isArray(autoUpdateOptions), 'Auto-update options should be an array');
-                        assert.strictEqual(autoUpdateOptions.length, 2, 'Should have exactly 2 auto-update options');
+                        expect(Array.isArray(autoUpdateOptions), 'Auto-update options should be an array').toBeTruthy();
+                        expect(autoUpdateOptions.length, 'Should have exactly 2 auto-update options').toBe(2);
                         
                         // Verify: Options contain enable and disable choices
                         const enableOption = autoUpdateOptions.find((opt: any) => opt.value === true);
                         const disableOption = autoUpdateOptions.find((opt: any) => opt.value === false);
                         
-                        assert.ok(enableOption, 'Should have enable auto-update option');
-                        assert.ok(disableOption, 'Should have disable auto-update option');
+                        expect(enableOption, 'Should have enable auto-update option').toBeTruthy();
+                        expect(disableOption, 'Should have disable auto-update option').toBeTruthy();
                         
                         // Verify: Enable option has sync icon and appropriate description
-                        assert.ok(enableOption.label.includes('$(sync)'), 'Enable option should have sync icon');
-                        assert.ok(enableOption.label.includes('Enable auto-update'), 'Enable option should mention auto-update');
+                        expect(enableOption.label.includes('$(sync)'), 'Enable option should have sync icon').toBeTruthy();
+                        expect(enableOption.label.includes('Enable auto-update'), 'Enable option should mention auto-update').toBeTruthy();
                         
                         // Verify: Disable option has appropriate icon and description
-                        assert.ok(disableOption.label.includes('$(circle-slash)'), 'Disable option should have circle-slash icon');
-                        assert.ok(disableOption.label.includes('Manual updates'), 'Disable option should mention manual updates');
+                        expect(disableOption.label.includes('$(circle-slash)'), 'Disable option should have circle-slash icon').toBeTruthy();
+                        expect(disableOption.label.includes('Manual updates'), 'Disable option should mention manual updates').toBeTruthy();
 
                         // Verify: Auto-update preference was stored
-                        assert.strictEqual(mockStorage.setUpdatePreference.callCount, 1, 'Should store auto-update preference');
+                        expect(mockStorage.setUpdatePreference.callCount, 'Should store auto-update preference').toBe(1);
                         const [storedBundleId, storedPreference] = mockStorage.setUpdatePreference.firstCall.args;
-                        assert.strictEqual(storedBundleId, bundleId, 'Should store preference for correct bundle');
-                        assert.strictEqual(storedPreference, autoUpdateChoice, 'Should store user\'s choice');
+                        expect(storedBundleId, 'Should store preference for correct bundle').toBe(bundleId);
+                        expect(storedPreference, 'Should store user\'s choice').toBe(autoUpdateChoice);
 
                         return true;
                     }
@@ -272,7 +271,7 @@ suite('BundleInstallationCommands - Property Tests', () => {
             );
         });
 
-        test('should handle user cancellation at auto-update choice gracefully', async () => {
+        it('should handle user cancellation at auto-update choice gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -290,10 +289,10 @@ suite('BundleInstallationCommands - Property Tests', () => {
                         await commands.installBundle(bundleId);
 
                         // Verify: Installation was not attempted
-                        assert.strictEqual(mockRegistryManager.installBundle.callCount, 0, 'Should not attempt installation when user cancels');
+                        expect(mockRegistryManager.installBundle.callCount, 'Should not attempt installation when user cancels').toBe(0);
                         
                         // Verify: Auto-update preference was not stored
-                        assert.strictEqual(mockStorage.setUpdatePreference.callCount, 0, 'Should not store preference when user cancels');
+                        expect(mockStorage.setUpdatePreference.callCount, 'Should not store preference when user cancels').toBe(0);
 
                         return true;
                     }
@@ -302,7 +301,7 @@ suite('BundleInstallationCommands - Property Tests', () => {
             );
         });
 
-        test('should handle user cancellation at scope choice gracefully', async () => {
+        it('should handle user cancellation at scope choice gracefully', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -320,16 +319,16 @@ suite('BundleInstallationCommands - Property Tests', () => {
                         await commands.installBundle(bundleId);
 
                         // Verify: Scope dialog was shown
-                        assert.strictEqual(mockCreateQuickPick.callCount, 1, 'Should show scope dialog');
+                        expect(mockCreateQuickPick.callCount, 'Should show scope dialog').toBe(1);
                         
                         // Verify: Auto-update choice was never presented
-                        assert.strictEqual(mockShowQuickPick.callCount, 0, 'Should not show auto-update dialog when user cancels scope');
+                        expect(mockShowQuickPick.callCount, 'Should not show auto-update dialog when user cancels scope').toBe(0);
                         
                         // Verify: Installation was not attempted
-                        assert.strictEqual(mockRegistryManager.installBundle.callCount, 0, 'Should not attempt installation when user cancels');
+                        expect(mockRegistryManager.installBundle.callCount, 'Should not attempt installation when user cancels').toBe(0);
                         
                         // Verify: Auto-update preference was not stored
-                        assert.strictEqual(mockStorage.setUpdatePreference.callCount, 0, 'Should not store preference when user cancels');
+                        expect(mockStorage.setUpdatePreference.callCount, 'Should not store preference when user cancels').toBe(0);
 
                         return true;
                     }
@@ -338,7 +337,7 @@ suite('BundleInstallationCommands - Property Tests', () => {
             );
         });
 
-        test('should store auto-update preference only after successful installation', async () => {
+        it('should store auto-update preference only after successful installation', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     bundleIdArb,
@@ -379,7 +378,7 @@ suite('BundleInstallationCommands - Property Tests', () => {
                         }
 
                         // Verify: Auto-update preference was NOT stored due to installation failure
-                        assert.strictEqual(mockStorage.setUpdatePreference.callCount, 0, 'Should not store preference when installation fails');
+                        expect(mockStorage.setUpdatePreference.callCount, 'Should not store preference when installation fails').toBe(0);
 
                         return true;
                     }

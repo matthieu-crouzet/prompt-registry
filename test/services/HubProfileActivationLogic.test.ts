@@ -3,14 +3,13 @@
  * Tests for activating hub profiles and syncing bundles
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubManager } from '../../src/services/HubManager';
 import { HubConfig } from '../../src/types/hub';
 
-suite('Hub Profile Activation Logic', () => {
+describe('Hub Profile Activation Logic', () => {
     let storage: HubStorage;
     let hubManager: HubManager;
     let tempDir: string;
@@ -80,7 +79,7 @@ suite('Hub Profile Activation Logic', () => {
         ]
     });
 
-    setup(() => {
+    beforeEach(() => {
         tempDir = path.join(__dirname, '../../test-temp-hub-activation-logic');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -89,14 +88,14 @@ suite('Hub Profile Activation Logic', () => {
         hubManager = new HubManager(storage, {} as any, process.cwd(), undefined, undefined);
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Profile Activation', () => {
-        test('should activate profile and create activation state', async () => {
+    describe('Profile Activation', () => {
+        it('should activate profile and create activation state', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -105,17 +104,17 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.ok(result.success);
-            assert.strictEqual(result.profileId, 'test-profile');
+            expect(result.success).toBeTruthy();
+            expect(result.profileId).toBe('test-profile');
 
             // Check activation state was created
             const state = await storage.getProfileActivationState('test-hub', 'test-profile');
-            assert.ok(state);
-            assert.strictEqual(state.hubId, 'test-hub');
-            assert.strictEqual(state.profileId, 'test-profile');
+            expect(state).toBeTruthy();
+            expect(state.hubId).toBe('test-hub');
+            expect(state.profileId).toBe('test-profile');
         });
 
-        test('should mark profile as active in hub config', async () => {
+        it('should mark profile as active in hub config', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -125,10 +124,10 @@ suite('Hub Profile Activation Logic', () => {
 
             const updated = await storage.loadHub('test-hub');
             const profile = updated.config.profiles.find(p => p.id === 'test-profile');
-            assert.strictEqual(profile?.active, true);
+            expect(profile?.active).toBe(true);
         });
 
-        test('should track bundle IDs in activation state', async () => {
+        it('should track bundle IDs in activation state', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -137,12 +136,12 @@ suite('Hub Profile Activation Logic', () => {
             });
 
             const state = await storage.getProfileActivationState('test-hub', 'test-profile');
-            assert.ok(state);
+            expect(state).toBeTruthy();
             // Should track the bundle IDs even if not installed
-            assert.ok(Array.isArray(state.syncedBundles));
+            expect(Array.isArray(state.syncedBundles)).toBeTruthy();
         });
 
-        test('should return failure for non-existent profile', async () => {
+        it('should return failure for non-existent profile', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -150,24 +149,24 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error);
-            assert.ok(result.error.includes('Profile not found'));
+            expect(result.success).toBe(false);
+            expect(result.error).toBeTruthy();
+            expect(result.error.includes('Profile not found')).toBeTruthy();
         });
 
-        test('should return failure for non-existent hub', async () => {
+        it('should return failure for non-existent hub', async () => {
             const result = await hubManager.activateProfile('non-existent', 'test-profile', {
                 installBundles: false
             });
 
-            assert.strictEqual(result.success, false);
-            assert.ok(result.error);
-            assert.ok(result.error.includes('Hub not found'));
+            expect(result.success).toBe(false);
+            expect(result.error).toBeTruthy();
+            expect(result.error.includes('Hub not found')).toBeTruthy();
         });
     });
 
-    suite('Multiple Profile Activation', () => {
-        test('should allow only one active profile per hub', async () => {
+    describe('Multiple Profile Activation', () => {
+        it('should allow only one active profile per hub', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -186,18 +185,18 @@ suite('Hub Profile Activation Logic', () => {
             const profile1 = updated.config.profiles.find(p => p.id === 'test-profile');
             const profile2 = updated.config.profiles.find(p => p.id === 'profile-2');
 
-            assert.strictEqual(profile1?.active, false);
-            assert.strictEqual(profile2?.active, true);
+            expect(profile1?.active).toBe(false);
+            expect(profile2?.active).toBe(true);
 
             // Check activation states
             const state1 = await storage.getProfileActivationState('test-hub', 'test-profile');
             const state2 = await storage.getProfileActivationState('test-hub', 'profile-2');
 
-            assert.strictEqual(state1, null);
-            assert.ok(state2);
+            expect(state1).toBe(null);
+            expect(state2).toBeTruthy();
         });
 
-        test('should allow multiple profiles from different hubs', async () => {
+        it('should allow multiple profiles from different hubs', async () => {
             const hub1 = createTestHub();
             const hub2 = createTestHub();
             await storage.saveHub('hub-1', hub1, { type: 'github', location: 'test/repo1' });
@@ -211,12 +210,12 @@ suite('Hub Profile Activation Logic', () => {
             });
 
             const states = await storage.listActiveProfiles();
-            assert.strictEqual(states.length, 2);
+            expect(states.length).toBe(2);
         });
     });
 
-    suite('Activation Options', () => {
-        test('should respect installBundles option', async () => {
+    describe('Activation Options', () => {
+        it('should respect installBundles option', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -224,11 +223,11 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.ok(result1.success);
+            expect(result1.success).toBeTruthy();
             // When installBundles is false, bundles should not be installed
         });
 
-        test('should handle activation with bundle resolution', async () => {
+        it('should handle activation with bundle resolution', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -236,14 +235,14 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.ok(result.success);
-            assert.ok(result.resolvedBundles);
-            assert.strictEqual(result.resolvedBundles.length, 2);
+            expect(result.success).toBeTruthy();
+            expect(result.resolvedBundles).toBeTruthy();
+            expect(result.resolvedBundles.length).toBe(2);
         });
     });
 
-    suite('Activation State Management', () => {
-        test('should include activation timestamp', async () => {
+    describe('Activation State Management', () => {
+        it('should include activation timestamp', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -253,13 +252,13 @@ suite('Hub Profile Activation Logic', () => {
             });
 
             const state = await storage.getProfileActivationState('test-hub', 'test-profile');
-            assert.ok(state);
+            expect(state).toBeTruthy();
 
             const activatedAt = new Date(state.activatedAt);
-            assert.ok(activatedAt >= beforeActivation);
+            expect(activatedAt >= beforeActivation).toBeTruthy();
         });
 
-        test('should list all synced bundle IDs', async () => {
+        it('should list all synced bundle IDs', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -268,13 +267,13 @@ suite('Hub Profile Activation Logic', () => {
             });
 
             const state = await storage.getProfileActivationState('test-hub', 'test-profile');
-            assert.ok(state);
-            assert.ok(Array.isArray(state.syncedBundles));
+            expect(state).toBeTruthy();
+            expect(Array.isArray(state.syncedBundles)).toBeTruthy();
         });
     });
 
-    suite('Activation Result', () => {
-        test('should return activation result with profile info', async () => {
+    describe('Activation Result', () => {
+        it('should return activation result with profile info', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -282,13 +281,13 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.ok(result.success);
-            assert.strictEqual(result.hubId, 'test-hub');
-            assert.strictEqual(result.profileId, 'test-profile');
-            assert.ok(result.resolvedBundles);
+            expect(result.success).toBeTruthy();
+            expect(result.hubId).toBe('test-hub');
+            expect(result.profileId).toBe('test-profile');
+            expect(result.resolvedBundles).toBeTruthy();
         });
 
-        test('should include resolved bundles in result', async () => {
+        it('should include resolved bundles in result', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -296,15 +295,15 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.ok(result.resolvedBundles);
-            assert.strictEqual(result.resolvedBundles.length, 2);
-            assert.ok(result.resolvedBundles[0].bundle);
+            expect(result.resolvedBundles).toBeTruthy();
+            expect(result.resolvedBundles.length).toBe(2);
+            expect(result.resolvedBundles[0].bundle).toBeTruthy();
             // URL is no longer populated by resolveProfileBundles
         });
     });
 
-    suite('Error Recovery', () => {
-        test('should cleanup on activation failure', async () => {
+    describe('Error Recovery', () => {
+        it('should cleanup on activation failure', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -313,14 +312,14 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.strictEqual(result.success, false);
+            expect(result.success).toBe(false);
 
             // Verify no activation state was created
             const state = await storage.getProfileActivationState('non-existent-hub', 'test-profile');
-            assert.strictEqual(state, null);
+            expect(state).toBe(null);
         });
 
-        test('should handle profile with no bundles', async () => {
+        it('should handle profile with no bundles', async () => {
             const hub = createTestHub();
             hub.profiles[0].bundles = [];
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
@@ -329,13 +328,13 @@ suite('Hub Profile Activation Logic', () => {
                 installBundles: false
             });
 
-            assert.ok(result.success);
-            assert.strictEqual(result.resolvedBundles.length, 0);
+            expect(result.success).toBeTruthy();
+            expect(result.resolvedBundles.length).toBe(0);
         });
     });
 
-    suite('Required Bundles', () => {
-        test('should track required vs optional bundles', async () => {
+    describe('Required Bundles', () => {
+        it('should track required vs optional bundles', async () => {
             const hub = createTestHub();
             await storage.saveHub('test-hub', hub, { type: 'github', location: 'test/repo' });
 
@@ -346,8 +345,8 @@ suite('Hub Profile Activation Logic', () => {
             const required = result.resolvedBundles.filter(b => b.bundle.required);
             const optional = result.resolvedBundles.filter(b => !b.bundle.required);
 
-            assert.strictEqual(required.length, 1);
-            assert.strictEqual(optional.length, 1);
+            expect(required.length).toBe(1);
+            expect(optional.length).toBe(1);
         });
     });
 });

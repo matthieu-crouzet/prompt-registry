@@ -2,34 +2,33 @@
  * Platform Detector Unit Tests
  */
 
-import * as assert from 'assert';
 import * as os from 'os';
 import * as path from 'path';
 
-suite('Platform Detector', () => {
-    suite('Platform Detection', () => {
-        test('should detect operating system', () => {
+describe('Platform Detector', () => {
+    describe('Platform Detection', () => {
+        it('should detect operating system', () => {
             const platform = os.platform();
 
-            assert.ok(['darwin', 'win32', 'linux'].includes(platform));
+            expect(['darwin', 'win32', 'linux'].includes(platform)).toBeTruthy();
         });
 
-        test('should detect architecture', () => {
+        it('should detect architecture', () => {
             const arch = os.arch();
 
-            assert.ok(['x64', 'arm64', 'arm', 'ia32'].includes(arch));
+            expect(['x64', 'arm64', 'arm', 'ia32'].includes(arch)).toBeTruthy();
         });
 
-        test('should detect home directory', () => {
+        it('should detect home directory', () => {
             const homeDir = os.homedir();
 
-            assert.ok(homeDir);
-            assert.ok(homeDir.length > 0);
+            expect(homeDir).toBeTruthy();
+            expect(homeDir.length > 0).toBeTruthy();
         });
     });
 
-    suite('Copilot Path Detection', () => {
-        test('should construct correct path for macOS', () => {
+    describe('Copilot Path Detection', () => {
+        it('should construct correct path for macOS', () => {
             const platform = 'darwin';
             const homeDir = '/Users/testuser';
 
@@ -43,11 +42,11 @@ suite('Platform Detector', () => {
                 'github.copilot'
             );
 
-            assert.ok(copilotPath.includes('Library'));
-            assert.ok(copilotPath.includes('Application Support'));
+            expect(copilotPath.includes('Library')).toBeTruthy();
+            expect(copilotPath.includes('Application Support')).toBeTruthy();
         });
 
-        test('should construct correct path for Windows', () => {
+        it('should construct correct path for Windows', () => {
             const platform = 'win32';
             const homeDir = 'C:\\Users\\testuser';
 
@@ -61,11 +60,11 @@ suite('Platform Detector', () => {
                 'github.copilot'
             );
 
-            assert.ok(copilotPath.includes('AppData'));
-            assert.ok(copilotPath.includes('Roaming'));
+            expect(copilotPath.includes('AppData')).toBeTruthy();
+            expect(copilotPath.includes('Roaming')).toBeTruthy();
         });
 
-        test('should construct correct path for Linux', () => {
+        it('should construct correct path for Linux', () => {
             const platform = 'linux';
             const homeDir = '/home/testuser';
 
@@ -78,154 +77,154 @@ suite('Platform Detector', () => {
                 'github.copilot'
             );
 
-            assert.ok(copilotPath.includes('.config'));
+            expect(copilotPath.includes('.config')).toBeTruthy();
         });
     });
 
-    suite('VSCode Variant Detection', () => {
-        test('should detect VS Code', () => {
+    describe('VSCode Variant Detection', () => {
+        it('should detect VS Code', () => {
             const appName = 'Code';
             const isVSCode = appName === 'Code';
 
-            assert.strictEqual(isVSCode, true);
+            expect(isVSCode).toBe(true);
         });
 
-        test('should detect VS Code Insiders', () => {
+        it('should detect VS Code Insiders', () => {
             const appName = 'Code - Insiders';
             const isInsiders = appName.includes('Insiders');
 
-            assert.strictEqual(isInsiders, true);
+            expect(isInsiders).toBe(true);
         });
 
-        test('should detect VSCodium', () => {
+        it('should detect VSCodium', () => {
             const appName = 'VSCodium';
             const isVSCodium = appName === 'VSCodium';
 
-            assert.strictEqual(isVSCodium, true);
+            expect(isVSCodium).toBe(true);
         });
 
-        test('should detect Cursor', () => {
+        it('should detect Cursor', () => {
             const appName = 'Cursor';
             const isCursor = appName === 'Cursor';
 
-            assert.strictEqual(isCursor, true);
+            expect(isCursor).toBe(true);
         });
     });
 
-    suite('Path Construction', () => {
-        test('should handle path separators correctly', () => {
+    describe('Path Construction', () => {
+        it('should handle path separators correctly', () => {
             const segments = ['Users', 'testuser', 'Library'];
             const joinedPath = path.join(...segments);
 
-            assert.ok(joinedPath.includes('testuser'));
+            expect(joinedPath.includes('testuser')).toBeTruthy();
         });
 
-        test('should normalize paths', () => {
+        it('should normalize paths', () => {
             const messyPath = '/Users/testuser//Library/../Library/./App Support';
             const normalized = path.normalize(messyPath);
 
-            assert.ok(!normalized.includes('//'));
-            assert.ok(!normalized.includes('/.'));
+            expect(!normalized.includes('//')).toBeTruthy();
+            expect(!normalized.includes('/.')).toBeTruthy();
         });
 
-        test('should resolve relative paths', () => {
+        it('should resolve relative paths', () => {
             const base = '/Users/testuser';
             const relative = '../otheruser/documents';
             const resolved = path.resolve(base, relative);
 
-            assert.ok(resolved.includes('otheruser'));
+            expect(resolved.includes('otheruser')).toBeTruthy();
         });
     });
 
-    suite('File System Compatibility', () => {
-        test('should handle case-sensitive file systems', () => {
+    describe('File System Compatibility', () => {
+        it('should handle case-sensitive file systems', () => {
             const path1 = '/path/to/File.txt';
             const path2 = '/path/to/file.txt';
 
             const isSame = path1.toLowerCase() === path2.toLowerCase();
-            assert.strictEqual(isSame, true);
+            expect(isSame).toBe(true);
         });
 
-        test('should handle path length limits', () => {
+        it('should handle path length limits', () => {
             const longPath = '/path/'.repeat(100);
 
-            assert.ok(longPath.length > 260); // Windows MAX_PATH
+            expect(longPath.length > 260).toBeTruthy(); // Windows MAX_PATH
         });
 
-        test('should handle special characters in paths', () => {
+        it('should handle special characters in paths', () => {
             const specialPath = '/path/with spaces/and-dashes/under_scores';
 
-            assert.ok(specialPath.includes(' '));
-            assert.ok(specialPath.includes('-'));
-            assert.ok(specialPath.includes('_'));
+            expect(specialPath.includes(' ')).toBeTruthy();
+            expect(specialPath.includes('-')).toBeTruthy();
+            expect(specialPath.includes('_')).toBeTruthy();
         });
     });
 
-    suite('Environment Variables', () => {
-        test('should read HOME environment variable', () => {
+    describe('Environment Variables', () => {
+        it('should read HOME environment variable', () => {
             const home = process.env.HOME || process.env.USERPROFILE;
 
             if (process.platform !== 'win32') {
-                assert.ok(process.env.HOME || os.homedir());
+                expect(process.env.HOME || os.homedir()).toBeTruthy();
             } else {
-                assert.ok(process.env.USERPROFILE || os.homedir());
+                expect(process.env.USERPROFILE || os.homedir()).toBeTruthy();
             }
         });
 
-        test('should read APPDATA on Windows', () => {
+        it('should read APPDATA on Windows', () => {
             if (process.platform === 'win32') {
                 const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
-                assert.ok(appData);
+                expect(appData).toBeTruthy();
             } else {
-                assert.ok(true); // Skip on non-Windows
+                expect(true).toBeTruthy(); // Skip on non-Windows
             }
         });
 
-        test('should fallback when env vars missing', () => {
+        it('should fallback when env vars missing', () => {
             const homeDir = process.env.HOME || process.env.USERPROFILE || os.homedir();
 
-            assert.ok(homeDir);
-            assert.ok(homeDir.length > 0);
+            expect(homeDir).toBeTruthy();
+            expect(homeDir.length > 0).toBeTruthy();
         });
     });
 
-    suite('Permission Checks', () => {
-        test('should check if directory is writable', () => {
+    describe('Permission Checks', () => {
+        it('should check if directory is writable', () => {
             // Simulated permission check
             const hasPermission = true;
 
-            assert.strictEqual(hasPermission, true);
+            expect(hasPermission).toBe(true);
         });
 
-        test('should check if directory exists', () => {
+        it('should check if directory exists', () => {
             // Simulated existence check
             const exists = true;
 
-            assert.strictEqual(exists, true);
+            expect(exists).toBe(true);
         });
     });
 
-    suite('Path Validation', () => {
-        test('should validate absolute paths', () => {
+    describe('Path Validation', () => {
+        it('should validate absolute paths', () => {
             const absolutePath = '/Users/testuser/Documents';
             const isAbsolute = path.isAbsolute(absolutePath);
 
-            assert.strictEqual(isAbsolute, true);
+            expect(isAbsolute).toBe(true);
         });
 
-        test('should validate relative paths', () => {
+        it('should validate relative paths', () => {
             const relativePath = './documents/file.txt';
             const isAbsolute = path.isAbsolute(relativePath);
 
-            assert.strictEqual(isAbsolute, false);
+            expect(isAbsolute).toBe(false);
         });
 
-        test('should sanitize paths', () => {
+        it('should sanitize paths', () => {
             const unsafePath = '../../../etc/passwd';
             const safe = path.normalize(unsafePath);
 
             // Should not escape intended directory
-            assert.ok(safe);
+            expect(safe).toBeTruthy();
         });
     });
 });

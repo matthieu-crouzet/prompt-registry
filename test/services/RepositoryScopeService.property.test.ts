@@ -7,7 +7,6 @@
  * Requirements: 1.2-1.7, 3.1-3.7, 10.1-10.6
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -18,7 +17,7 @@ import { CopilotFileType, getRepositoryTargetDirectory } from '../../src/utils/c
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 import { InstalledBundle, RepositoryCommitMode } from '../../src/types/registry';
 
-suite('RepositoryScopeService Property Tests', () => {
+describe('RepositoryScopeService Property Tests', () => {
     let service: RepositoryScopeService;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let tempDir: string;
@@ -62,9 +61,9 @@ suite('RepositoryScopeService Property Tests', () => {
             .map(paths => [...new Set(paths)]); // Ensure uniqueness
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
-        tempDir = path.join(__dirname, '..', '..', '..', 'test-temp-repo-scope-prop');
+        tempDir = path.join(__dirname, '..', '..', 'test-temp-repo-scope-prop');
         workspaceRoot = path.join(tempDir, 'workspace');
         
         // Create temp directories
@@ -77,7 +76,7 @@ suite('RepositoryScopeService Property Tests', () => {
         service = new RepositoryScopeService(workspaceRoot, mockStorage as unknown as RegistryStorage);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         // Cleanup temp directories
         if (fs.existsSync(tempDir)) {
@@ -95,25 +94,17 @@ suite('RepositoryScopeService Property Tests', () => {
      * 
      * **Validates: Requirements 1.2-1.7, 10.1-10.6**
      */
-    suite('Property 1: File Type to Directory Mapping', function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
-        test('getRepositoryTargetDirectory returns valid .github/ path for any file type', async () => {
+    describe('Property 1: File Type to Directory Mapping', function() {
+        it('getRepositoryTargetDirectory returns valid .github/ path for any file type', async () => {
             await fc.assert(
                 fc.property(fileTypeGen(), (fileType) => {
                     const directory = getRepositoryTargetDirectory(fileType);
                     
                     // All paths must start with .github/
-                    assert.ok(
-                        directory.startsWith('.github/'),
-                        `Directory for ${fileType} should start with .github/, got: ${directory}`
-                    );
+                    expect(directory.startsWith('.github/'), `Directory for ${fileType} should start with .github/, got: ${directory}`).toBeTruthy();
                     
                     // All paths must end with /
-                    assert.ok(
-                        directory.endsWith('/'),
-                        `Directory for ${fileType} should end with /, got: ${directory}`
-                    );
+                    expect(directory.endsWith('/'), `Directory for ${fileType} should end with /, got: ${directory}`).toBeTruthy();
                     
                     return true;
                 }),
@@ -124,28 +115,19 @@ suite('RepositoryScopeService Property Tests', () => {
             );
         });
 
-        test('getTargetPath returns absolute path within workspace for any file type and name', async () => {
+        it('getTargetPath returns absolute path within workspace for any file type and name', async () => {
             await fc.assert(
                 fc.property(fileTypeGen(), fileNameGen(), (fileType, fileName) => {
                     const targetPath = service.getTargetPath(fileType, fileName);
                     
                     // Path must be absolute
-                    assert.ok(
-                        path.isAbsolute(targetPath),
-                        `Target path should be absolute, got: ${targetPath}`
-                    );
+                    expect(path.isAbsolute(targetPath), `Target path should be absolute, got: ${targetPath}`).toBeTruthy();
                     
                     // Path must be within workspace root
-                    assert.ok(
-                        targetPath.startsWith(workspaceRoot),
-                        `Target path should be within workspace root, got: ${targetPath}`
-                    );
+                    expect(targetPath.startsWith(workspaceRoot), `Target path should be within workspace root, got: ${targetPath}`).toBeTruthy();
                     
                     // Path must include .github/
-                    assert.ok(
-                        targetPath.includes('.github/'),
-                        `Target path should include .github/, got: ${targetPath}`
-                    );
+                    expect(targetPath.includes('.github/'), `Target path should include .github/, got: ${targetPath}`).toBeTruthy();
                     
                     return true;
                 }),
@@ -156,7 +138,7 @@ suite('RepositoryScopeService Property Tests', () => {
             );
         });
 
-        test('file type to directory mapping is deterministic', async () => {
+        it('file type to directory mapping is deterministic', async () => {
             await fc.assert(
                 fc.property(fileTypeGen(), fileNameGen(), (fileType, fileName) => {
                     // Call twice with same inputs
@@ -164,11 +146,7 @@ suite('RepositoryScopeService Property Tests', () => {
                     const path2 = service.getTargetPath(fileType, fileName);
                     
                     // Results must be identical
-                    assert.strictEqual(
-                        path1,
-                        path2,
-                        `Mapping should be deterministic: ${path1} !== ${path2}`
-                    );
+                    expect(path1, `Mapping should be deterministic: ${path1} !== ${path2}`).toBe(path2);
                     
                     return true;
                 }),
@@ -179,7 +157,7 @@ suite('RepositoryScopeService Property Tests', () => {
             );
         });
 
-        test('each file type maps to a distinct directory (except chatmode)', async () => {
+        it('each file type maps to a distinct directory (except chatmode)', async () => {
             // Get all directories for each type
             const directories: Record<CopilotFileType, string> = {
                 prompt: getRepositoryTargetDirectory('prompt'),
@@ -190,11 +168,11 @@ suite('RepositoryScopeService Property Tests', () => {
             };
             
             // Verify expected mappings
-            assert.strictEqual(directories.prompt, '.github/prompts/');
-            assert.strictEqual(directories.instructions, '.github/instructions/');
-            assert.strictEqual(directories.chatmode, '.github/prompts/'); // Chatmodes go to prompts
-            assert.strictEqual(directories.agent, '.github/agents/');
-            assert.strictEqual(directories.skill, '.github/skills/');
+            expect(directories.prompt).toBe('.github/prompts/');
+            expect(directories.instructions).toBe('.github/instructions/');
+            expect(directories.chatmode).toBe('.github/prompts/'); // Chatmodes go to prompts
+            expect(directories.agent).toBe('.github/agents/');
+            expect(directories.skill).toBe('.github/skills/');
             
             // Verify distinct directories (except chatmode which shares with prompt)
             const uniqueDirs = new Set([
@@ -203,7 +181,7 @@ suite('RepositoryScopeService Property Tests', () => {
                 directories.agent,
                 directories.skill
             ]);
-            assert.strictEqual(uniqueDirs.size, 4, 'Should have 4 distinct directories');
+            expect(uniqueDirs.size, 'Should have 4 distinct directories').toBe(4);
         });
     });
 
@@ -217,9 +195,7 @@ suite('RepositoryScopeService Property Tests', () => {
      * 
      * **Validates: Requirements 3.1-3.7**
      */
-    suite('Property 4: Git Exclude Management', function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    describe('Property 4: Git Exclude Management', function() {
         /**
          * Helper to create .git directory structure
          */
@@ -247,7 +223,7 @@ suite('RepositoryScopeService Property Tests', () => {
             fs.writeFileSync(excludePath, content);
         };
 
-        test('all added paths appear under Prompt Registry section', async () => {
+        it('all added paths appear under Prompt Registry section', async () => {
             await fc.assert(
                 fc.asyncProperty(uniquePathsGen(1, 3), async (paths) => {
                     // Reset workspace for each test
@@ -271,17 +247,11 @@ suite('RepositoryScopeService Property Tests', () => {
                     writeGitExclude(content);
                     
                     const excludeContent = readGitExclude();
-                    assert.ok(excludeContent, 'Git exclude should exist');
-                    assert.ok(
-                        excludeContent!.includes(expectedSection),
-                        'Should contain section header'
-                    );
+                    expect(excludeContent, 'Git exclude should exist').toBeTruthy();
+                    expect(excludeContent!.includes(expectedSection), 'Should contain section header').toBeTruthy();
                     
                     for (const p of paths) {
-                        assert.ok(
-                            excludeContent!.includes(p),
-                            `Should contain path: ${p}`
-                        );
+                        expect(excludeContent!.includes(p), `Should contain path: ${p}`).toBeTruthy();
                     }
                     
                     return true;
@@ -293,7 +263,7 @@ suite('RepositoryScopeService Property Tests', () => {
             );
         });
 
-        test('section header present when entries exist', async () => {
+        it('section header present when entries exist', async () => {
             await fc.assert(
                 fc.asyncProperty(uniquePathsGen(1, 3), async (paths) => {
                     // Reset workspace
@@ -311,10 +281,7 @@ suite('RepositoryScopeService Property Tests', () => {
                     
                     // If there are entries, section header must be present
                     if (paths.length > 0) {
-                        assert.ok(
-                            excludeContent!.includes(sectionHeader),
-                            'Section header should be present when entries exist'
-                        );
+                        expect(excludeContent!.includes(sectionHeader), 'Section header should be present when entries exist').toBeTruthy();
                     }
                     
                     return true;
@@ -326,7 +293,7 @@ suite('RepositoryScopeService Property Tests', () => {
             );
         });
 
-        test('paths are correctly formatted in git exclude', async () => {
+        it('paths are correctly formatted in git exclude', async () => {
             await fc.assert(
                 fc.asyncProperty(relativePathGen(), async (relativePath) => {
                     // Reset workspace
@@ -343,16 +310,10 @@ suite('RepositoryScopeService Property Tests', () => {
                     const excludeContent = readGitExclude();
                     
                     // Path should be relative (not absolute)
-                    assert.ok(
-                        !excludeContent!.includes(workspaceRoot),
-                        'Paths in git exclude should be relative, not absolute'
-                    );
+                    expect(!excludeContent!.includes(workspaceRoot), 'Paths in git exclude should be relative, not absolute').toBeTruthy();
                     
                     // Path should start with .github/
-                    assert.ok(
-                        relativePath.startsWith('.github/'),
-                        `Path should start with .github/: ${relativePath}`
-                    );
+                    expect(relativePath.startsWith('.github/'), `Path should start with .github/: ${relativePath}`).toBeTruthy();
                     
                     return true;
                 }),
@@ -363,7 +324,7 @@ suite('RepositoryScopeService Property Tests', () => {
             );
         });
 
-        test('existing content is preserved when adding entries', async () => {
+        it('existing content is preserved when adding entries', async () => {
             await fc.assert(
                 fc.asyncProperty(
                     fc.string({ minLength: 1, maxLength: 50 }).filter(s => !s.includes('Prompt Registry')),
@@ -388,17 +349,11 @@ suite('RepositoryScopeService Property Tests', () => {
                         const excludeContent = readGitExclude();
                         
                         // Original content should be preserved
-                        assert.ok(
-                            excludeContent!.includes(existingContent),
-                            'Existing content should be preserved'
-                        );
+                        expect(excludeContent!.includes(existingContent), 'Existing content should be preserved').toBeTruthy();
                         
                         // New paths should be added
                         for (const p of newPaths) {
-                            assert.ok(
-                                excludeContent!.includes(p),
-                                `New path should be added: ${p}`
-                            );
+                            expect(excludeContent!.includes(p), `New path should be added: ${p}`).toBeTruthy();
                         }
                         
                         return true;
@@ -420,9 +375,7 @@ suite('RepositoryScopeService Property Tests', () => {
      * 
      * **Validates: Requirements 10.4, 1.5**
      */
-    suite('Property: Skill Directory Preservation', function() {
-        this.timeout(PropertyTestConfig.TIMEOUT);
-
+    describe('Property: Skill Directory Preservation', function() {
         /**
          * Generate valid skill names (alphanumeric with hyphens)
          */
@@ -560,7 +513,7 @@ prompts:
             return result;
         };
 
-        test('installing then reading back preserves all skill files', async () => {
+        it('installing then reading back preserves all skill files', async () => {
             await fc.assert(
                 fc.asyncProperty(skillStructureGen(), async ({ skillName, files }) => {
                     // Reset workspace for each test
@@ -588,11 +541,7 @@ prompts:
                     const installedFiles = readDirectoryRecursive(targetSkillDir);
                     
                     // Verify all files were installed
-                    assert.strictEqual(
-                        installedFiles.length,
-                        files.length,
-                        `Should have ${files.length} files installed, got ${installedFiles.length}`
-                    );
+                    expect(installedFiles.length, `Should have ${files.length} files installed, got ${installedFiles.length}`).toBe(files.length);
                     
                     // Verify each file content is preserved
                     for (const originalFile of files) {
@@ -600,16 +549,9 @@ prompts:
                             f.relativePath.replace(/\\/g, '/') === originalFile.relativePath.replace(/\\/g, '/')
                         );
                         
-                        assert.ok(
-                            installedFile,
-                            `File ${originalFile.relativePath} should be installed`
-                        );
+                        expect(installedFile, `File ${originalFile.relativePath} should be installed`).toBeTruthy();
                         
-                        assert.strictEqual(
-                            installedFile!.content,
-                            originalFile.content,
-                            `Content of ${originalFile.relativePath} should be preserved`
-                        );
+                        expect(installedFile!.content, `Content of ${originalFile.relativePath} should be preserved`).toBe(originalFile.content);
                     }
                     
                     return true;
@@ -621,7 +563,7 @@ prompts:
             );
         });
 
-        test('skill files are placed in correct .github/skills/<skill-name>/ directory', async () => {
+        it('skill files are placed in correct .github/skills/<skill-name>/ directory', async () => {
             await fc.assert(
                 fc.asyncProperty(skillNameGen(), async (skillName) => {
                     // Reset workspace for each test
@@ -647,17 +589,11 @@ prompts:
                     
                     // Verify skill directory is in correct location
                     const expectedDir = path.join(workspaceRoot, '.github', 'skills', skillName);
-                    assert.ok(
-                        fs.existsSync(expectedDir),
-                        `Skill directory should exist at ${expectedDir}`
-                    );
+                    expect(fs.existsSync(expectedDir), `Skill directory should exist at ${expectedDir}`).toBeTruthy();
                     
                     // Verify SKILL.md is in the skill directory
                     const skillMdPath = path.join(expectedDir, 'SKILL.md');
-                    assert.ok(
-                        fs.existsSync(skillMdPath),
-                        `SKILL.md should exist at ${skillMdPath}`
-                    );
+                    expect(fs.existsSync(skillMdPath), `SKILL.md should exist at ${skillMdPath}`).toBeTruthy();
                     
                     return true;
                 }),
@@ -668,7 +604,7 @@ prompts:
             );
         });
 
-        test('skill directory structure is preserved after installation', async () => {
+        it('skill directory structure is preserved after installation', async () => {
             await fc.assert(
                 fc.asyncProperty(skillStructureGen(), async ({ skillName, files }) => {
                     // Reset workspace for each test
@@ -698,23 +634,14 @@ prompts:
                         const expectedPath = path.join(targetSkillDir, file.relativePath);
                         
                         // Verify file exists
-                        assert.ok(
-                            fs.existsSync(expectedPath),
-                            `File should exist at ${expectedPath}`
-                        );
+                        expect(fs.existsSync(expectedPath), `File should exist at ${expectedPath}`).toBeTruthy();
                         
                         // Verify parent directories exist
                         const parentDir = path.dirname(expectedPath);
-                        assert.ok(
-                            fs.existsSync(parentDir),
-                            `Parent directory should exist: ${parentDir}`
-                        );
+                        expect(fs.existsSync(parentDir), `Parent directory should exist: ${parentDir}`).toBeTruthy();
                         
                         // Verify parent is a directory
-                        assert.ok(
-                            fs.statSync(parentDir).isDirectory(),
-                            `Parent should be a directory: ${parentDir}`
-                        );
+                        expect(fs.statSync(parentDir).isDirectory(), `Parent should be a directory: ${parentDir}`).toBeTruthy();
                     }
                     
                     return true;

@@ -2,13 +2,12 @@
  * BundleInstaller Unit Tests
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { BundleInstaller } from '../../src/services/BundleInstaller';
 import { Bundle, InstallOptions } from '../../src/types/registry';
 
-suite('BundleInstaller', () => {
+describe('BundleInstaller', () => {
     let installer: BundleInstaller;
     let mockContext: any;
     let tempDir: string;
@@ -30,8 +29,8 @@ suite('BundleInstaller', () => {
         manifestUrl: 'https://example.com/manifest.json',
     };
 
-    setup(() => {
-        tempDir = path.join(__dirname, '..', '..', '..', 'test-temp');
+    beforeEach(() => {
+        tempDir = path.join(__dirname, '..', '..', 'test-temp');
         
         mockContext = {
             globalStorageUri: { fsPath: path.join(tempDir, 'global') },
@@ -53,78 +52,75 @@ suite('BundleInstaller', () => {
         installer = new BundleInstaller(mockContext);
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Cleanup temp directories
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('install (deprecated for remote bundles)', () => {
-        test('should throw error for non-file:// URLs', async () => {
+    describe('install (deprecated for remote bundles)', () => {
+        it('should throw error for non-file:// URLs', async () => {
             const options: InstallOptions = {
                 scope: 'user',
                 force: false,
             };
 
             // install() should only work with file:// URLs now
-            await assert.rejects(
-                () => installer.install(mockBundle, 'https://example.com/bundle.zip', options),
-                /install\(\) method is only for local file:\/\/ URLs/
-            );
+            await expect(() => installer.install(mockBundle, 'https://example.com/bundle.zip', options)).rejects.toThrow(/install\(\) method is only for local file:\/\/ URLs/);
         });
 
-        test('should accept file:// URLs for local bundles', async () => {
+        it('should accept file:// URLs for local bundles', async () => {
             // This would require actual file setup, so we just verify the method exists
-            assert.ok(typeof installer.install === 'function');
+            expect(typeof installer.install === 'function').toBeTruthy();
         });
     });
 
-    suite('installFromBuffer (unified architecture)', () => {
-        test('should be the primary installation method', () => {
+    describe('installFromBuffer (unified architecture)', () => {
+        it('should be the primary installation method', () => {
             // Verify installFromBuffer exists and is the main method
-            assert.ok(typeof installer.installFromBuffer === 'function');
+            expect(typeof installer.installFromBuffer === 'function').toBeTruthy();
         });
 
-        test('should accept Buffer parameter', () => {
+        it('should accept Buffer parameter', () => {
             // Type check - installFromBuffer should accept Buffer
             const testBuffer = Buffer.from('test');
-            assert.ok(Buffer.isBuffer(testBuffer));
+            expect(Buffer.isBuffer(testBuffer)).toBeTruthy();
         });
     });
 
-    suite('uninstall', () => {
-        test('should remove all bundle files', async () => {
+    describe('uninstall', () => {
+        it('should remove all bundle files', async () => {
             // Test complete file removal
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
 
-        test('should handle missing installation directory gracefully', async () => {
+        it('should handle missing installation directory gracefully', async () => {
             // Test uninstalling non-existent bundle
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
 
-        test('should not fail if some files are locked', async () => {
+        it('should not fail if some files are locked', async () => {
             // Test resilience to file system errors
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
     });
 
-    suite('update (deprecated)', () => {
-        test('should exist but is deprecated', () => {
+    describe('update (deprecated)', () => {
+        it('should exist but is deprecated', () => {
             // update() is deprecated - RegistryManager should handle updates
-            assert.ok(typeof installer.update === 'function');
+            expect(typeof installer.update === 'function').toBeTruthy();
         });
 
-        test('should accept Buffer parameter for unified architecture', () => {
+        it('should accept Buffer parameter for unified architecture', () => {
             // update() now expects Buffer for remote bundles
             const testBuffer = Buffer.from('test');
-            assert.ok(Buffer.isBuffer(testBuffer));
+            expect(Buffer.isBuffer(testBuffer)).toBeTruthy();
         });
     });
 
-    suite('Validation', () => {
-        test('should validate manifest structure', async () => {
+    describe('Validation', () => {
+        it('should validate manifest structure', async () => {
             const validManifest = {
                 id: 'test-bundle',
                 version: '1.0.0',
@@ -135,20 +131,20 @@ suite('BundleInstaller', () => {
             };
 
             // Test validation logic
-            assert.ok(validManifest);
+            expect(validManifest).toBeTruthy();
         });
 
-        test('should reject manifest with missing required fields', async () => {
+        it('should reject manifest with missing required fields', async () => {
             const invalidManifest = {
                 id: 'test-bundle',
                 // missing version, name, etc.
             };
 
             // Test validation rejection
-            assert.ok(invalidManifest);
+            expect(invalidManifest).toBeTruthy();
         });
 
-        test('should reject manifest with wrong bundle ID', async () => {
+        it('should reject manifest with wrong bundle ID', async () => {
             const manifest = {
                 id: 'wrong-id',  // doesn't match bundle.id
                 version: '1.0.0',
@@ -159,11 +155,11 @@ suite('BundleInstaller', () => {
             };
 
             // Test ID validation
-            assert.ok(manifest);
+            expect(manifest).toBeTruthy();
         });
 
         // Bundle ID validation tests - testing actual validation behavior
-        test('should validate bundle with short manifest ID matching suffix pattern', async () => {
+        it('should validate bundle with short manifest ID matching suffix pattern', async () => {
             // This tests the backward compatibility for GitHub bundles
             // where manifest.id is just the collection ID (e.g., "test2")
             // but bundle.id is the full computed ID (e.g., "owner-repo-test2-v1.0.2")
@@ -215,91 +211,87 @@ suite('BundleInstaller', () => {
                 // Import the validation function
                 const { isManifestIdMatch } = await import('../../src/utils/bundleNameUtils');
                 const result = isManifestIdMatch(tc.manifestId, tc.manifestVersion, tc.bundleId);
-                assert.strictEqual(result, tc.shouldMatch, 
-                    `${tc.description}: manifestId="${tc.manifestId}" bundleId="${tc.bundleId}" should ${tc.shouldMatch ? 'match' : 'not match'}`);
+                expect(result, `${tc.description}: manifestId="${tc.manifestId}" bundleId="${tc.bundleId}" should ${tc.shouldMatch ? 'match' : 'not match'}`).toBe(tc.shouldMatch);
             }
         });
     });
 
-    suite('File Operations', () => {
-        test('should create installation directory if not exists', async () => {
+    describe('File Operations', () => {
+        it('should create installation directory if not exists', async () => {
             // Test directory creation
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
 
-        test('should copy files recursively', async () => {
+        it('should copy files recursively', async () => {
             // Test recursive copy
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
 
-        test('should preserve file permissions', async () => {
+        it('should preserve file permissions', async () => {
             // Test permission preservation
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
 
-        test('should handle deeply nested directories', async () => {
+        it('should handle deeply nested directories', async () => {
             // Test deep nesting
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
     });
 
-    suite('Error Handling', () => {
-        test('should reject remote URLs in install() method', async () => {
+    describe('Error Handling', () => {
+        it('should reject remote URLs in install() method', async () => {
             const options: InstallOptions = {
                 scope: 'user',
                 force: false,
             };
             
             // install() should reject remote URLs
-            await assert.rejects(
-                () => installer.install(mockBundle, 'https://invalid.example.com/bundle.zip', options),
-                /install\(\) method is only for local file:\/\/ URLs/
-            );
+            await expect(() => installer.install(mockBundle, 'https://invalid.example.com/bundle.zip', options)).rejects.toThrow(/install\(\) method is only for local file:\/\/ URLs/);
         });
 
-        test('should handle extraction failures in installFromBuffer', async () => {
+        it('should handle extraction failures in installFromBuffer', async () => {
             // installFromBuffer handles extraction
-            assert.ok(typeof installer.installFromBuffer === 'function');
+            expect(typeof installer.installFromBuffer === 'function').toBeTruthy();
         });
 
-        test('should handle validation failures', async () => {
+        it('should handle validation failures', async () => {
             // Test validation error handling
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
 
-        test('should provide descriptive error messages', async () => {
+        it('should provide descriptive error messages', async () => {
             // Test error message quality
-            assert.ok(installer);
+            expect(installer).toBeTruthy();
         });
     });
 
-    suite('Architecture Validation', () => {
-        test('downloadFile method should not exist', () => {
+    describe('Architecture Validation', () => {
+        it('downloadFile method should not exist', () => {
             // downloadFile was removed - downloads are handled by adapters
-            assert.strictEqual((installer as any).downloadFile, undefined);
+            expect((installer as any).downloadFile).toBe(undefined);
         });
 
-        test('install() is deprecated for remote bundles', () => {
+        it('install() is deprecated for remote bundles', () => {
             // install() should only be used for local file:// URLs
-            assert.ok(typeof installer.install === 'function');
+            expect(typeof installer.install === 'function').toBeTruthy();
         });
 
-        test('installFromBuffer() is the primary method', () => {
+        it('installFromBuffer() is the primary method', () => {
             // installFromBuffer is the main installation method
-            assert.ok(typeof installer.installFromBuffer === 'function');
+            expect(typeof installer.installFromBuffer === 'function').toBeTruthy();
         });
     });
 
-    suite('Local Skills Symlink Installation', () => {
-        test('installLocalSkillAsSymlink method should exist', () => {
-            assert.ok(typeof installer.installLocalSkillAsSymlink === 'function');
+    describe('Local Skills Symlink Installation', () => {
+        it('installLocalSkillAsSymlink method should exist', () => {
+            expect(typeof installer.installLocalSkillAsSymlink === 'function').toBeTruthy();
         });
 
-        test('uninstallSkillSymlink method should exist', () => {
-            assert.ok(typeof installer.uninstallSkillSymlink === 'function');
+        it('uninstallSkillSymlink method should exist', () => {
+            expect(typeof installer.uninstallSkillSymlink === 'function').toBeTruthy();
         });
 
-        test('should create symlink for local skill', async () => {
+        it('should create symlink for local skill', async () => {
             // Create a source skill directory
             const sourceSkillDir = path.join(tempDir, 'source-skills', 'test-skill');
             fs.mkdirSync(sourceSkillDir, { recursive: true });
@@ -318,18 +310,18 @@ suite('BundleInstaller', () => {
                     options
                 );
 
-                assert.ok(installed);
-                assert.strictEqual(installed.bundleId, mockBundle.id);
-                assert.strictEqual(installed.sourceType, 'local-skills');
-                assert.ok(installed.installPath);
+                expect(installed).toBeTruthy();
+                expect(installed.bundleId).toBe(mockBundle.id);
+                expect(installed.sourceType).toBe('local-skills');
+                expect(installed.installPath).toBeTruthy();
             } catch (error) {
                 // May fail due to missing ~/.copilot directory in test environment
                 // This is expected behavior - the test verifies the method exists and is callable
-                assert.ok(error instanceof Error);
+                expect(error instanceof Error).toBeTruthy();
             }
         });
 
-        test('should handle uninstall of symlinked skill', async () => {
+        it('should handle uninstall of symlinked skill', async () => {
             const mockInstalled = {
                 bundleId: 'test-bundle',
                 version: '1.0.0',

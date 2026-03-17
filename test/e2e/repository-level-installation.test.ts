@@ -19,7 +19,6 @@
  * - 13.1-13.7: Repository Bundle Activation Prompt
  */
 
-import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as sinon from 'sinon';
@@ -41,7 +40,7 @@ import { BundleScopeCommands } from '../../src/commands/BundleScopeCommands';
 import { ScopeConflictResolver } from '../../src/services/ScopeConflictResolver';
 import { RepositoryScopeService } from '../../src/services/RepositoryScopeService';
 
-suite('E2E: Repository-Level Installation Tests', () => {
+describe('E2E: Repository-Level Installation Tests', () => {
     let testContext: E2ETestContext;
     let testId: string;
     let sandbox: sinon.SinonSandbox;
@@ -199,8 +198,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
         return { sourceId, bundle };
     }
 
-    setup(async function() {
-        this.timeout(30000);
+    beforeEach(async function() {
         testId = generateTestId('repo-install');
         sandbox = sinon.createSandbox();
         
@@ -230,8 +228,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
         nock.enableNetConnect('127.0.0.1');
     });
 
-    teardown(async function() {
-        this.timeout(10000);
+    afterEach(async function() {
         LockfileManager.resetInstance();
         RepositoryActivationService.resetInstance();
         await testContext.cleanup();
@@ -239,10 +236,8 @@ suite('E2E: Repository-Level Installation Tests', () => {
         cleanupReleaseMocks();
     });
 
-    suite('Repository-Level Installation Workflow', () => {
-        test('Requirement 1.2-1.7: Install bundle at repository scope places files in .github folder', async function() {
-            this.timeout(60000);
-            
+    describe('Repository-Level Installation Workflow', () => {
+        it('Requirement 1.2-1.7: Install bundle at repository scope places files in .github folder', async function() {
             const { bundle } = await setupSourceAndGetBundle('source', TEST_CONTENT.BASIC_INSTALL);
             
             await installBundleOrSkip(this, bundle.id, { 
@@ -251,18 +246,16 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify .github/prompts directory was created (Req 1.3)
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
-            assert.ok(fs.existsSync(promptsDir), '.github/prompts directory should exist');
+            expect(fs.existsSync(promptsDir), '.github/prompts directory should exist').toBeTruthy();
             
             // Verify prompt file was installed with correct content
             const promptFile = path.join(promptsDir, 'test-prompt.prompt.md');
-            assert.ok(fs.existsSync(promptFile), 'Prompt file should exist in .github/prompts');
+            expect(fs.existsSync(promptFile), 'Prompt file should exist in .github/prompts').toBeTruthy();
             const content = fs.readFileSync(promptFile, 'utf-8');
-            assert.ok(content.includes(TEST_CONTENT.BASIC_INSTALL), 'Prompt file should contain expected content');
+            expect(content.includes(TEST_CONTENT.BASIC_INSTALL), 'Prompt file should contain expected content').toBeTruthy();
         });
 
-        test('Requirement 4.1-4.5: Lockfile is generated with proper structure', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 4.1-4.5: Lockfile is generated with proper structure', async function() {
             const { bundle } = await setupSourceAndGetBundle('lockfile-source', TEST_CONTENT.LOCKFILE);
             
             await installBundleOrSkip(this, bundle.id, { 
@@ -270,43 +263,38 @@ suite('E2E: Repository-Level Installation Tests', () => {
             });
             
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist at repository root');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist at repository root').toBeTruthy();
             
             const lockfileContent = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             
             // Req 4.2: version field
-            assert.ok(lockfileContent.version, 'Lockfile should have version field');
+            expect(lockfileContent.version, 'Lockfile should have version field').toBeTruthy();
             
             // Req 4.3: generatedAt ISO timestamp
-            assert.ok(lockfileContent.generatedAt, 'Lockfile should have generatedAt timestamp');
-            assert.ok(
-                /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(lockfileContent.generatedAt),
-                `generatedAt should be ISO format, got: ${lockfileContent.generatedAt}`
-            );
+            expect(lockfileContent.generatedAt, 'Lockfile should have generatedAt timestamp').toBeTruthy();
+            expect(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(lockfileContent.generatedAt), `generatedAt should be ISO format, got: ${lockfileContent.generatedAt}`).toBeTruthy();
             
             // Req 4.4: generatedBy field
-            assert.ok(lockfileContent.generatedBy, 'Lockfile should have generatedBy field');
+            expect(lockfileContent.generatedBy, 'Lockfile should have generatedBy field').toBeTruthy();
             
             // Req 4.5: bundles object
-            assert.ok(lockfileContent.bundles, 'Lockfile should have bundles object');
-            assert.ok(Object.keys(lockfileContent.bundles).length > 0, 'Bundles object should not be empty');
+            expect(lockfileContent.bundles, 'Lockfile should have bundles object').toBeTruthy();
+            expect(Object.keys(lockfileContent.bundles).length > 0, 'Bundles object should not be empty').toBeTruthy();
             
             // Req 4.6: Bundle entry fields (version, sourceId, sourceType, installedAt)
             const bundleEntry = Object.values(lockfileContent.bundles)[0] as any;
-            assert.ok(bundleEntry.version, 'Bundle entry should have version field');
-            assert.ok(bundleEntry.sourceId, 'Bundle entry should have sourceId field');
-            assert.ok(bundleEntry.sourceType, 'Bundle entry should have sourceType field');
-            assert.ok(bundleEntry.installedAt, 'Bundle entry should have installedAt field');
+            expect(bundleEntry.version, 'Bundle entry should have version field').toBeTruthy();
+            expect(bundleEntry.sourceId, 'Bundle entry should have sourceId field').toBeTruthy();
+            expect(bundleEntry.sourceType, 'Bundle entry should have sourceType field').toBeTruthy();
+            expect(bundleEntry.installedAt, 'Bundle entry should have installedAt field').toBeTruthy();
             
             // Req 4.7: sources object
-            assert.ok(lockfileContent.sources, 'Lockfile should have sources object');
+            expect(lockfileContent.sources, 'Lockfile should have sources object').toBeTruthy();
         });
     });
 
-    suite('Lockfile-Based Reinstallation Workflow', () => {
-        test('Requirement 13.1-13.4: LockfileManager detects lockfile and identifies missing bundles', async function() {
-            this.timeout(60000);
-            
+    describe('Lockfile-Based Reinstallation Workflow', () => {
+        it('Requirement 13.1-13.4: LockfileManager detects lockfile and identifies missing bundles', async function() {
             // Create a mock lockfile to simulate a repository with committed bundle config
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
             const mockLockfile = {
@@ -333,26 +321,24 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const lockfile = await lockfileManager.read();
-            assert.ok(lockfile, 'Lockfile should be readable');
-            assert.strictEqual(Object.keys(lockfile!.bundles).length, 1, 'Should have one bundle');
+            expect(lockfile, 'Lockfile should be readable').toBeTruthy();
+            expect(Object.keys(lockfile!.bundles).length, 'Should have one bundle').toBe(1);
             
             const bundleCount = Object.keys(lockfile!.bundles).length;
             const profileCount = lockfile!.profiles ? Object.keys(lockfile!.profiles).length : 0;
-            assert.strictEqual(bundleCount, 1, 'Should detect 1 bundle');
-            assert.strictEqual(profileCount, 0, 'Should detect 0 profiles');
+            expect(bundleCount, 'Should detect 1 bundle').toBe(1);
+            expect(profileCount, 'Should detect 0 profiles').toBe(0);
             
             const installedBundles = await testContext.storage.getInstalledBundles('repository');
             const installedBundleIds = new Set(installedBundles.map(b => b.bundleId));
             const lockfileBundleIds = Object.keys(lockfile!.bundles);
             const missingBundleIds = lockfileBundleIds.filter(id => !installedBundleIds.has(id));
             
-            assert.strictEqual(missingBundleIds.length, 1, 'Should detect 1 missing bundle');
-            assert.strictEqual(missingBundleIds[0], 'test-bundle-v1.0.0', 'Missing bundle ID should match');
+            expect(missingBundleIds.length, 'Should detect 1 missing bundle').toBe(1);
+            expect(missingBundleIds[0], 'Missing bundle ID should match').toBe('test-bundle-v1.0.0');
         });
 
-        test('Requirement 5.5-5.6, 13.6: Missing bundles detected and reinstalled from lockfile', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 5.5-5.6, 13.6: Missing bundles detected and reinstalled from lockfile', async function() {
             const { sourceId, bundle } = await setupSourceAndGetBundle('reinstall-source', TEST_CONTENT.REINSTALL);
             
             await installBundleOrSkip(this, bundle.id, { 
@@ -360,7 +346,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             });
             
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             // Delete installed files but keep lockfile (simulating git pull without bundle files)
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
@@ -368,22 +354,20 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 fs.rmSync(promptsDir, { recursive: true, force: true });
             }
             
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should still exist');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should still exist').toBeTruthy();
             
             LockfileManager.resetInstance();
             RepositoryActivationService.resetInstance();
             
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const lockfile = await lockfileManager.read();
-            assert.ok(lockfile, 'Lockfile should be readable');
-            assert.ok(Object.keys(lockfile!.bundles).length > 0, 'Lockfile should have bundle entries');
+            expect(lockfile, 'Lockfile should be readable').toBeTruthy();
+            expect(Object.keys(lockfile!.bundles).length > 0, 'Lockfile should have bundle entries').toBeTruthy();
         });
     });
 
-    suite('Complete Repository Installation Lifecycle', () => {
-        test('Full lifecycle: Install → Delete files → Fresh context → Detect → Reinstall', async function() {
-            this.timeout(120000);
-            
+    describe('Complete Repository Installation Lifecycle', () => {
+        it('Full lifecycle: Install → Delete files → Fresh context → Detect → Reinstall', async function() {
             const { sourceId, bundle } = await setupSourceAndGetBundle('lifecycle-source', TEST_CONTENT.LIFECYCLE);
             
             // === PHASE 1: Initial Installation ===
@@ -395,7 +379,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
             const githubDir = path.join(workspaceRoot, '.github');
             
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist').toBeTruthy();
             const originalLockfile = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const originalBundleIds = Object.keys(originalLockfile.bundles);
             
@@ -405,8 +389,8 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 fs.rmSync(githubDir, { recursive: true, force: true });
             }
             
-            assert.ok(!fs.existsSync(githubDir), '.github folder should be deleted');
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should still exist');
+            expect(!fs.existsSync(githubDir), '.github folder should be deleted').toBeTruthy();
+            expect(fs.existsSync(lockfilePath), 'Lockfile should still exist').toBeTruthy();
             
             // === PHASE 3: Simulate fresh VS Code context ===
             // Expected: Singleton instances reset, simulating IDE restart
@@ -417,8 +401,8 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // Expected: Lockfile readable, same bundle entries as before
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const lockfile = await lockfileManager.read();
-            assert.ok(lockfile, 'Lockfile should be readable in fresh context');
-            assert.deepStrictEqual(Object.keys(lockfile!.bundles), originalBundleIds, 'Lockfile should have same bundles');
+            expect(lockfile, 'Lockfile should be readable in fresh context').toBeTruthy();
+            expect(Object.keys(lockfile!.bundles), 'Lockfile should have same bundles').toEqual(originalBundleIds);
             
             // === PHASE 5: Reinstall bundles from lockfile ===
             // Expected: Bundles reinstalled based on lockfile entries
@@ -446,11 +430,11 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // === PHASE 6: Verify reinstallation ===
             // Expected: Lockfile still valid after reinstallation
             const finalLockfile = await lockfileManager.read();
-            assert.ok(finalLockfile, 'Lockfile should still be valid');
+            expect(finalLockfile, 'Lockfile should still be valid').toBeTruthy();
         });
     });
 
-    suite('Git Integration for Repository Installations (Requirement 3)', () => {
+    describe('Git Integration for Repository Installations (Requirement 3)', () => {
         const GIT_EXCLUDE_PATH = '.git/info/exclude';
         const GIT_EXCLUDE_SECTION_HEADER = '# Prompt Registry (local)';
 
@@ -473,9 +457,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             return content.includes(relativePath);
         }
 
-        test('Requirement 3.1: Commit mode should NOT modify .git/info/exclude', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.1: Commit mode should NOT modify .git/info/exclude', async function() {
             // Capture initial state of .git/info/exclude
             const initialExcludeContent = readGitExclude();
             
@@ -488,20 +470,14 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify .git/info/exclude was NOT modified
             const afterExcludeContent = readGitExclude();
-            assert.strictEqual(
-                afterExcludeContent, 
-                initialExcludeContent, 
-                '.git/info/exclude should not be modified when using commit mode'
-            );
+            expect(afterExcludeContent, '.git/info/exclude should not be modified when using commit mode').toBe(initialExcludeContent);
             
             // Verify files were installed
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
-            assert.ok(fs.existsSync(promptsDir), 'Prompt files should be installed');
+            expect(fs.existsSync(promptsDir), 'Prompt files should be installed').toBeTruthy();
         });
 
-        test('Requirement 3.2-3.4: Local-only mode should add paths to .git/info/exclude with section header', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.2-3.4: Local-only mode should add paths to .git/info/exclude with section header', async function() {
             const { bundle } = await setupSourceAndGetBundle('local-only-source', TEST_CONTENT.LOCAL_ONLY);
             
             // Install with local-only mode
@@ -513,7 +489,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -523,7 +499,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             if (!fs.existsSync(promptsDir)) {
                 // If files weren't installed, the repository scope feature may not be fully implemented
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Req 3.2: Verify paths were added to .git/info/exclude
@@ -534,31 +510,23 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // Note: If the file doesn't exist, the local-only mode may not be fully implemented
             if (!fs.existsSync(excludePath)) {
                 console.log('[Test] Skipping: local-only mode did not create .git/info/exclude - feature may not be implemented');
-                this.skip();
+                skip();
             }
             
             // Req 3.4: Verify section header exists
-            assert.ok(
-                excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER),
-                `.git/info/exclude should contain section header "${GIT_EXCLUDE_SECTION_HEADER}"`
-            );
+            expect(excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER), `.git/info/exclude should contain section header "${GIT_EXCLUDE_SECTION_HEADER}"`).toBeTruthy();
             
             // Verify prompt path is excluded
-            assert.ok(
-                isPathExcluded('.github/prompts') || isPathExcluded('test-prompt.prompt.md'),
-                'Installed prompt paths should be in .git/info/exclude'
-            );
+            expect(isPathExcluded('.github/prompts') || isPathExcluded('test-prompt.prompt.md'), 'Installed prompt paths should be in .git/info/exclude').toBeTruthy();
         });
 
-        test('Requirement 3.3: Local-only mode should create .git/info/exclude if it does not exist', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.3: Local-only mode should create .git/info/exclude if it does not exist', async function() {
             // Ensure .git/info/exclude does NOT exist initially
             const excludePath = path.join(workspaceRoot, GIT_EXCLUDE_PATH);
             if (fs.existsSync(excludePath)) {
                 fs.unlinkSync(excludePath);
             }
-            assert.ok(!fs.existsSync(excludePath), '.git/info/exclude should not exist initially');
+            expect(!fs.existsSync(excludePath), '.git/info/exclude should not exist initially').toBeTruthy();
             
             const { bundle } = await setupSourceAndGetBundle('create-exclude-source', TEST_CONTENT.CREATE_EXCLUDE);
             
@@ -571,7 +539,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -581,27 +549,22 @@ suite('E2E: Repository-Level Installation Tests', () => {
             if (!fs.existsSync(promptsDir)) {
                 // If files weren't installed, the repository scope feature may not be fully implemented
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Verify .git/info/exclude was created
             // Note: If the file doesn't exist, the local-only mode may not be fully implemented
             if (!fs.existsSync(excludePath)) {
                 console.log('[Test] Skipping: local-only mode did not create .git/info/exclude - feature may not be implemented');
-                this.skip();
+                skip();
             }
             
             // Verify it has the section header
             const excludeContent = readGitExclude();
-            assert.ok(
-                excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER),
-                'Newly created .git/info/exclude should contain section header'
-            );
+            expect(excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER), 'Newly created .git/info/exclude should contain section header').toBeTruthy();
         });
 
-        test('Requirement 3.6: Should use .git/info/exclude instead of .gitignore', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 3.6: Should use .git/info/exclude instead of .gitignore', async function() {
             // Create an empty .gitignore to verify it's not modified
             const gitignorePath = path.join(workspaceRoot, '.gitignore');
             fs.writeFileSync(gitignorePath, '# Initial gitignore\n');
@@ -618,7 +581,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -628,32 +591,25 @@ suite('E2E: Repository-Level Installation Tests', () => {
             if (!fs.existsSync(promptsDir)) {
                 // If files weren't installed, the repository scope feature may not be fully implemented
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Verify .gitignore was NOT modified
             const afterGitignore = fs.readFileSync(gitignorePath, 'utf-8');
-            assert.strictEqual(
-                afterGitignore, 
-                initialGitignore, 
-                '.gitignore should not be modified - use .git/info/exclude instead'
-            );
+            expect(afterGitignore, '.gitignore should not be modified - use .git/info/exclude instead').toBe(initialGitignore);
             
             // Verify .git/info/exclude WAS modified (if local-only mode is implemented)
             const excludeContent = readGitExclude();
             if (!excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER)) {
                 console.log('[Test] Skipping: local-only mode did not modify .git/info/exclude - feature may not be implemented');
-                this.skip();
+                skip();
             }
             
-            assert.ok(
-                excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER),
-                '.git/info/exclude should be used for local exclusions'
-            );
+            expect(excludeContent.includes(GIT_EXCLUDE_SECTION_HEADER), '.git/info/exclude should be used for local exclusions').toBeTruthy();
         });
     });
 
-    suite('Scope Conflict Prevention (Requirement 6)', () => {
+    describe('Scope Conflict Prevention (Requirement 6)', () => {
         /**
          * Helper to install bundle at user scope
          */
@@ -673,9 +629,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             }
         }
 
-        test('Requirement 6.1: Should check if bundle exists at other scope before installation', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 6.1: Should check if bundle exists at other scope before installation', async function() {
             const { bundle } = await setupSourceAndGetBundle('conflict-check-source', TEST_CONTENT.CONFLICT_CHECK);
             
             // First, install at user scope
@@ -687,7 +641,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // Verify bundle is installed at user scope
             const userBundles = await testContext.storage.getInstalledBundles('user');
             const userBundle = userBundles.find(b => b.bundleId === bundle!.id);
-            assert.ok(userBundle, 'Bundle should be installed at user scope');
+            expect(userBundle, 'Bundle should be installed at user scope').toBeTruthy();
             
             // Now attempt to install at repository scope - should detect conflict
             // The behavior depends on implementation: either throws error or prompts for migration
@@ -706,24 +660,16 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 const atRepoScope = repoBundlesAfter.some(b => b.bundleId === bundle!.id);
                 
                 // Should NOT be at both scopes
-                assert.ok(
-                    !(atUserScope && atRepoScope),
-                    'Bundle should NOT exist at both user and repository scopes simultaneously (Req 6.6)'
-                );
+                expect(!(atUserScope && atRepoScope), 'Bundle should NOT exist at both user and repository scopes simultaneously (Req 6.6)').toBeTruthy();
             } catch (error: any) {
                 // Expected: conflict detection should prevent installation or require migration
-                assert.ok(
-                    error.message.includes('conflict') || 
+                expect(error.message.includes('conflict') || 
                     error.message.includes('already installed') ||
-                    error.message.includes('exists'),
-                    `Should detect scope conflict, got: ${error.message}`
-                );
+                    error.message.includes('exists'), `Should detect scope conflict, got: ${error.message}`).toBeTruthy();
             }
         });
 
-        test('Requirement 6.6: Same bundle should NOT exist at both scopes simultaneously', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 6.6: Same bundle should NOT exist at both scopes simultaneously', async function() {
             const { bundle } = await setupSourceAndGetBundle('dual-scope-source', TEST_CONTENT.DUAL_SCOPE);
             
             // Install at repository scope first
@@ -735,7 +681,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -749,7 +695,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 // Check if it was installed somewhere
                 const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
                 if (!fs.existsSync(promptsDir)) {
-                    this.skip();
+                    skip();
                 }
             }
             
@@ -764,7 +710,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             } catch (error: any) {
                 // Expected: conflict should be detected
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 // Conflict detection is working - this is expected behavior
             }
@@ -778,23 +724,15 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             if (userInstallSucceeded) {
                 // If user install succeeded, it should have migrated (removed from repo)
-                assert.ok(
-                    !(atUserScope && atRepoScope),
-                    'Bundle should NOT exist at both scopes - migration should have occurred'
-                );
+                expect(!(atUserScope && atRepoScope), 'Bundle should NOT exist at both scopes - migration should have occurred').toBeTruthy();
             } else {
                 // If user install failed due to conflict, that's the expected behavior
                 // The bundle should remain at its original scope
-                assert.ok(
-                    !atUserScope || !atRepoScope,
-                    'Bundle should NOT exist at both scopes simultaneously'
-                );
+                expect(!atUserScope || !atRepoScope, 'Bundle should NOT exist at both scopes simultaneously').toBeTruthy();
             }
         });
 
-        test('Requirement 6.2-6.3: Should detect when bundle exists at different scope', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 6.2-6.3: Should detect when bundle exists at different scope', async function() {
             const { bundle } = await setupSourceAndGetBundle('warn-conflict-source', TEST_CONTENT.WARN_CONFLICT);
             
             // Install at repository scope
@@ -806,7 +744,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -821,21 +759,16 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const filesExist = fs.existsSync(promptsDir);
             
             // Either storage shows it's installed OR files exist
-            assert.ok(
-                atRepoScope || filesExist,
-                'Bundle should be installed at repository scope (in storage or on disk)'
-            );
+            expect(atRepoScope || filesExist, 'Bundle should be installed at repository scope (in storage or on disk)').toBeTruthy();
             
             // Verify bundle is NOT at user scope (no conflict state initially)
             const atUserScope = userBundles.some(b => b.bundleId === bundle!.id);
-            assert.ok(!atUserScope, 'Bundle should NOT be at user scope initially');
+            expect(!atUserScope, 'Bundle should NOT be at user scope initially').toBeTruthy();
         });
     });
 
-    suite('Repository Scope Uninstallation (Requirement 4.8-4.9)', () => {
-        test('Requirement 4.8: Uninstalling repository-scoped bundle removes files from .github/', async function() {
-            this.timeout(60000);
-            
+    describe('Repository Scope Uninstallation (Requirement 4.8-4.9)', () => {
+        it('Requirement 4.8: Uninstalling repository-scoped bundle removes files from .github/', async function() {
             const { bundle } = await setupSourceAndGetBundle('uninstall-files-source', TEST_CONTENT.UNINSTALL_FILES);
             
             // Install bundle at repository scope
@@ -846,15 +779,15 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // Verify files were installed
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             const promptFile = path.join(promptsDir, 'test-prompt.prompt.md');
-            assert.ok(fs.existsSync(promptFile), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFile), 'Prompt file should exist after installation').toBeTruthy();
             
             // Verify bundle is in lockfile (repository scope uses lockfile, not storage)
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             const lockfileBefore = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const lockfileBundleIds = Object.keys(lockfileBefore.bundles);
-            assert.ok(lockfileBundleIds.length > 0, 'Lockfile should contain at least one bundle');
+            expect(lockfileBundleIds.length > 0, 'Lockfile should contain at least one bundle').toBeTruthy();
             
             // Get the actual bundle ID from the lockfile
             const actualBundleId = lockfileBundleIds[0];
@@ -863,12 +796,10 @@ suite('E2E: Repository-Level Installation Tests', () => {
             await testContext.registryManager.uninstallBundle(actualBundleId, 'repository');
             
             // Verify files were removed from .github/
-            assert.ok(!fs.existsSync(promptFile), 'Prompt file should be removed after uninstallation');
+            expect(!fs.existsSync(promptFile), 'Prompt file should be removed after uninstallation').toBeTruthy();
         });
 
-        test('Requirement 4.8: Uninstalling repository-scoped bundle updates lockfile', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 4.8: Uninstalling repository-scoped bundle updates lockfile', async function() {
             const { bundle } = await setupSourceAndGetBundle('uninstall-lockfile-source', TEST_CONTENT.UNINSTALL_LOCKFILE);
             
             // Install bundle at repository scope
@@ -878,11 +809,11 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify lockfile exists and contains the bundle
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             const lockfileBefore = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const lockfileBundleIds = Object.keys(lockfileBefore.bundles);
-            assert.ok(lockfileBundleIds.length > 0, 'Lockfile should contain at least one bundle');
+            expect(lockfileBundleIds.length > 0, 'Lockfile should contain at least one bundle').toBeTruthy();
             
             // Get the actual bundle ID from the lockfile
             const actualBundleId = lockfileBundleIds[0];
@@ -896,14 +827,12 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Either lockfile is deleted (last bundle) or bundle entry is removed
             if (lockfileAfter) {
-                assert.ok(!lockfileAfter.bundles[actualBundleId], 'Bundle should be removed from lockfile');
+                expect(!lockfileAfter.bundles[actualBundleId], 'Bundle should be removed from lockfile').toBeTruthy();
             }
             // If lockfile is null/deleted, that's also valid (last bundle case)
         });
 
-        test('Requirement 4.9: Lockfile is deleted when last bundle is uninstalled', async function() {
-            this.timeout(60000);
-            
+        it('Requirement 4.9: Lockfile is deleted when last bundle is uninstalled', async function() {
             const { bundle } = await setupSourceAndGetBundle('uninstall-last-source', TEST_CONTENT.UNINSTALL_LAST);
             
             // Install bundle at repository scope
@@ -913,12 +842,12 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify lockfile exists
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist after installation');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist after installation').toBeTruthy();
             
             // Verify this is the only bundle in the lockfile
             const lockfileBefore = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const bundleCount = Object.keys(lockfileBefore.bundles).length;
-            assert.strictEqual(bundleCount, 1, 'Should have exactly one bundle in lockfile');
+            expect(bundleCount, 'Should have exactly one bundle in lockfile').toBe(1);
             
             // Get the actual bundle ID from the lockfile
             const actualBundleId = Object.keys(lockfileBefore.bundles)[0];
@@ -927,12 +856,10 @@ suite('E2E: Repository-Level Installation Tests', () => {
             await testContext.registryManager.uninstallBundle(actualBundleId, 'repository');
             
             // Verify lockfile is deleted
-            assert.ok(!fs.existsSync(lockfilePath), 'Lockfile should be deleted when last bundle is uninstalled');
+            expect(!fs.existsSync(lockfilePath), 'Lockfile should be deleted when last bundle is uninstalled').toBeTruthy();
         });
 
-        test('Uninstalling local-only bundle removes entries from .git/info/exclude', async function() {
-            this.timeout(60000);
-            
+        it('Uninstalling local-only bundle removes entries from .git/info/exclude', async function() {
             const { bundle } = await setupSourceAndGetBundle('uninstall-local-only-source', TEST_CONTENT.UNINSTALL_LOCAL_ONLY);
             
             // Install bundle at repository scope with local-only mode
@@ -944,7 +871,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -953,21 +880,18 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             if (!fs.existsSync(promptsDir)) {
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Verify .git/info/exclude has entries
             const excludePath = path.join(workspaceRoot, '.git/info/exclude');
             if (!fs.existsSync(excludePath)) {
                 console.log('[Test] Skipping: local-only mode did not create .git/info/exclude');
-                this.skip();
+                skip();
             }
             
             const excludeBefore = fs.readFileSync(excludePath, 'utf-8');
-            assert.ok(
-                excludeBefore.includes('# Prompt Registry (local)'),
-                '.git/info/exclude should have Prompt Registry section before uninstall'
-            );
+            expect(excludeBefore.includes('# Prompt Registry (local)'), '.git/info/exclude should have Prompt Registry section before uninstall').toBeTruthy();
             
             // Get the actual bundle ID from the LOCAL lockfile (local-only bundles are in local lockfile)
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
@@ -984,14 +908,11 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // The section should be empty or removed after uninstalling the last local-only bundle
             // Check that the prompt file path is no longer excluded
-            assert.ok(
-                !excludeAfter.includes('test-prompt.prompt.md'),
-                'Prompt file should no longer be in .git/info/exclude after uninstall'
-            );
+            expect(!excludeAfter.includes('test-prompt.prompt.md'), 'Prompt file should no longer be in .git/info/exclude after uninstall').toBeTruthy();
         });
     });
 
-    suite('Context Menu Scope Operations (Requirement 7)', () => {
+    describe('Context Menu Scope Operations (Requirement 7)', () => {
         /**
          * Helper to install bundle at user scope for scope migration tests
          */
@@ -1031,9 +952,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             );
         }
 
-        test('Requirement 7.2-7.3: Move to Repository (Commit) moves bundle from user to repository scope', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 7.2-7.3: Move to Repository (Commit) moves bundle from user to repository scope', async function() {
             const { bundle } = await setupSourceAndGetBundle('move-to-repo-commit-source', TEST_CONTENT.MOVE_TO_REPO_COMMIT);
             
             // First, install at user scope
@@ -1045,7 +964,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // Verify bundle is installed at user scope
             const userBundlesBefore = await testContext.storage.getInstalledBundles('user');
             const userBundle = userBundlesBefore.find(b => b.bundleId === bundle.id);
-            assert.ok(userBundle, 'Bundle should be installed at user scope initially');
+            expect(userBundle, 'Bundle should be installed at user scope initially').toBeTruthy();
             
             // Stub the VS Code warning message to auto-confirm
             sandbox.stub(vscode.window, 'showWarningMessage').resolves('Move' as any);
@@ -1063,25 +982,20 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             const filesExist = fs.existsSync(promptsDir);
             
-            assert.ok(repoBundle || filesExist, 'Bundle should be at repository scope after migration');
+            expect(repoBundle || filesExist, 'Bundle should be at repository scope after migration').toBeTruthy();
             
             // Verify bundle is no longer at user scope
             const userBundlesAfter = await testContext.storage.getInstalledBundles('user');
             const userBundleAfter = userBundlesAfter.find(b => b.bundleId === bundle.id);
-            assert.ok(!userBundleAfter, 'Bundle should NOT be at user scope after migration');
+            expect(!userBundleAfter, 'Bundle should NOT be at user scope after migration').toBeTruthy();
             
             // Verify commit mode is 'commit' (not in .git/info/exclude)
             const excludePath = path.join(workspaceRoot, '.git/info/exclude');
             const excludeContent = fs.existsSync(excludePath) ? fs.readFileSync(excludePath, 'utf-8') : '';
-            assert.ok(
-                !excludeContent.includes('test-prompt.prompt.md'),
-                'Commit mode should NOT add files to .git/info/exclude'
-            );
+            expect(!excludeContent.includes('test-prompt.prompt.md'), 'Commit mode should NOT add files to .git/info/exclude').toBeTruthy();
         });
 
-        test('Requirement 7.4, 7.6: Move to User moves bundle from repository to user scope', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 7.4, 7.6: Move to User moves bundle from repository to user scope', async function() {
             const { bundle } = await setupSourceAndGetBundle('move-to-user-source', TEST_CONTENT.MOVE_TO_USER);
             
             // First, install at repository scope
@@ -1091,22 +1005,22 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify files exist in .github/
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
-            assert.ok(fs.existsSync(promptsDir), 'Prompt files should be installed');
+            expect(fs.existsSync(promptsDir), 'Prompt files should be installed').toBeTruthy();
             
             // Get the actual bundle ID from the lockfile (this is the authoritative source)
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist').toBeTruthy();
             
             const lockfile = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const lockfileBundleIds = Object.keys(lockfile.bundles);
-            assert.ok(lockfileBundleIds.length > 0, 'Lockfile should have at least one bundle');
+            expect(lockfileBundleIds.length > 0, 'Lockfile should have at least one bundle').toBeTruthy();
             
             const actualBundleId = lockfileBundleIds[0];
             
             // Verify bundle is in lockfile at repository scope
             const bundleEntry = lockfile.bundles[actualBundleId];
-            assert.ok(bundleEntry, `Bundle ${actualBundleId} should be in lockfile`);
-            assert.ok(bundleEntry.version, 'Bundle entry should have version');
+            expect(bundleEntry, `Bundle ${actualBundleId} should be in lockfile`).toBeTruthy();
+            expect(bundleEntry.version, 'Bundle entry should have version').toBeTruthy();
             
             // Stub the VS Code warning message to auto-confirm
             sandbox.stub(vscode.window, 'showWarningMessage').resolves('Move' as any);
@@ -1119,18 +1033,16 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // Verify bundle is now at user scope
             const userBundlesAfter = await testContext.storage.getInstalledBundles('user');
             const userBundle = userBundlesAfter.find(b => b.bundleId === actualBundleId);
-            assert.ok(userBundle, 'Bundle should be at user scope after migration');
+            expect(userBundle, 'Bundle should be at user scope after migration').toBeTruthy();
             
             // Verify lockfile is updated (bundle removed)
             if (fs.existsSync(lockfilePath)) {
                 const lockfileAfter = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
-                assert.ok(!lockfileAfter.bundles[actualBundleId], 'Bundle should be removed from lockfile');
+                expect(!lockfileAfter.bundles[actualBundleId], 'Bundle should be removed from lockfile').toBeTruthy();
             }
         });
 
-        test('Requirement 7.5, 7.8: Switch to Local Only adds paths to .git/info/exclude', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 7.5, 7.8: Switch to Local Only adds paths to .git/info/exclude', async function() {
             const { bundle } = await setupSourceAndGetBundle('switch-local-only-source', TEST_CONTENT.SWITCH_LOCAL_ONLY);
             
             // Install at repository scope with commit mode
@@ -1140,25 +1052,22 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify files were installed
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
-            assert.ok(fs.existsSync(promptsDir), 'Prompt files should be installed');
+            expect(fs.existsSync(promptsDir), 'Prompt files should be installed').toBeTruthy();
             
             // Verify .git/info/exclude does NOT have entries initially (commit mode)
             const excludePath = path.join(workspaceRoot, '.git/info/exclude');
             const excludeBefore = fs.existsSync(excludePath) ? fs.readFileSync(excludePath, 'utf-8') : '';
-            assert.ok(
-                !excludeBefore.includes('test-prompt.prompt.md'),
-                '.git/info/exclude should NOT have prompt file in commit mode'
-            );
+            expect(!excludeBefore.includes('test-prompt.prompt.md'), '.git/info/exclude should NOT have prompt file in commit mode').toBeTruthy();
             
             // Get the actual bundle ID from the lockfile
             const lockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(lockfilePath), 'Lockfile should exist');
+            expect(fs.existsSync(lockfilePath), 'Lockfile should exist').toBeTruthy();
             const lockfile = JSON.parse(fs.readFileSync(lockfilePath, 'utf-8'));
             const actualBundleId = Object.keys(lockfile.bundles)[0];
             
             // Verify bundle is in lockfile at repository scope
             const bundleEntry = lockfile.bundles[actualBundleId];
-            assert.ok(bundleEntry, `Bundle ${actualBundleId} should be in lockfile`);
+            expect(bundleEntry, `Bundle ${actualBundleId} should be in lockfile`).toBeTruthy();
             
             // Stub the VS Code warning message to auto-confirm
             sandbox.stub(vscode.window, 'showWarningMessage').resolves('Switch' as any);
@@ -1171,24 +1080,16 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // After switching to local-only mode, the bundle should be in the LOCAL lockfile
             // (moved from main lockfile to local lockfile)
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
-            assert.ok(fs.existsSync(localLockfilePath), 'Local lockfile should exist after switching to local-only mode');
+            expect(fs.existsSync(localLockfilePath), 'Local lockfile should exist after switching to local-only mode').toBeTruthy();
             const updatedLockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
-            assert.ok(
-                updatedLockfile.bundles[actualBundleId],
-                'Bundle should be in local lockfile after switching to local-only mode'
-            );
+            expect(updatedLockfile.bundles[actualBundleId], 'Bundle should be in local lockfile after switching to local-only mode').toBeTruthy();
             
             // Verify .git/info/exclude now has entries
             const excludeAfter = fs.existsSync(excludePath) ? fs.readFileSync(excludePath, 'utf-8') : '';
-            assert.ok(
-                excludeAfter.includes('# Prompt Registry (local)'),
-                '.git/info/exclude should have Prompt Registry section after switching to local-only'
-            );
+            expect(excludeAfter.includes('# Prompt Registry (local)'), '.git/info/exclude should have Prompt Registry section after switching to local-only').toBeTruthy();
         });
 
-        test('Requirement 7.7, 7.9: Switch to Commit removes paths from .git/info/exclude', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 7.7, 7.9: Switch to Commit removes paths from .git/info/exclude', async function() {
             const { bundle } = await setupSourceAndGetBundle('switch-commit-source', TEST_CONTENT.SWITCH_COMMIT);
             
             // Install at repository scope with local-only mode
@@ -1200,7 +1101,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -1209,31 +1110,28 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             if (!fs.existsSync(promptsDir)) {
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Verify .git/info/exclude has entries (local-only mode)
             const excludePath = path.join(workspaceRoot, '.git/info/exclude');
             if (!fs.existsSync(excludePath)) {
                 console.log('[Test] Skipping: local-only mode did not create .git/info/exclude');
-                this.skip();
+                skip();
             }
             
             const excludeBefore = fs.readFileSync(excludePath, 'utf-8');
-            assert.ok(
-                excludeBefore.includes('# Prompt Registry (local)'),
-                '.git/info/exclude should have Prompt Registry section in local-only mode'
-            );
+            expect(excludeBefore.includes('# Prompt Registry (local)'), '.git/info/exclude should have Prompt Registry section in local-only mode').toBeTruthy();
             
             // Get the actual bundle ID from the LOCAL lockfile (local-only bundles are in local lockfile)
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
-            assert.ok(fs.existsSync(localLockfilePath), 'Local lockfile should exist for local-only bundle');
+            expect(fs.existsSync(localLockfilePath), 'Local lockfile should exist for local-only bundle').toBeTruthy();
             const lockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
             const actualBundleId = Object.keys(lockfile.bundles)[0];
             
             // Verify bundle is in local lockfile at repository scope
             const bundleEntry = lockfile.bundles[actualBundleId];
-            assert.ok(bundleEntry, `Bundle ${actualBundleId} should be in local lockfile`);
+            expect(bundleEntry, `Bundle ${actualBundleId} should be in local lockfile`).toBeTruthy();
             
             // Stub the VS Code warning message to auto-confirm
             sandbox.stub(vscode.window, 'showWarningMessage').resolves('Switch' as any);
@@ -1246,25 +1144,19 @@ suite('E2E: Repository-Level Installation Tests', () => {
             // After switching to commit mode, the bundle should be in the MAIN lockfile
             // (moved from local lockfile to main lockfile)
             const mainLockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(fs.existsSync(mainLockfilePath), 'Main lockfile should exist after switching to commit mode');
+            expect(fs.existsSync(mainLockfilePath), 'Main lockfile should exist after switching to commit mode').toBeTruthy();
             const updatedLockfile = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
-            assert.ok(
-                updatedLockfile.bundles[actualBundleId],
-                'Bundle should be in main lockfile after switching to commit mode'
-            );
+            expect(updatedLockfile.bundles[actualBundleId], 'Bundle should be in main lockfile after switching to commit mode').toBeTruthy();
             
             // Verify .git/info/exclude entries were removed
             const excludeAfter = fs.existsSync(excludePath) ? fs.readFileSync(excludePath, 'utf-8') : '';
             
             // The path in .git/info/exclude is the full relative path like .github/prompts/test-prompt.prompt.md
-            assert.ok(
-                !excludeAfter.includes('.github/prompts/test-prompt.prompt.md'),
-                'Prompt file path should NOT be in .git/info/exclude after switching to commit mode'
-            );
+            expect(!excludeAfter.includes('.github/prompts/test-prompt.prompt.md'), 'Prompt file path should NOT be in .git/info/exclude after switching to commit mode').toBeTruthy();
         });
     });
 
-    suite('Local Modification Warning on Update (Requirement 14)', () => {
+    describe('Local Modification Warning on Update (Requirement 14)', () => {
         /**
          * Helper to install bundle at repository scope and return the actual bundle ID from lockfile
          */
@@ -1301,13 +1193,11 @@ suite('E2E: Repository-Level Installation Tests', () => {
             return { bundleId, promptFilePath };
         }
 
-        test('Requirement 14.1-14.3: Should detect local file modifications before update', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 14.1-14.3: Should detect local file modifications before update', async function() {
             const { bundleId, promptFilePath } = await installAndGetBundleId(this, 'mod-detect-source', TEST_CONTENT.MOD_DETECT);
             
             // Verify prompt file exists
-            assert.ok(fs.existsSync(promptFilePath), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFilePath), 'Prompt file should exist after installation').toBeTruthy();
             
             // Modify the prompt file locally
             const originalContent = fs.readFileSync(promptFilePath, 'utf-8');
@@ -1316,27 +1206,22 @@ suite('E2E: Repository-Level Installation Tests', () => {
             
             // Verify modification was written
             const readBack = fs.readFileSync(promptFilePath, 'utf-8');
-            assert.ok(readBack.includes('Local modification'), 'File should contain local modification');
+            expect(readBack.includes('Local modification'), 'File should contain local modification').toBeTruthy();
             
             // Check for modifications using LockfileManager
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const modifiedFiles = await lockfileManager.detectModifiedFiles(bundleId);
             
             // Should detect the modification
-            assert.ok(modifiedFiles.length > 0, 'Should detect at least one modified file');
-            assert.ok(
-                modifiedFiles.some(f => f.path.includes('test-prompt.prompt.md')),
-                'Should detect modification in prompt file'
-            );
+            expect(modifiedFiles.length > 0, 'Should detect at least one modified file').toBeTruthy();
+            expect(modifiedFiles.some(f => f.path.includes('test-prompt.prompt.md')), 'Should detect modification in prompt file').toBeTruthy();
         });
 
-        test('Requirement 14.6: Override proceeds with update despite local modifications', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 14.6: Override proceeds with update despite local modifications', async function() {
             const { bundleId, promptFilePath } = await installAndGetBundleId(this, 'override-source', TEST_CONTENT.OVERRIDE);
             
             // Verify prompt file exists
-            assert.ok(fs.existsSync(promptFilePath), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFilePath), 'Prompt file should exist after installation').toBeTruthy();
             
             // Modify the prompt file locally
             const originalContent = fs.readFileSync(promptFilePath, 'utf-8');
@@ -1374,29 +1259,21 @@ suite('E2E: Repository-Level Installation Tests', () => {
             }
             
             // Verify warning dialog was shown (this is the primary assertion)
-            assert.ok(showWarningMessageStub.called, 'Warning dialog should have been shown');
+            expect(showWarningMessageStub.called, 'Warning dialog should have been shown').toBeTruthy();
             
             // If update succeeded, verify the file was updated
             if (updateSucceeded) {
                 const updatedContent = fs.readFileSync(promptFilePath, 'utf-8');
-                assert.ok(
-                    !updatedContent.includes('Local modification'),
-                    'Local modifications should be overridden after update'
-                );
-                assert.ok(
-                    updatedContent.includes('updated-content'),
-                    'File should contain updated content'
-                );
+                expect(!updatedContent.includes('Local modification'), 'Local modifications should be overridden after update').toBeTruthy();
+                expect(updatedContent.includes('updated-content'), 'File should contain updated content').toBeTruthy();
             }
         });
 
-        test('Requirement 14.7: Cancel aborts update and preserves local modifications', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 14.7: Cancel aborts update and preserves local modifications', async function() {
             const { bundleId, promptFilePath } = await installAndGetBundleId(this, 'cancel-source', TEST_CONTENT.CANCEL);
             
             // Verify prompt file exists
-            assert.ok(fs.existsSync(promptFilePath), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFilePath), 'Prompt file should exist after installation').toBeTruthy();
             
             // Modify the prompt file locally
             const originalContent = fs.readFileSync(promptFilePath, 'utf-8');
@@ -1431,26 +1308,21 @@ suite('E2E: Repository-Level Installation Tests', () => {
             }
             
             // Verify warning dialog was shown
-            assert.ok(showWarningMessageStub.called, 'Warning dialog should have been shown');
+            expect(showWarningMessageStub.called, 'Warning dialog should have been shown').toBeTruthy();
             
             // Verify update was aborted
-            assert.ok(updateAborted, 'Update should have been aborted');
+            expect(updateAborted, 'Update should have been aborted').toBeTruthy();
             
             // Verify local modifications are preserved
             const preservedContent = fs.readFileSync(promptFilePath, 'utf-8');
-            assert.ok(
-                preservedContent.includes('Local modification for cancel test'),
-                'Local modifications should be preserved after cancellation'
-            );
+            expect(preservedContent.includes('Local modification for cancel test'), 'Local modifications should be preserved after cancellation').toBeTruthy();
         });
 
-        test('Requirement 14.4-14.5: Warning dialog lists modified files', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 14.4-14.5: Warning dialog lists modified files', async function() {
             const { bundleId, promptFilePath } = await installAndGetBundleId(this, 'dialog-source', TEST_CONTENT.DIALOG);
             
             // Verify prompt file exists
-            assert.ok(fs.existsSync(promptFilePath), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFilePath), 'Prompt file should exist after installation').toBeTruthy();
             
             // Modify the prompt file locally
             const originalContent = fs.readFileSync(promptFilePath, 'utf-8');
@@ -1480,26 +1352,18 @@ suite('E2E: Repository-Level Installation Tests', () => {
             }
             
             // Verify warning dialog was shown with modified file listed
-            assert.ok(showWarningMessageStub.called, 'Warning dialog should have been shown');
+            expect(showWarningMessageStub.called, 'Warning dialog should have been shown').toBeTruthy();
             
             const dialogMessage = showWarningMessageStub.firstCall.args[0] as string;
-            assert.ok(
-                dialogMessage.includes('modified') || dialogMessage.includes('changed'),
-                'Dialog message should mention modifications'
-            );
-            assert.ok(
-                dialogMessage.includes('test-prompt.prompt.md') || dialogMessage.includes('.github/prompts'),
-                'Dialog message should list the modified file'
-            );
+            expect(dialogMessage.includes('modified') || dialogMessage.includes('changed'), 'Dialog message should mention modifications').toBeTruthy();
+            expect(dialogMessage.includes('test-prompt.prompt.md') || dialogMessage.includes('.github/prompts'), 'Dialog message should list the modified file').toBeTruthy();
         });
 
-        test('Requirement 14.5, 14.9: Contribute Changes opens repository URL and aborts update', async function() {
-            this.timeout(90000);
-            
+        it('Requirement 14.5, 14.9: Contribute Changes opens repository URL and aborts update', async function() {
             const { bundleId, promptFilePath } = await installAndGetBundleId(this, 'contribute-source', TEST_CONTENT.CONTRIBUTE);
             
             // Verify prompt file exists
-            assert.ok(fs.existsSync(promptFilePath), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFilePath), 'Prompt file should exist after installation').toBeTruthy();
             
             // Modify the prompt file locally
             const originalContent = fs.readFileSync(promptFilePath, 'utf-8');
@@ -1537,37 +1401,29 @@ suite('E2E: Repository-Level Installation Tests', () => {
             }
             
             // Verify warning dialog was shown
-            assert.ok(showWarningMessageStub.called, 'Warning dialog should have been shown');
+            expect(showWarningMessageStub.called, 'Warning dialog should have been shown').toBeTruthy();
             
             // Verify update was aborted
-            assert.ok(updateAborted, 'Update should have been aborted when user chose Contribute Changes');
+            expect(updateAborted, 'Update should have been aborted when user chose Contribute Changes').toBeTruthy();
             
             // Verify openExternal was called (URL was opened)
             // Note: The URL may not be opened if the bundle doesn't have a repository URL in its manifest
             // This is acceptable behavior - the key test is that the update was aborted
             if (openExternalStub.called) {
                 const openedUrl = openExternalStub.firstCall.args[0].toString();
-                assert.ok(
-                    openedUrl.includes('github.com') || openedUrl.includes('http'),
-                    'Should open a valid URL'
-                );
+                expect(openedUrl.includes('github.com') || openedUrl.includes('http'), 'Should open a valid URL').toBeTruthy();
             }
             
             // Verify local modifications are preserved
             const preservedContent = fs.readFileSync(promptFilePath, 'utf-8');
-            assert.ok(
-                preservedContent.includes('Local modification for contribute test'),
-                'Local modifications should be preserved after choosing Contribute Changes'
-            );
+            expect(preservedContent.includes('Local modification for contribute test'), 'Local modifications should be preserved after choosing Contribute Changes').toBeTruthy();
         });
 
-        test('No warning shown when no local modifications exist', async function() {
-            this.timeout(90000);
-            
+        it('No warning shown when no local modifications exist', async function() {
             const { bundleId, promptFilePath } = await installAndGetBundleId(this, 'no-mod-source', TEST_CONTENT.NO_MOD);
             
             // Verify prompt file exists but DON'T modify it
-            assert.ok(fs.existsSync(promptFilePath), 'Prompt file should exist after installation');
+            expect(fs.existsSync(promptFilePath), 'Prompt file should exist after installation').toBeTruthy();
             
             // Stub the warning dialog
             const showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage');
@@ -1589,22 +1445,16 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 await testContext.registryManager.updateBundle(bundleId, '2.0.0');
                 
                 // Verify warning dialog was NOT shown (no modifications)
-                assert.ok(
-                    !showWarningMessageStub.called,
-                    'Warning dialog should NOT be shown when no local modifications exist'
-                );
+                expect(!showWarningMessageStub.called, 'Warning dialog should NOT be shown when no local modifications exist').toBeTruthy();
                 
                 // Verify the file was updated
                 const updatedContent = fs.readFileSync(promptFilePath, 'utf-8');
-                assert.ok(
-                    updatedContent.includes('updated-content'),
-                    'File should contain updated content'
-                );
+                expect(updatedContent.includes('updated-content'), 'File should contain updated content').toBeTruthy();
             } catch (error: any) {
                 // If update fails for other reasons, check if warning was shown
                 if (showWarningMessageStub.called) {
                     // Warning was shown unexpectedly - this is a test failure
-                    assert.fail('Warning dialog should NOT be shown when no local modifications exist');
+                    expect.fail('Warning dialog should NOT be shown when no local modifications exist');
                 }
                 // Otherwise, update failed for other reasons - acceptable
                 console.log('[Test] Update failed for other reasons:', error.message);
@@ -1612,7 +1462,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
         });
     });
 
-    suite('Local-Only Lockfile Separation (Requirements 1-5)', () => {
+    describe('Local-Only Lockfile Separation (Requirements 1-5)', () => {
         /**
          * E2E tests for the local-only lockfile separation feature.
          * 
@@ -1647,17 +1497,15 @@ suite('E2E: Repository-Level Installation Tests', () => {
             return content.includes(LOCAL_LOCKFILE_NAME);
         }
 
-        test('11.1: Installing local-only bundle creates local lockfile and git exclude entry', async function() {
-            this.timeout(60000);
-            
+        it('11.1: Installing local-only bundle creates local lockfile and git exclude entry', async function() {
             const { bundle } = await setupSourceAndGetBundle('local-lockfile-create-source', 'local-lockfile-create');
             
             // Verify local lockfile does NOT exist initially
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT exist initially');
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT exist initially').toBeTruthy();
             
             // Verify local lockfile is NOT in git exclude initially
-            assert.ok(!isLocalLockfileExcluded(), 'Local lockfile should NOT be in git exclude initially');
+            expect(!isLocalLockfileExcluded(), 'Local lockfile should NOT be in git exclude initially').toBeTruthy();
             
             // Install bundle with local-only mode
             try {
@@ -1668,7 +1516,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -1677,40 +1525,38 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             if (!fs.existsSync(promptsDir)) {
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Verify local lockfile was created (Requirement 1.1)
-            assert.ok(fs.existsSync(localLockfilePath), 'Local lockfile should be created for local-only bundle');
+            expect(fs.existsSync(localLockfilePath), 'Local lockfile should be created for local-only bundle').toBeTruthy();
             
             // Verify local lockfile has correct structure
             const localLockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
-            assert.ok(localLockfile.bundles, 'Local lockfile should have bundles object');
-            assert.ok(Object.keys(localLockfile.bundles).length > 0, 'Local lockfile should contain the bundle');
+            expect(localLockfile.bundles, 'Local lockfile should have bundles object').toBeTruthy();
+            expect(Object.keys(localLockfile.bundles).length > 0, 'Local lockfile should contain the bundle').toBeTruthy();
             
             // Verify bundle entry does NOT have commitMode field (Requirement 1.4)
             const bundleEntry = Object.values(localLockfile.bundles)[0] as any;
-            assert.ok(bundleEntry.version, 'Bundle entry should have version');
+            expect(bundleEntry.version, 'Bundle entry should have version').toBeTruthy();
             // Note: commitMode field is deprecated and should not be present in new entries
             
             // Verify main lockfile was NOT created
             const mainLockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
-            assert.ok(!fs.existsSync(mainLockfilePath), 'Main lockfile should NOT be created for local-only bundle');
+            expect(!fs.existsSync(mainLockfilePath), 'Main lockfile should NOT be created for local-only bundle').toBeTruthy();
             
             // Verify local lockfile is in git exclude (Requirement 2.1)
-            assert.ok(isLocalLockfileExcluded(), 'Local lockfile should be added to git exclude');
+            expect(isLocalLockfileExcluded(), 'Local lockfile should be added to git exclude').toBeTruthy();
         });
 
-        test('11.2: Installing committed bundle creates main lockfile only', async function() {
-            this.timeout(60000);
-            
+        it('11.2: Installing committed bundle creates main lockfile only', async function() {
             const { bundle } = await setupSourceAndGetBundle('main-lockfile-only-source', 'main-lockfile-only');
             
             // Verify neither lockfile exists initially
             const mainLockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
-            assert.ok(!fs.existsSync(mainLockfilePath), 'Main lockfile should NOT exist initially');
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT exist initially');
+            expect(!fs.existsSync(mainLockfilePath), 'Main lockfile should NOT exist initially').toBeTruthy();
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT exist initially').toBeTruthy();
             
             // Install bundle with commit mode (default)
             await installBundleOrSkip(this, bundle.id, { 
@@ -1718,27 +1564,25 @@ suite('E2E: Repository-Level Installation Tests', () => {
             });
             
             // Verify main lockfile was created (Requirement 1.2)
-            assert.ok(fs.existsSync(mainLockfilePath), 'Main lockfile should be created for committed bundle');
+            expect(fs.existsSync(mainLockfilePath), 'Main lockfile should be created for committed bundle').toBeTruthy();
             
             // Verify main lockfile has correct structure
             const mainLockfile = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
-            assert.ok(mainLockfile.bundles, 'Main lockfile should have bundles object');
-            assert.ok(Object.keys(mainLockfile.bundles).length > 0, 'Main lockfile should contain the bundle');
+            expect(mainLockfile.bundles, 'Main lockfile should have bundles object').toBeTruthy();
+            expect(Object.keys(mainLockfile.bundles).length > 0, 'Main lockfile should contain the bundle').toBeTruthy();
             
             // Verify bundle entry does NOT have commitMode field (Requirement 1.5)
             const bundleEntry = Object.values(mainLockfile.bundles)[0] as any;
-            assert.ok(bundleEntry.version, 'Bundle entry should have version');
+            expect(bundleEntry.version, 'Bundle entry should have version').toBeTruthy();
             
             // Verify local lockfile was NOT created
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT be created for committed bundle');
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT be created for committed bundle').toBeTruthy();
             
             // Verify local lockfile is NOT in git exclude
-            assert.ok(!isLocalLockfileExcluded(), 'Local lockfile should NOT be in git exclude for committed bundle');
+            expect(!isLocalLockfileExcluded(), 'Local lockfile should NOT be in git exclude for committed bundle').toBeTruthy();
         });
 
-        test('11.3: Switching commit mode moves bundle and updates git exclude', async function() {
-            this.timeout(90000);
-            
+        it('11.3: Switching commit mode moves bundle and updates git exclude', async function() {
             const { bundle } = await setupSourceAndGetBundle('switch-mode-e2e-source', 'switch-mode-e2e');
             
             // Install bundle with commit mode first
@@ -1750,8 +1594,8 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const mainLockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
             
-            assert.ok(fs.existsSync(mainLockfilePath), 'Main lockfile should exist');
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT exist initially');
+            expect(fs.existsSync(mainLockfilePath), 'Main lockfile should exist').toBeTruthy();
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should NOT exist initially').toBeTruthy();
             
             const mainLockfileBefore = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
             const actualBundleId = Object.keys(mainLockfileBefore.bundles)[0];
@@ -1765,42 +1609,40 @@ suite('E2E: Repository-Level Installation Tests', () => {
             await lockfileManager.updateCommitMode(actualBundleId, 'local-only');
             
             // Verify bundle was moved to local lockfile (Requirement 4.1)
-            assert.ok(fs.existsSync(localLockfilePath), 'Local lockfile should be created after switching to local-only');
+            expect(fs.existsSync(localLockfilePath), 'Local lockfile should be created after switching to local-only').toBeTruthy();
             const localLockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
-            assert.ok(localLockfile.bundles[actualBundleId], 'Bundle should be in local lockfile');
+            expect(localLockfile.bundles[actualBundleId], 'Bundle should be in local lockfile').toBeTruthy();
             
             // Verify bundle was removed from main lockfile
             if (fs.existsSync(mainLockfilePath)) {
                 const mainLockfileAfter = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
-                assert.ok(!mainLockfileAfter.bundles[actualBundleId], 'Bundle should NOT be in main lockfile');
+                expect(!mainLockfileAfter.bundles[actualBundleId], 'Bundle should NOT be in main lockfile').toBeTruthy();
             }
             
             // Verify metadata was preserved (Requirement 4.3)
             const movedEntry = localLockfile.bundles[actualBundleId];
-            assert.strictEqual(movedEntry.version, originalEntry.version, 'Version should be preserved');
-            assert.strictEqual(movedEntry.sourceId, originalEntry.sourceId, 'SourceId should be preserved');
+            expect(movedEntry.version, 'Version should be preserved').toBe(originalEntry.version);
+            expect(movedEntry.sourceId, 'SourceId should be preserved').toBe(originalEntry.sourceId);
             
             // Verify local lockfile is in git exclude (Requirement 4.4)
-            assert.ok(isLocalLockfileExcluded(), 'Local lockfile should be in git exclude after switching to local-only');
+            expect(isLocalLockfileExcluded(), 'Local lockfile should be in git exclude after switching to local-only').toBeTruthy();
             
             // Now switch back to commit mode (Requirement 4.2)
             await lockfileManager.updateCommitMode(actualBundleId, 'commit');
             
             // Verify bundle was moved back to main lockfile
-            assert.ok(fs.existsSync(mainLockfilePath), 'Main lockfile should exist after switching to commit');
+            expect(fs.existsSync(mainLockfilePath), 'Main lockfile should exist after switching to commit').toBeTruthy();
             const mainLockfileAfterSwitch = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
-            assert.ok(mainLockfileAfterSwitch.bundles[actualBundleId], 'Bundle should be in main lockfile');
+            expect(mainLockfileAfterSwitch.bundles[actualBundleId], 'Bundle should be in main lockfile').toBeTruthy();
             
             // Verify local lockfile was deleted (it was the only bundle)
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should be deleted when empty');
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should be deleted when empty').toBeTruthy();
             
             // Verify local lockfile is removed from git exclude (Requirement 4.5)
-            assert.ok(!isLocalLockfileExcluded(), 'Local lockfile should be removed from git exclude when empty');
+            expect(!isLocalLockfileExcluded(), 'Local lockfile should be removed from git exclude when empty').toBeTruthy();
         });
 
-        test('11.4: Removing last local-only bundle deletes local lockfile and git exclude entry', async function() {
-            this.timeout(60000);
-            
+        it('11.4: Removing last local-only bundle deletes local lockfile and git exclude entry', async function() {
             const { bundle } = await setupSourceAndGetBundle('remove-last-local-source', 'remove-last-local');
             
             // Install bundle with local-only mode
@@ -1812,7 +1654,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -1821,36 +1663,34 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const promptsDir = path.join(workspaceRoot, GITHUB_PROMPTS_DIR);
             if (!fs.existsSync(promptsDir)) {
                 console.log('[Test] Skipping: Repository scope installation did not create files');
-                this.skip();
+                skip();
             }
             
             // Verify local lockfile exists
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
-            assert.ok(fs.existsSync(localLockfilePath), 'Local lockfile should exist after installation');
+            expect(fs.existsSync(localLockfilePath), 'Local lockfile should exist after installation').toBeTruthy();
             
             // Verify local lockfile is in git exclude
-            assert.ok(isLocalLockfileExcluded(), 'Local lockfile should be in git exclude');
+            expect(isLocalLockfileExcluded(), 'Local lockfile should be in git exclude').toBeTruthy();
             
             // Get the actual bundle ID from the local lockfile
             const localLockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
             const actualBundleId = Object.keys(localLockfile.bundles)[0];
             
             // Verify this is the only bundle
-            assert.strictEqual(Object.keys(localLockfile.bundles).length, 1, 'Should have exactly one bundle');
+            expect(Object.keys(localLockfile.bundles).length, 'Should have exactly one bundle').toBe(1);
             
             // Remove the bundle (Requirement 5.1)
             await testContext.registryManager.uninstallBundle(actualBundleId, 'repository');
             
             // Verify local lockfile was deleted (Requirement 5.3)
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should be deleted when last bundle is removed');
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should be deleted when last bundle is removed').toBeTruthy();
             
             // Verify local lockfile is removed from git exclude (Requirement 5.4)
-            assert.ok(!isLocalLockfileExcluded(), 'Local lockfile should be removed from git exclude');
+            expect(!isLocalLockfileExcluded(), 'Local lockfile should be removed from git exclude').toBeTruthy();
         });
 
-        test('11.5: Mixed bundles (some commit, some local-only) in same repository', async function() {
-            this.timeout(120000);
-            
+        it('11.5: Mixed bundles (some commit, some local-only) in same repository', async function() {
             // Set up two different sources for two bundles
             const commitSourceId = `${testId}-mixed-commit-source`;
             const localSourceId = `${testId}-mixed-local-source`;
@@ -1907,7 +1747,7 @@ suite('E2E: Repository-Level Installation Tests', () => {
                 });
             } catch (error: any) {
                 if (error.message.includes('not yet implemented')) {
-                    this.skip();
+                    skip();
                 }
                 throw error;
             }
@@ -1916,54 +1756,54 @@ suite('E2E: Repository-Level Installation Tests', () => {
             const mainLockfilePath = path.join(workspaceRoot, LOCKFILE_NAME);
             const localLockfilePath = path.join(workspaceRoot, LOCAL_LOCKFILE_NAME);
             
-            assert.ok(fs.existsSync(mainLockfilePath), 'Main lockfile should exist for committed bundle');
-            assert.ok(fs.existsSync(localLockfilePath), 'Local lockfile should exist for local-only bundle');
+            expect(fs.existsSync(mainLockfilePath), 'Main lockfile should exist for committed bundle').toBeTruthy();
+            expect(fs.existsSync(localLockfilePath), 'Local lockfile should exist for local-only bundle').toBeTruthy();
             
             // Verify committed bundle is in main lockfile only
             const mainLockfile = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
             const mainBundleIds = Object.keys(mainLockfile.bundles);
-            assert.ok(mainBundleIds.length > 0, 'Main lockfile should have at least one bundle');
+            expect(mainBundleIds.length > 0, 'Main lockfile should have at least one bundle').toBeTruthy();
             
             // Verify local-only bundle is in local lockfile only
             const localLockfile = JSON.parse(fs.readFileSync(localLockfilePath, 'utf-8'));
             const localBundleIds = Object.keys(localLockfile.bundles);
-            assert.ok(localBundleIds.length > 0, 'Local lockfile should have at least one bundle');
+            expect(localBundleIds.length > 0, 'Local lockfile should have at least one bundle').toBeTruthy();
             
             // Verify no overlap between lockfiles (Requirement 3.4 - conflict detection)
             const overlap = mainBundleIds.filter(id => localBundleIds.includes(id));
-            assert.strictEqual(overlap.length, 0, 'No bundle should exist in both lockfiles');
+            expect(overlap.length, 'No bundle should exist in both lockfiles').toBe(0);
             
             // Verify local lockfile is in git exclude
-            assert.ok(isLocalLockfileExcluded(), 'Local lockfile should be in git exclude');
+            expect(isLocalLockfileExcluded(), 'Local lockfile should be in git exclude').toBeTruthy();
             
             // Verify unified listing returns all bundles with correct commit modes (Requirement 3.1-3.3)
             const lockfileManager = LockfileManager.getInstance(workspaceRoot);
             const allBundles = await lockfileManager.getInstalledBundles();
             
             // Should have bundles from both lockfiles
-            assert.ok(allBundles.length >= 2, 'Should list bundles from both lockfiles');
+            expect(allBundles.length >= 2, 'Should list bundles from both lockfiles').toBeTruthy();
             
             // Verify commit modes are correctly annotated
             const commitBundles2 = allBundles.filter(b => b.commitMode === 'commit');
             const localOnlyBundles = allBundles.filter(b => b.commitMode === 'local-only');
             
-            assert.ok(commitBundles2.length > 0, 'Should have at least one committed bundle');
-            assert.ok(localOnlyBundles.length > 0, 'Should have at least one local-only bundle');
+            expect(commitBundles2.length > 0, 'Should have at least one committed bundle').toBeTruthy();
+            expect(localOnlyBundles.length > 0, 'Should have at least one local-only bundle').toBeTruthy();
             
             // Now remove the local-only bundle and verify main lockfile is unaffected
             const localBundleId = localBundleIds[0];
             await testContext.registryManager.uninstallBundle(localBundleId, 'repository');
             
             // Verify local lockfile is deleted
-            assert.ok(!fs.existsSync(localLockfilePath), 'Local lockfile should be deleted after removing last local-only bundle');
+            expect(!fs.existsSync(localLockfilePath), 'Local lockfile should be deleted after removing last local-only bundle').toBeTruthy();
             
             // Verify main lockfile still exists with committed bundle
-            assert.ok(fs.existsSync(mainLockfilePath), 'Main lockfile should still exist');
+            expect(fs.existsSync(mainLockfilePath), 'Main lockfile should still exist').toBeTruthy();
             const mainLockfileAfter = JSON.parse(fs.readFileSync(mainLockfilePath, 'utf-8'));
-            assert.ok(Object.keys(mainLockfileAfter.bundles).length > 0, 'Main lockfile should still have committed bundle');
+            expect(Object.keys(mainLockfileAfter.bundles).length > 0, 'Main lockfile should still have committed bundle').toBeTruthy();
             
             // Verify local lockfile is removed from git exclude
-            assert.ok(!isLocalLockfileExcluded(), 'Local lockfile should be removed from git exclude');
+            expect(!isLocalLockfileExcluded(), 'Local lockfile should be removed from git exclude').toBeTruthy();
         });
     });
 });

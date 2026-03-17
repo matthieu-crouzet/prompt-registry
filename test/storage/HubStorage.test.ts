@@ -3,20 +3,19 @@
  * Tests for hub configuration storage, caching, and file operations
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { HubStorage } from '../../src/storage/HubStorage';
 import { HubConfig, HubReference } from '../../src/types/hub';
 
-suite('HubStorage - TDD', () => {
+describe('HubStorage - TDD', () => {
     let storage: HubStorage;
     let tempDir: string;
     let testHubConfig: HubConfig;
     let testHubReference: HubReference;
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory for tests
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hub-storage');
         if (!fs.existsSync(tempDir)) {
@@ -43,46 +42,46 @@ suite('HubStorage - TDD', () => {
         };
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Cleanup temp directory
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
     });
 
-    suite('Initialization', () => {
-        test('should create storage directory if it does not exist', () => {
+    describe('Initialization', () => {
+        it('should create storage directory if it does not exist', () => {
             const newDir = path.join(tempDir, 'new-storage');
             const newStorage = new HubStorage(newDir);
             
-            assert.ok(fs.existsSync(newDir), 'Storage directory should be created');
+            expect(fs.existsSync(newDir), 'Storage directory should be created').toBeTruthy();
         });
 
-        test('should use existing directory if it exists', () => {
+        it('should use existing directory if it exists', () => {
             const existingDir = path.join(tempDir, 'existing');
             fs.mkdirSync(existingDir, { recursive: true });
             
             const newStorage = new HubStorage(existingDir);
-            assert.ok(fs.existsSync(existingDir));
+            expect(fs.existsSync(existingDir)).toBeTruthy();
         });
 
-        test('should throw error for invalid path', () => {
-            assert.throws(() => {
+        it('should throw error for invalid path', () => {
+            expect(() => {
                 new HubStorage('');
-            }, /Invalid storage path/);
+            }).toThrow(/Invalid storage path/);
         });
     });
 
-    suite('Save Hub Configuration', () => {
-        test('should save hub config to file', async () => {
+    describe('Save Hub Configuration', () => {
+        it('should save hub config to file', async () => {
             const hubId = 'test-hub';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             const configPath = path.join(tempDir, `${hubId}.yml`);
-            assert.ok(fs.existsSync(configPath), 'Hub config file should exist');
+            expect(fs.existsSync(configPath), 'Hub config file should exist').toBeTruthy();
         });
 
-        test('should save hub config with correct YAML format', async () => {
+        it('should save hub config with correct YAML format', async () => {
             const hubId = 'test-hub-yaml';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -90,30 +89,27 @@ suite('HubStorage - TDD', () => {
             const savedContent = fs.readFileSync(configPath, 'utf-8');
             const parsed = yaml.load(savedContent) as HubConfig;
             
-            assert.strictEqual(parsed.version, testHubConfig.version);
-            assert.strictEqual(parsed.metadata.name, testHubConfig.metadata.name);
+            expect(parsed.version).toBe(testHubConfig.version);
+            expect(parsed.metadata.name).toBe(testHubConfig.metadata.name);
         });
 
-        test('should save reference metadata separately', async () => {
+        it('should save reference metadata separately', async () => {
             const hubId = 'test-hub-ref';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             const metaPath = path.join(tempDir, `${hubId}.meta.json`);
-            assert.ok(fs.existsSync(metaPath), 'Reference metadata should exist');
+            expect(fs.existsSync(metaPath), 'Reference metadata should exist').toBeTruthy();
             
             const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
-            assert.strictEqual(meta.reference.type, testHubReference.type);
-            assert.strictEqual(meta.reference.location, testHubReference.location);
+            expect(meta.reference.type).toBe(testHubReference.type);
+            expect(meta.reference.location).toBe(testHubReference.location);
         });
 
-        test('should reject invalid hub IDs', async () => {
-            await assert.rejects(
-                async () => await storage.saveHub('../invalid', testHubConfig, testHubReference),
-                /Invalid hub ID/
-            );
+        it('should reject invalid hub IDs', async () => {
+            await expect(async () => await storage.saveHub('../invalid', testHubConfig, testHubReference)).rejects.toThrow(/Invalid hub ID/);
         });
 
-        test('should handle save errors gracefully', async () => {
+        it('should handle save errors gracefully', async () => {
             // Create a read-only directory
             const readOnlyDir = path.join(tempDir, 'readonly');
             fs.mkdirSync(readOnlyDir, { recursive: true });
@@ -121,16 +117,13 @@ suite('HubStorage - TDD', () => {
             
             const readOnlyStorage = new HubStorage(readOnlyDir);
             
-            await assert.rejects(
-                async () => await readOnlyStorage.saveHub('test', testHubConfig, testHubReference),
-                /Failed to save hub/
-            );
+            await expect(async () => await readOnlyStorage.saveHub('test', testHubConfig, testHubReference)).rejects.toThrow(/Failed to save hub/);
             
             // Restore permissions for cleanup
             fs.chmodSync(readOnlyDir, 0o755);
         });
 
-        test('should overwrite existing hub config', async () => {
+        it('should overwrite existing hub config', async () => {
             const hubId = 'test-hub-overwrite';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -140,61 +133,52 @@ suite('HubStorage - TDD', () => {
             await storage.saveHub(hubId, modifiedConfig, testHubReference);
             
             const loaded = await storage.loadHub(hubId);
-            assert.strictEqual(loaded.config.metadata.name, 'Modified Name');
+            expect(loaded.config.metadata.name).toBe('Modified Name');
         });
     });
 
-    suite('Load Hub Configuration', () => {
-        test('should load existing hub config', async () => {
+    describe('Load Hub Configuration', () => {
+        it('should load existing hub config', async () => {
             const hubId = 'test-load';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             const result = await storage.loadHub(hubId);
             
-            assert.ok(result);
-            assert.strictEqual(result.config.version, testHubConfig.version);
-            assert.strictEqual(result.config.metadata.name, testHubConfig.metadata.name);
+            expect(result).toBeTruthy();
+            expect(result.config.version).toBe(testHubConfig.version);
+            expect(result.config.metadata.name).toBe(testHubConfig.metadata.name);
         });
 
-        test('should load reference metadata with config', async () => {
+        it('should load reference metadata with config', async () => {
             const hubId = 'test-load-ref';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             const result = await storage.loadHub(hubId);
             
-            assert.ok(result.reference);
-            assert.strictEqual(result.reference.type, testHubReference.type);
-            assert.strictEqual(result.reference.location, testHubReference.location);
+            expect(result.reference).toBeTruthy();
+            expect(result.reference.type).toBe(testHubReference.type);
+            expect(result.reference.location).toBe(testHubReference.location);
         });
 
-        test('should throw error for non-existent hub', async () => {
-            await assert.rejects(
-                async () => await storage.loadHub('non-existent'),
-                /Hub not found/
-            );
+        it('should throw error for non-existent hub', async () => {
+            await expect(async () => await storage.loadHub('non-existent')).rejects.toThrow(/Hub not found/);
         });
 
-        test('should validate hub ID before loading', async () => {
-            await assert.rejects(
-                async () => await storage.loadHub('../invalid'),
-                /Invalid hub ID/
-            );
+        it('should validate hub ID before loading', async () => {
+            await expect(async () => await storage.loadHub('../invalid')).rejects.toThrow(/Invalid hub ID/);
         });
 
-        test('should handle corrupted config files', async () => {
+        it('should handle corrupted config files', async () => {
             const hubId = 'corrupted';
             const configPath = path.join(tempDir, `${hubId}.yml`);
             fs.writeFileSync(configPath, 'invalid: yaml: content: [[[');
             
-            await assert.rejects(
-                async () => await storage.loadHub(hubId),
-                /Failed to load hub/
-            );
+            await expect(async () => await storage.loadHub(hubId)).rejects.toThrow(/Failed to load hub/);
         });
     });
 
-    suite('Cache Management', () => {
-        test('should cache loaded hub configs', async () => {
+    describe('Cache Management', () => {
+        it('should cache loaded hub configs', async () => {
             const hubId = 'test-cache';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -208,10 +192,10 @@ suite('HubStorage - TDD', () => {
             const result2 = await storage.loadHub(hubId);
             
             // Should still have original version from cache
-            assert.strictEqual(result2.config.version, testHubConfig.version);
+            expect(result2.config.version).toBe(testHubConfig.version);
         });
 
-        test('should bypass cache when forceReload is true', async () => {
+        it('should bypass cache when forceReload is true', async () => {
             const hubId = 'test-force-reload';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -226,10 +210,10 @@ suite('HubStorage - TDD', () => {
             // Force reload
             const result = await storage.loadHub(hubId, true);
             
-            assert.strictEqual(result.config.version, '999.0.0');
+            expect(result.config.version).toBe('999.0.0');
         });
 
-        test('should clear cache for specific hub', async () => {
+        it('should clear cache for specific hub', async () => {
             const hubId = 'test-clear-cache';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -244,10 +228,10 @@ suite('HubStorage - TDD', () => {
             
             // Should load modified version
             const result = await storage.loadHub(hubId);
-            assert.strictEqual(result.config.version, '999.0.0');
+            expect(result.config.version).toBe('999.0.0');
         });
 
-        test('should clear all caches', async () => {
+        it('should clear all caches', async () => {
             await storage.saveHub('hub1', testHubConfig, testHubReference);
             await storage.saveHub('hub2', testHubConfig, testHubReference);
             
@@ -257,30 +241,30 @@ suite('HubStorage - TDD', () => {
             storage.clearCache();
             
             // Verify cache is empty by checking load behavior
-            assert.ok(true, 'Cache cleared successfully');
+            expect(true, 'Cache cleared successfully').toBeTruthy();
         });
     });
 
-    suite('List Hubs', () => {
-        test('should list all stored hubs', async () => {
+    describe('List Hubs', () => {
+        it('should list all stored hubs', async () => {
             await storage.saveHub('hub1', testHubConfig, testHubReference);
             await storage.saveHub('hub2', testHubConfig, testHubReference);
             await storage.saveHub('hub3', testHubConfig, testHubReference);
             
             const hubs = await storage.listHubs();
             
-            assert.strictEqual(hubs.length, 3);
-            assert.ok(hubs.includes('hub1'));
-            assert.ok(hubs.includes('hub2'));
-            assert.ok(hubs.includes('hub3'));
+            expect(hubs.length).toBe(3);
+            expect(hubs.includes('hub1')).toBeTruthy();
+            expect(hubs.includes('hub2')).toBeTruthy();
+            expect(hubs.includes('hub3')).toBeTruthy();
         });
 
-        test('should return empty array when no hubs exist', async () => {
+        it('should return empty array when no hubs exist', async () => {
             const hubs = await storage.listHubs();
-            assert.strictEqual(hubs.length, 0);
+            expect(hubs.length).toBe(0);
         });
 
-        test('should ignore non-hub files', async () => {
+        it('should ignore non-hub files', async () => {
             await storage.saveHub('hub1', testHubConfig, testHubReference);
             
             // Create non-hub files
@@ -289,13 +273,13 @@ suite('HubStorage - TDD', () => {
             
             const hubs = await storage.listHubs();
             
-            assert.strictEqual(hubs.length, 1);
-            assert.strictEqual(hubs[0], 'hub1');
+            expect(hubs.length).toBe(1);
+            expect(hubs[0]).toBe('hub1');
         });
     });
 
-    suite('Delete Hub', () => {
-        test('should delete hub config and metadata', async () => {
+    describe('Delete Hub', () => {
+        it('should delete hub config and metadata', async () => {
             const hubId = 'test-delete';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -304,127 +288,106 @@ suite('HubStorage - TDD', () => {
             const configPath = path.join(tempDir, `${hubId}.yml`);
             const metaPath = path.join(tempDir, `${hubId}.meta.json`);
             
-            assert.ok(!fs.existsSync(configPath), 'Config file should be deleted');
-            assert.ok(!fs.existsSync(metaPath), 'Metadata file should be deleted');
+            expect(!fs.existsSync(configPath), 'Config file should be deleted').toBeTruthy();
+            expect(!fs.existsSync(metaPath), 'Metadata file should be deleted').toBeTruthy();
         });
 
-        test('should remove hub from cache after deletion', async () => {
+        it('should remove hub from cache after deletion', async () => {
             const hubId = 'test-delete-cache';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             await storage.loadHub(hubId);
             
             await storage.deleteHub(hubId);
             
-            await assert.rejects(
-                async () => await storage.loadHub(hubId),
-                /Hub not found/
-            );
+            await expect(async () => await storage.loadHub(hubId)).rejects.toThrow(/Hub not found/);
         });
 
-        test('should throw error when deleting non-existent hub', async () => {
-            await assert.rejects(
-                async () => await storage.deleteHub('non-existent'),
-                /Hub not found/
-            );
+        it('should throw error when deleting non-existent hub', async () => {
+            await expect(async () => await storage.deleteHub('non-existent')).rejects.toThrow(/Hub not found/);
         });
 
-        test('should validate hub ID before deletion', async () => {
-            await assert.rejects(
-                async () => await storage.deleteHub('../invalid'),
-                /Invalid hub ID/
-            );
+        it('should validate hub ID before deletion', async () => {
+            await expect(async () => await storage.deleteHub('../invalid')).rejects.toThrow(/Invalid hub ID/);
         });
     });
 
-    suite('Hub Existence Check', () => {
-        test('should return true for existing hub', async () => {
+    describe('Hub Existence Check', () => {
+        it('should return true for existing hub', async () => {
             const hubId = 'test-exists';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             const exists = await storage.hubExists(hubId);
-            assert.strictEqual(exists, true);
+            expect(exists).toBe(true);
         });
 
-        test('should return false for non-existent hub', async () => {
+        it('should return false for non-existent hub', async () => {
             const exists = await storage.hubExists('non-existent');
-            assert.strictEqual(exists, false);
+            expect(exists).toBe(false);
         });
 
-        test('should validate hub ID before checking', async () => {
-            await assert.rejects(
-                async () => await storage.hubExists('../invalid'),
-                /Invalid hub ID/
-            );
+        it('should validate hub ID before checking', async () => {
+            await expect(async () => await storage.hubExists('../invalid')).rejects.toThrow(/Invalid hub ID/);
         });
     });
 
-    suite('Get Hub Metadata', () => {
-        test('should return hub metadata without loading full config', async () => {
+    describe('Get Hub Metadata', () => {
+        it('should return hub metadata without loading full config', async () => {
             const hubId = 'test-metadata';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             const metadata = await storage.getHubMetadata(hubId);
             
-            assert.ok(metadata);
-            assert.strictEqual(metadata.reference.type, testHubReference.type);
-            assert.ok(metadata.lastModified);
-            assert.ok(metadata.size > 0);
+            expect(metadata).toBeTruthy();
+            expect(metadata.reference.type).toBe(testHubReference.type);
+            expect(metadata.lastModified).toBeTruthy();
+            expect(metadata.size > 0).toBeTruthy();
         });
 
-        test('should throw error for non-existent hub', async () => {
-            await assert.rejects(
-                async () => await storage.getHubMetadata('non-existent'),
-                /Hub not found/
-            );
+        it('should throw error for non-existent hub', async () => {
+            await expect(async () => await storage.getHubMetadata('non-existent')).rejects.toThrow(/Hub not found/);
         });
     });
 
-    suite('Security and Validation', () => {
-        test('should reject path traversal in hub IDs', async () => {
+    describe('Security and Validation', () => {
+        it('should reject path traversal in hub IDs', async () => {
             const invalidIds = ['../etc/passwd', '../../hack', 'test/../bad'];
             
             for (const id of invalidIds) {
-                await assert.rejects(
-                    async () => await storage.saveHub(id, testHubConfig, testHubReference),
-                    /Invalid hub ID/
-                );
+                await expect(async () => await storage.saveHub(id, testHubConfig, testHubReference)).rejects.toThrow(/Invalid hub ID/);
             }
         });
 
-        test('should reject special characters in hub IDs', async () => {
+        it('should reject special characters in hub IDs', async () => {
             const invalidIds = ['test<script>', 'hub:evil', 'name|pipe', 'test&cmd'];
             
             for (const id of invalidIds) {
-                await assert.rejects(
-                    async () => await storage.saveHub(id, testHubConfig, testHubReference),
-                    /Invalid hub ID/
-                );
+                await expect(async () => await storage.saveHub(id, testHubConfig, testHubReference)).rejects.toThrow(/Invalid hub ID/);
             }
         });
 
-        test('should handle file system errors gracefully', async () => {
+        it('should handle file system errors gracefully', async () => {
             // This test is already covered by "should handle save errors gracefully"
-            assert.ok(true);
+            expect(true).toBeTruthy();
         });
     });
 
-    suite('Active Hub Management', () => {
-        test('should return null when no active hub is set', async () => {
+    describe('Active Hub Management', () => {
+        it('should return null when no active hub is set', async () => {
             const activeHubId = await storage.getActiveHubId();
-            assert.strictEqual(activeHubId, null, 'Should return null when no active hub exists');
+            expect(activeHubId, 'Should return null when no active hub exists').toBe(null);
         });
 
-        test('should set and retrieve active hub ID', async () => {
+        it('should set and retrieve active hub ID', async () => {
             const hubId = 'test-active-hub';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             await storage.setActiveHubId(hubId);
             const retrievedHubId = await storage.getActiveHubId();
             
-            assert.strictEqual(retrievedHubId, hubId, 'Should return the correct active hub ID');
+            expect(retrievedHubId, 'Should return the correct active hub ID').toBe(hubId);
         });
 
-        test('should update active hub ID when changed', async () => {
+        it('should update active hub ID when changed', async () => {
             const hubId1 = 'test-hub-1';
             const hubId2 = 'test-hub-2';
             
@@ -432,32 +395,28 @@ suite('HubStorage - TDD', () => {
             await storage.saveHub(hubId2, testHubConfig, testHubReference);
             
             await storage.setActiveHubId(hubId1);
-            assert.strictEqual(await storage.getActiveHubId(), hubId1);
+            expect(await storage.getActiveHubId()).toBe(hubId1);
             
             await storage.setActiveHubId(hubId2);
-            assert.strictEqual(await storage.getActiveHubId(), hubId2, 'Should update to new active hub');
+            expect(await storage.getActiveHubId(), 'Should update to new active hub').toBe(hubId2);
         });
 
-        test('should clear active hub ID when set to null', async () => {
+        it('should clear active hub ID when set to null', async () => {
             const hubId = 'test-clear-hub';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
             await storage.setActiveHubId(hubId);
-            assert.strictEqual(await storage.getActiveHubId(), hubId);
+            expect(await storage.getActiveHubId()).toBe(hubId);
             
             await storage.setActiveHubId(null);
-            assert.strictEqual(await storage.getActiveHubId(), null, 'Should clear active hub ID');
+            expect(await storage.getActiveHubId(), 'Should clear active hub ID').toBe(null);
         });
 
-        test('should reject setting non-existent hub as active', async () => {
-            await assert.rejects(
-                async () => await storage.setActiveHubId('non-existent-hub'),
-                /does not exist/,
-                'Should reject non-existent hub'
-            );
+        it('should reject setting non-existent hub as active', async () => {
+            await expect(async () => await storage.setActiveHubId('non-existent-hub')).rejects.toThrow(/does not exist/, 'Should reject non-existent hub');
         });
 
-        test('should persist active hub ID across storage instances', async () => {
+        it('should persist active hub ID across storage instances', async () => {
             const hubId = 'test-persist-hub';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             await storage.setActiveHubId(hubId);
@@ -466,10 +425,10 @@ suite('HubStorage - TDD', () => {
             const newStorage = new HubStorage(tempDir);
             const retrievedHubId = await newStorage.getActiveHubId();
             
-            assert.strictEqual(retrievedHubId, hubId, 'Active hub ID should persist across instances');
+            expect(retrievedHubId, 'Active hub ID should persist across instances').toBe(hubId);
         });
 
-        test('should store timestamp when setting active hub', async () => {
+        it('should store timestamp when setting active hub', async () => {
             const hubId = 'test-timestamp-hub';
             await storage.saveHub(hubId, testHubConfig, testHubReference);
             
@@ -479,16 +438,16 @@ suite('HubStorage - TDD', () => {
             
             // Read the active hub file directly to verify timestamp
             const activeHubPath = path.join(tempDir, 'activeHubId.json');
-            assert.ok(fs.existsSync(activeHubPath), 'activeHubId.json should exist');
+            expect(fs.existsSync(activeHubPath), 'activeHubId.json should exist').toBeTruthy();
             
             const content = JSON.parse(fs.readFileSync(activeHubPath, 'utf-8'));
-            assert.ok(content.setAt, 'Should have setAt timestamp');
+            expect(content.setAt, 'Should have setAt timestamp').toBeTruthy();
             
             const setAtTime = new Date(content.setAt);
-            assert.ok(setAtTime >= beforeTime && setAtTime <= afterTime, 'Timestamp should be within test execution time');
+            expect(setAtTime >= beforeTime && setAtTime <= afterTime, 'Timestamp should be within test execution time').toBeTruthy();
         });
 
-        test('should handle concurrent active hub changes', async () => {
+        it('should handle concurrent active hub changes', async () => {
             const hubId1 = 'test-concurrent-1';
             const hubId2 = 'test-concurrent-2';
             
@@ -502,7 +461,7 @@ suite('HubStorage - TDD', () => {
             ]);
             
             const finalHubId = await storage.getActiveHubId();
-            assert.ok(finalHubId === hubId1 || finalHubId === hubId2, 'Should have one of the hub IDs set');
+            expect(finalHubId === hubId1 || finalHubId === hubId2, 'Should have one of the hub IDs set').toBeTruthy();
         });
     });
 

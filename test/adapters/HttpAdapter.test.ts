@@ -2,12 +2,11 @@
  * HttpAdapter Unit Tests
  */
 
-import * as assert from 'assert';
 import nock from 'nock';
 import { HttpAdapter } from '../../src/adapters/HttpAdapter';
 import { RegistrySource } from '../../src/types/registry';
 
-suite('HttpAdapter', () => {
+describe('HttpAdapter', () => {
     const mockSource: RegistrySource = {
         id: 'test-http-source',
         name: 'Test HTTP Source',
@@ -17,30 +16,30 @@ suite('HttpAdapter', () => {
         priority: 1,
     };
 
-    teardown(() => {
+    afterEach(() => {
         nock.cleanAll();
     });
 
-    suite('Constructor and Validation', () => {
-        test('should accept valid HTTP URL', () => {
+    describe('Constructor and Validation', () => {
+        it('should accept valid HTTP URL', () => {
             const adapter = new HttpAdapter(mockSource);
-            assert.strictEqual(adapter.type, 'http');
+            expect(adapter.type).toBe('http');
         });
 
-        test('should accept valid HTTPS URL', () => {
+        it('should accept valid HTTPS URL', () => {
             const source = { ...mockSource, url: 'https://example.com/bundles' };
             const adapter = new HttpAdapter(source);
-            assert.ok(adapter);
+            expect(adapter).toBeTruthy();
         });
 
-        test('should handle URLs with query parameters', () => {
+        it('should handle URLs with query parameters', () => {
             const source = { ...mockSource, url: 'https://example.com/bundles?filter=active' };
-            assert.doesNotThrow(() => new HttpAdapter(source));
+            expect(() => new HttpAdapter(source)).not.toThrow();
         });
     });
 
-    suite('fetchBundles', () => {
-        test('should fetch bundles from HTTP endpoint', async () => {
+    describe('fetchBundles', () => {
+        it('should fetch bundles from HTTP endpoint', async () => {
             const mockIndex = {
                 name: 'Test Registry',
                 version: '1.0.0',
@@ -70,54 +69,48 @@ suite('HttpAdapter', () => {
             const adapter = new HttpAdapter(mockSource);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 1);
-            assert.strictEqual(bundles[0].id, 'bundle-1');
+            expect(bundles.length).toBe(1);
+            expect(bundles[0].id).toBe('bundle-1');
         });
 
-        test('should handle 404 errors gracefully', async () => {
+        it('should handle 404 errors gracefully', async () => {
             nock('https://example.com')
                 .get('/bundles/index.json')
                 .reply(404);
 
             const adapter = new HttpAdapter(mockSource);
-            await assert.rejects(
-                async () => await adapter.fetchBundles(),
-                /404|Not found/
-            );
+            await expect(async () => await adapter.fetchBundles()).rejects.toThrow(/404|Not found/);
         });
 
-        test('should handle network errors', async () => {
+        it('should handle network errors', async () => {
             nock('https://example.com')
                 .get('/bundles/index.json')
                 .replyWithError('Network error');
 
             const adapter = new HttpAdapter(mockSource);
-            await assert.rejects(
-                async () => await adapter.fetchBundles(),
-                /Network error/
-            );
+            await expect(async () => await adapter.fetchBundles()).rejects.toThrow(/Network error/);
         });
     });
 
-    suite('getDownloadUrl', () => {
-        test('should construct download URL from bundle ID', () => {
+    describe('getDownloadUrl', () => {
+        it('should construct download URL from bundle ID', () => {
             const adapter = new HttpAdapter(mockSource);
             const url = adapter.getDownloadUrl('bundle-1', '1.0.0');
 
-            assert.ok(url.includes('example.com'));
-            assert.ok(url.includes('bundle-1'));
+            expect(url.includes('example.com')).toBeTruthy();
+            expect(url.includes('bundle-1')).toBeTruthy();
         });
 
-        test('should handle version parameter', () => {
+        it('should handle version parameter', () => {
             const adapter = new HttpAdapter(mockSource);
             const url = adapter.getDownloadUrl('bundle-1', '2.0.0');
 
-            assert.ok(url.includes('bundle-1'));
+            expect(url.includes('bundle-1')).toBeTruthy();
         });
     });
 
-    suite('Authentication', () => {
-        test('should include Authorization header when token provided', async () => {
+    describe('Authentication', () => {
+        it('should include Authorization header when token provided', async () => {
             const sourceWithToken = { ...mockSource, token: 'test-token-123' };
             const mockIndex = {
                 name: 'Test Registry',
@@ -136,10 +129,10 @@ suite('HttpAdapter', () => {
             const adapter = new HttpAdapter(sourceWithToken);
             const bundles = await adapter.fetchBundles();
 
-            assert.strictEqual(bundles.length, 0);
+            expect(bundles.length).toBe(0);
         });
 
-        test('should handle 401 unauthorized errors', async () => {
+        it('should handle 401 unauthorized errors', async () => {
             const sourceWithToken = { ...mockSource, token: 'invalid-token' };
 
             nock('https://example.com')
@@ -147,24 +140,18 @@ suite('HttpAdapter', () => {
                 .reply(401, { error: 'Unauthorized' });
 
             const adapter = new HttpAdapter(sourceWithToken);
-            await assert.rejects(
-                async () => await adapter.fetchBundles(),
-                /401|Unauthorized/
-            );
+            await expect(async () => await adapter.fetchBundles()).rejects.toThrow(/401|Unauthorized/);
         });
     });
 
-    suite('Rate Limiting', () => {
-        test('should handle 429 rate limit errors', async () => {
+    describe('Rate Limiting', () => {
+        it('should handle 429 rate limit errors', async () => {
             nock('https://example.com')
                 .get('/bundles/index.json')
                 .reply(429, { error: 'Rate limit exceeded' });
 
             const adapter = new HttpAdapter(mockSource);
-            await assert.rejects(
-                async () => await adapter.fetchBundles(),
-                /429|Rate limit/
-            );
+            await expect(async () => await adapter.fetchBundles()).rejects.toThrow(/429|Rate limit/);
         });
     });
 });

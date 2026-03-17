@@ -3,7 +3,6 @@
  * Tests for loading hub sources into RegistryManager and duplicate detection
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { HubManager } from '../../src/services/HubManager';
@@ -62,14 +61,14 @@ class MockRegistryManager {
     }
 }
 
-suite('Hub Source Loading', () => {
+describe('Hub Source Loading', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let mockValidator: MockSchemaValidator;
     let mockRegistry: MockRegistryManager;
     let tempDir: string;
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hub-source-loading');
         if (fs.existsSync(tempDir)) {
@@ -90,14 +89,14 @@ suite('Hub Source Loading', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    suite('Source Loading Basics', () => {
-        test('should load enabled sources from hub into registry', async () => {
+    describe('Source Loading Basics', () => {
+        it('should load enabled sources from hub into registry', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'hub-two-sources.yml');
             const ref: HubReference = {
                 type: 'local',
@@ -108,26 +107,26 @@ suite('Hub Source Loading', () => {
 
             // Verify sources were loaded
             const sources = await mockRegistry.listSources();
-            assert.strictEqual(sources.length, 2, 'Should have 2 sources loaded');
+            expect(sources.length, 'Should have 2 sources loaded').toBe(2);
 
             // Compute expected sourceIds using the new format
             const expectedSource1Id = generateHubSourceId('awesome-copilot', 'https://github.com/github/awesome-copilot');
             const expectedSource2Id = generateHubSourceId('awesome-copilot', 'https://github.com/org/other-repo');
 
             // Check source IDs use new format (type-hash)
-            assert.ok(sources.some(s => s.id === expectedSource1Id), `Should have source with id ${expectedSource1Id}`);
-            assert.ok(sources.some(s => s.id === expectedSource2Id), `Should have source with id ${expectedSource2Id}`);
+            expect(sources.some(s => s.id === expectedSource1Id), `Should have source with id ${expectedSource1Id}`).toBeTruthy();
+            expect(sources.some(s => s.id === expectedSource2Id), `Should have source with id ${expectedSource2Id}`).toBeTruthy();
 
             // Verify source properties
             const source1 = sources.find(s => s.id === expectedSource1Id);
-            assert.ok(source1, 'Source 1 should exist');
-            assert.strictEqual(source1.name, 'Source 1');
-            assert.strictEqual(source1.type, 'awesome-copilot');
-            assert.strictEqual(source1.url, 'https://github.com/github/awesome-copilot');
-            assert.strictEqual(source1.hubId, 'test-hub');
+            expect(source1, 'Source 1 should exist').toBeTruthy();
+            expect(source1.name).toBe('Source 1');
+            expect(source1.type).toBe('awesome-copilot');
+            expect(source1.url).toBe('https://github.com/github/awesome-copilot');
+            expect(source1.hubId).toBe('test-hub');
         });
 
-        test('should skip disabled sources', async () => {
+        it('should skip disabled sources', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'hub-disabled-source.yml');
             const ref: HubReference = {
                 type: 'local',
@@ -138,18 +137,18 @@ suite('Hub Source Loading', () => {
 
             // Verify only enabled source was loaded
             const sources = await mockRegistry.listSources();
-            assert.strictEqual(sources.length, 1, 'Should have only 1 enabled source loaded');
+            expect(sources.length, 'Should have only 1 enabled source loaded').toBe(1);
 
             // Compute expected sourceIds using the new format
             const expectedEnabledSourceId = generateHubSourceId('awesome-copilot', 'https://github.com/github/awesome-copilot');
             const expectedDisabledSourceId = generateHubSourceId('awesome-copilot', 'https://github.com/disabled/repo');
 
             // Check correct source was loaded
-            assert.ok(mockRegistry.hasSource(expectedEnabledSourceId), 'Should have enabled source');
-            assert.ok(!mockRegistry.hasSource(expectedDisabledSourceId), 'Should not have disabled source');
+            expect(mockRegistry.hasSource(expectedEnabledSourceId), 'Should have enabled source').toBeTruthy();
+            expect(!mockRegistry.hasSource(expectedDisabledSourceId), 'Should not have disabled source').toBeTruthy();
         });
 
-        test('should update existing hub sources on re-import', async () => {
+        it('should update existing hub sources on re-import', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'hub-two-sources.yml');
             const ref: HubReference = {
                 type: 'local',
@@ -159,7 +158,7 @@ suite('Hub Source Loading', () => {
             // First import
             await hubManager.importHub(ref, 'test-hub-update');
             const sourcesAfterFirst = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterFirst.length, 2, 'Should have 2 sources after first import');
+            expect(sourcesAfterFirst.length, 'Should have 2 sources after first import').toBe(2);
 
             // Reset the mock to track only the second import
             const addCallsBefore = mockRegistry.addSourceCalls.length;
@@ -171,14 +170,14 @@ suite('Hub Source Loading', () => {
 
             // Verify sources were updated, not duplicated
             const sourcesAfterReload = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterReload.length, 2, 'Should still have only 2 sources (no duplicates)');
-            assert.strictEqual(mockRegistry.updateSourceCalls.length, 2, 'Should have 2 update calls');
-            assert.strictEqual(mockRegistry.addSourceCalls.length, 0, 'Should have 0 add calls on reload');
+            expect(sourcesAfterReload.length, 'Should still have only 2 sources (no duplicates)').toBe(2);
+            expect(mockRegistry.updateSourceCalls.length, 'Should have 2 update calls').toBe(2);
+            expect(mockRegistry.addSourceCalls.length, 'Should have 0 add calls on reload').toBe(0);
         });
     });
 
-    suite('Duplicate Detection', () => {
-        test('should skip duplicate when URL and type match exactly', async () => {
+    describe('Duplicate Detection', () => {
+        it('should skip duplicate when URL and type match exactly', async () => {
             // Manually add a source
             const existingSource: RegistrySource = {
                 id: 'existing-source',
@@ -206,7 +205,7 @@ suite('Hub Source Loading', () => {
             // Verify duplicate was skipped
             // We should have: 1 existing + 1 new (source-2), source-1 should be skipped as duplicate
             const sources = await mockRegistry.listSources();
-            assert.strictEqual(sources.length, 2, 'Should have 2 sources (1 existing + 1 new, 1 duplicate skipped)');
+            expect(sources.length, 'Should have 2 sources (1 existing + 1 new, 1 duplicate skipped)').toBe(2);
 
             // Compute expected sourceIds using the new format
             const expectedSource1Id = generateHubSourceId('awesome-copilot', 'https://github.com/github/awesome-copilot');
@@ -216,14 +215,14 @@ suite('Hub Source Loading', () => {
             // Note: The hub source would have the same ID as existing since they have same URL+type
             // But since existing source already exists with different ID, the hub source is skipped
             const hubSource1 = sources.find(s => s.id === expectedSource1Id);
-            assert.strictEqual(hubSource1, undefined, 'Duplicate source-1 should be skipped');
+            expect(hubSource1, 'Duplicate source-1 should be skipped').toBe(undefined);
 
             // Verify source-2 was added (different URL)
             const hubSource2 = sources.find(s => s.id === expectedSource2Id);
-            assert.ok(hubSource2, 'Non-duplicate source-2 should be added');
+            expect(hubSource2, 'Non-duplicate source-2 should be added').toBeTruthy();
         });
 
-        test('should allow same URL with different branch', async () => {
+        it('should allow same URL with different branch', async () => {
             // Add source with branch: main
             const existingSource: RegistrySource = {
                 id: 'existing-source-main',
@@ -276,10 +275,10 @@ suite('Hub Source Loading', () => {
 
             // Verify both sources exist (different branches = different sources)
             const sources = await mockRegistry.listSources();
-            assert.strictEqual(sources.length, 2, 'Should have 2 sources (different branches)');
+            expect(sources.length, 'Should have 2 sources (different branches)').toBe(2);
         });
 
-        test('should allow same URL with different collectionsPath', async () => {
+        it('should allow same URL with different collectionsPath', async () => {
             // Add source with collectionsPath: collections
             const existingSource: RegistrySource = {
                 id: 'existing-source-collections',
@@ -332,10 +331,10 @@ suite('Hub Source Loading', () => {
 
             // Verify both sources exist (different paths = different sources)
             const sources = await mockRegistry.listSources();
-            assert.strictEqual(sources.length, 2, 'Should have 2 sources (different collectionsPath)');
+            expect(sources.length, 'Should have 2 sources (different collectionsPath)').toBe(2);
         });
 
-        test('should skip duplicate across multiple hubs', async () => {
+        it('should skip duplicate across multiple hubs', async () => {
             // Import first hub
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'hub-two-sources.yml');
             const ref1: HubReference = {
@@ -345,7 +344,7 @@ suite('Hub Source Loading', () => {
 
             await hubManager.importHub(ref1, 'hub-a');
             const sourcesAfterFirstHub = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterFirstHub.length, 2, 'Should have 2 sources from first hub');
+            expect(sourcesAfterFirstHub.length, 'Should have 2 sources from first hub').toBe(2);
 
             // Import second hub with identical sources (same URLs and configs)
             await hubManager.importHub(ref1, 'hub-b');
@@ -354,7 +353,7 @@ suite('Hub Source Loading', () => {
             const sourcesAfterSecondHub = await mockRegistry.listSources();
             // Hub-b's sources should be skipped because hub-a already has the same URL+config
             // So we should still have only 2 sources total (duplicates were skipped)
-            assert.strictEqual(sourcesAfterSecondHub.length, 2, 'Should have only 2 sources (hub-b duplicates were skipped)');
+            expect(sourcesAfterSecondHub.length, 'Should have only 2 sources (hub-b duplicates were skipped)').toBe(2);
             
             // Compute expected sourceIds using the new format
             const expectedSource1Id = generateHubSourceId('awesome-copilot', 'https://github.com/github/awesome-copilot');
@@ -363,13 +362,13 @@ suite('Hub Source Loading', () => {
             // Verify we have the sources with new format IDs
             // Note: With new format, sourceIds are based on URL+type, not hubId
             // So both hubs would generate the same sourceId for the same URL+type
-            assert.ok(mockRegistry.hasSource(expectedSource1Id), `Should have source with id ${expectedSource1Id}`);
-            assert.ok(mockRegistry.hasSource(expectedSource2Id), `Should have source with id ${expectedSource2Id}`);
+            expect(mockRegistry.hasSource(expectedSource1Id), `Should have source with id ${expectedSource1Id}`).toBeTruthy();
+            expect(mockRegistry.hasSource(expectedSource2Id), `Should have source with id ${expectedSource2Id}`).toBeTruthy();
         });
     });
 
-    suite('Integration with Hub Operations', () => {
-        test('should load sources automatically when importing hub', async () => {
+    describe('Integration with Hub Operations', () => {
+        it('should load sources automatically when importing hub', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'hub-two-sources.yml');
             const ref: HubReference = {
                 type: 'local',
@@ -381,11 +380,11 @@ suite('Hub Source Loading', () => {
 
             // Verify sources were loaded without manual loadHubSources call
             const sources = await mockRegistry.listSources();
-            assert.ok(sources.length > 0, 'Sources should be loaded automatically');
-            assert.ok(mockRegistry.addSourceCalls.length > 0, 'addSource should have been called');
+            expect(sources.length > 0, 'Sources should be loaded automatically').toBeTruthy();
+            expect(mockRegistry.addSourceCalls.length > 0, 'addSource should have been called').toBeTruthy();
         });
 
-        test('should reload sources when syncing hub', async () => {
+        it('should reload sources when syncing hub', async () => {
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'hub-two-sources.yml');
             
             // Create a modifiable copy
@@ -400,7 +399,7 @@ suite('Hub Source Loading', () => {
             // Import hub with 2 sources
             await hubManager.importHub(ref, 'test-sync');
             const sourcesAfterImport = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterImport.length, 2, 'Should have 2 sources after import');
+            expect(sourcesAfterImport.length, 'Should have 2 sources after import').toBe(2);
 
             // Modify the hub config to add a 3rd source
             const yaml = require('js-yaml');
@@ -424,11 +423,11 @@ suite('Hub Source Loading', () => {
 
             // Verify 3 sources exist after sync
             const sourcesAfterSync = await mockRegistry.listSources();
-            assert.strictEqual(sourcesAfterSync.length, 3, 'Should have 3 sources after sync');
+            expect(sourcesAfterSync.length, 'Should have 3 sources after sync').toBe(3);
             
             // Compute expected sourceId for the new source using the new format
             const expectedSource3Id = generateHubSourceId('awesome-copilot', 'https://github.com/org/new-repo');
-            assert.ok(mockRegistry.hasSource(expectedSource3Id), `Should have the newly added source with id ${expectedSource3Id}`);
+            expect(mockRegistry.hasSource(expectedSource3Id), `Should have the newly added source with id ${expectedSource3Id}`).toBeTruthy();
         });
     });
 });

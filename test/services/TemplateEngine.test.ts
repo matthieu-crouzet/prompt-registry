@@ -1,62 +1,58 @@
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { TemplateEngine, TemplateContext } from '../../src/services/TemplateEngine';
 
-suite('TemplateEngine', () => {
+describe('TemplateEngine', () => {
     const templateRoot = path.join(process.cwd(), 'templates/scaffolds/github');
     let templateEngine: TemplateEngine;
 
-    setup(() => {
+    beforeEach(() => {
         templateEngine = new TemplateEngine(templateRoot);
     });
 
-    suite('loadManifest', () => {
-        test('should load manifest from templates directory', async () => {
+    describe('loadManifest', () => {
+        it('should load manifest from templates directory', async () => {
             const manifest = await templateEngine.loadManifest();
-            assert.ok(manifest, 'Manifest should be loaded');
-            assert.ok(manifest.version, 'Version should exist');
-            assert.ok(manifest.templates, 'Should have templates object');
+            expect(manifest, 'Manifest should be loaded').toBeTruthy();
+            expect(manifest.version, 'Version should exist').toBeTruthy();
+            expect(manifest.templates, 'Should have templates object').toBeTruthy();
         });
 
-        test('should throw error if manifest not found', async () => {
-            await assert.rejects(
-                () => new TemplateEngine('/nonexistent/path').loadManifest(),
-                /Template manifest not found/
-            );
+        it('should throw error if manifest not found', async () => {
+            await expect(() => new TemplateEngine('/nonexistent/path').loadManifest()).rejects.toThrow(/Template manifest not found/);
         });
 
-        test('should load template metadata', async () => {
+        it('should load template metadata', async () => {
             const manifest = await templateEngine.loadManifest();
-            assert.ok(manifest.templates['example-prompt'], 'Should have example-prompt template');
-            assert.ok(manifest.templates['readme'], 'Should have readme template');
+            expect(manifest.templates['example-prompt'], 'Should have example-prompt template').toBeTruthy();
+            expect(manifest.templates['readme'], 'Should have readme template').toBeTruthy();
         });
     });
 
-    suite('renderTemplate', () => {
-        test('should render template without variables', async () => {
+    describe('renderTemplate', () => {
+        it('should render template without variables', async () => {
             const context: TemplateContext = {
                 projectName: 'Test',
                 collectionId: 'test'
             };
 
             const content = await templateEngine.renderTemplate('example-prompt', context);
-            assert.ok(content.includes('---') && content.includes('name:'), 'Should contain frontmatter');
+            expect(content.includes('---') && content.includes('name:'), 'Should contain frontmatter').toBeTruthy();
         });
 
-        test('should substitute variables in template', async () => {
+        it('should substitute variables in template', async () => {
             const context: TemplateContext = {
                 projectName: 'My Project',
                 collectionId: 'my-collection'
             };
 
             const content = await templateEngine.renderTemplate('example-collection', context);
-            assert.ok(content.includes('my-collection'), 'Should substitute collectionId');
-            assert.ok(content.includes('My Project'), 'Should substitute projectName');
+            expect(content.includes('my-collection'), 'Should substitute collectionId').toBeTruthy();
+            expect(content.includes('My Project'), 'Should substitute projectName').toBeTruthy();
         });
 
-        test('should render package.json template', async () => {
+        it('should render package.json template', async () => {
             const context: TemplateContext = {
                 projectName: 'Test Project',
                 collectionId: 'test'
@@ -64,26 +60,23 @@ suite('TemplateEngine', () => {
 
             const content = await templateEngine.renderTemplate('package-json', context);
             const parsed = JSON.parse(content);
-            assert.strictEqual(parsed.name, 'test-project', 'Should have kebab-case name');
-            assert.ok(parsed.scripts, 'Should have scripts');
-            assert.ok(parsed.scripts.validate, 'Should have validate script');
+            expect(parsed.name, 'Should have kebab-case name').toBe('test-project');
+            expect(parsed.scripts, 'Should have scripts').toBeTruthy();
+            expect(parsed.scripts.validate, 'Should have validate script').toBeTruthy();
         });
 
-        test('should throw error for unknown template', async () => {
+        it('should throw error for unknown template', async () => {
             const context: TemplateContext = {
                 projectName: 'Test',
                 collectionId: 'test'
             };
 
-            await assert.rejects(
-                () => templateEngine.renderTemplate('nonexistent', context),
-                /Template.*not found/
-            );
+            await expect(() => templateEngine.renderTemplate('nonexistent', context)).rejects.toThrow(/Template.*not found/);
         });
     });
 
-    suite('copyTemplate', () => {
-        test('should copy template to target location', async () => {
+    describe('copyTemplate', () => {
+        it('should copy template to target location', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const targetPath = path.join(tempDir, 'test.prompt.md');
             const context: TemplateContext = {
@@ -93,15 +86,15 @@ suite('TemplateEngine', () => {
 
             await templateEngine.copyTemplate('example-prompt', targetPath, context);
 
-            assert.ok(fs.existsSync(targetPath), 'File should be created');
+            expect(fs.existsSync(targetPath), 'File should be created').toBeTruthy();
             const content = fs.readFileSync(targetPath, 'utf8');
-            assert.ok(content.includes('---') && content.includes('name:'), 'Should have correct content');
+            expect(content.includes('---') && content.includes('name:'), 'Should have correct content').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
 
-        test('should create target directory if not exists', async () => {
+        it('should create target directory if not exists', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const targetPath = path.join(tempDir, 'nested', 'dir', 'file.md');
             const context: TemplateContext = {
@@ -111,14 +104,14 @@ suite('TemplateEngine', () => {
 
             await templateEngine.copyTemplate('example-prompt', targetPath, context);
 
-            assert.ok(fs.existsSync(targetPath), 'File should be created');
-            assert.ok(fs.existsSync(path.dirname(targetPath)), 'Directory should be created');
+            expect(fs.existsSync(targetPath), 'File should be created').toBeTruthy();
+            expect(fs.existsSync(path.dirname(targetPath)), 'Directory should be created').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
 
-        test('should substitute variables when copying', async () => {
+        it('should substitute variables when copying', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const targetPath = path.join(tempDir, 'collection.yml');
             const context: TemplateContext = {
@@ -129,16 +122,16 @@ suite('TemplateEngine', () => {
             await templateEngine.copyTemplate('example-collection', targetPath, context);
 
             const content = fs.readFileSync(targetPath, 'utf8');
-            assert.ok(content.includes('my-collection'), 'Should have collection ID');
-            assert.ok(content.includes('My Project'), 'Should have project name');
+            expect(content.includes('my-collection'), 'Should have collection ID').toBeTruthy();
+            expect(content.includes('My Project'), 'Should have project name').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
     });
 
-    suite('scaffoldProject', () => {
-        test('should create all required directories', async () => {
+    describe('scaffoldProject', () => {
+        it('should create all required directories', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const context: TemplateContext = {
                 projectName: 'Awesome Project',
@@ -147,18 +140,18 @@ suite('TemplateEngine', () => {
 
             await templateEngine.scaffoldProject(tempDir, context);
 
-            assert.ok(fs.existsSync(path.join(tempDir, 'prompts')), 'Should create prompts directory');
-            assert.ok(fs.existsSync(path.join(tempDir, 'instructions')), 'Should create instructions directory');
-            assert.ok(fs.existsSync(path.join(tempDir, 'agents')), 'Should create agents directory');
-            assert.ok(fs.existsSync(path.join(tempDir, 'collections')), 'Should create collections directory');
-            assert.ok(fs.existsSync(path.join(tempDir, '.github', 'workflows')), 'Should create workflows directory');
-            assert.ok(fs.existsSync(path.join(tempDir, 'scripts')), 'Should create scripts directory');
+            expect(fs.existsSync(path.join(tempDir, 'prompts')), 'Should create prompts directory').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'instructions')), 'Should create instructions directory').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'agents')), 'Should create agents directory').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'collections')), 'Should create collections directory').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, '.github', 'workflows')), 'Should create workflows directory').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'scripts')), 'Should create scripts directory').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
 
-        test('should create all template files', async () => {
+        it('should create all template files', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const context: TemplateContext = {
                 projectName: 'Awesome Project',
@@ -167,20 +160,20 @@ suite('TemplateEngine', () => {
 
             await templateEngine.scaffoldProject(tempDir, context);
             
-            assert.ok(fs.existsSync(path.join(tempDir, 'prompts/example.prompt.md')), 'Should create example prompt');
-            assert.ok(fs.existsSync(path.join(tempDir, 'instructions/example.instructions.md')), 'Should create example instruction');
-            assert.ok(fs.existsSync(path.join(tempDir, 'agents/example.agent.md')), 'Should create example agent');
-            assert.ok(fs.existsSync(path.join(tempDir, 'collections/example.collection.yml')), 'Should create example collection');
-            assert.ok(fs.existsSync(path.join(tempDir, 'README.md')), 'Should create README');
-            assert.ok(fs.existsSync(path.join(tempDir, 'package.json')), 'Should create package.json');
-            assert.ok(fs.existsSync(path.join(tempDir, '.github/workflows/publish.yml')), 'Should create publish workflow');
-            assert.ok(fs.existsSync(path.join(tempDir, 'scripts/README.md')), 'Should create scripts README');
+            expect(fs.existsSync(path.join(tempDir, 'prompts/example.prompt.md')), 'Should create example prompt').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'instructions/example.instructions.md')), 'Should create example instruction').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'agents/example.agent.md')), 'Should create example agent').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'collections/example.collection.yml')), 'Should create example collection').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'README.md')), 'Should create README').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'package.json')), 'Should create package.json').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, '.github/workflows/publish.yml')), 'Should create publish workflow').toBeTruthy();
+            expect(fs.existsSync(path.join(tempDir, 'scripts/README.md')), 'Should create scripts README').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
 
-        test('should substitute variables in all files', async () => {
+        it('should substitute variables in all files', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const context: TemplateContext = {
                 projectName: 'Awesome Project',
@@ -194,8 +187,8 @@ suite('TemplateEngine', () => {
                 path.join(tempDir, 'collections/example.collection.yml'),
                 'utf8'
             );
-            assert.ok(collectionContent.includes('test-project'), 'Collection should have project ID');
-            assert.ok(collectionContent.includes('Awesome Project'), 'Collection should have project name');
+            expect(collectionContent.includes('test-project'), 'Collection should have project ID').toBeTruthy();
+            expect(collectionContent.includes('Awesome Project'), 'Collection should have project name').toBeTruthy();
 
             // Check package.json
             const packageContent = fs.readFileSync(
@@ -203,13 +196,13 @@ suite('TemplateEngine', () => {
                 'utf8'
             );
             const packageJson = JSON.parse(packageContent);
-            assert.strictEqual(packageJson.name, 'awesome-project', 'Package should have substituted name');
+            expect(packageJson.name, 'Package should have substituted name').toBe('awesome-project');
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
 
-        test('should copy scripts README', async () => {
+        it('should copy scripts README', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const context: TemplateContext = {
                 projectName: 'Test Project',
@@ -219,16 +212,16 @@ suite('TemplateEngine', () => {
             await templateEngine.scaffoldProject(tempDir, context);
 
             const readmePath = path.join(tempDir, 'scripts/README.md');
-            assert.ok(fs.existsSync(readmePath), 'Scripts README should be copied');
+            expect(fs.existsSync(readmePath), 'Scripts README should be copied').toBeTruthy();
 
             const content = fs.readFileSync(readmePath, 'utf8');
-            assert.ok(content.length > 0, 'README should have content');
+            expect(content.length > 0, 'README should have content').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
 
-        test('should create base directory if not exists', async () => {
+        it('should create base directory if not exists', async () => {
             const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-test-'));
             const projectDir = path.join(tempDir, 'new-project');
             const context: TemplateContext = {
@@ -239,30 +232,30 @@ suite('TemplateEngine', () => {
             // Should not throw even though projectDir doesn't exist
             await templateEngine.scaffoldProject(projectDir, context);
 
-            assert.ok(fs.existsSync(projectDir), 'Should create base directory');
-            assert.ok(fs.existsSync(path.join(projectDir, 'prompts')), 'Should create subdirectories');
+            expect(fs.existsSync(projectDir), 'Should create base directory').toBeTruthy();
+            expect(fs.existsSync(path.join(projectDir, 'prompts')), 'Should create subdirectories').toBeTruthy();
 
             // Cleanup
             fs.rmSync(tempDir, { recursive: true });
         });
     });
 
-    suite('getTemplates', () => {
-        test('should return all available templates', async () => {
+    describe('getTemplates', () => {
+        it('should return all available templates', async () => {
             const templates = await templateEngine.getTemplates();
-            assert.ok(templates, 'Should return templates object');
-            assert.ok(Object.keys(templates).length > 0, 'Should have templates');
+            expect(templates, 'Should return templates object').toBeTruthy();
+            expect(Object.keys(templates).length > 0, 'Should have templates').toBeTruthy();
         });
 
-        test('should include template metadata', async () => {
+        it('should include template metadata', async () => {
             const templates = await templateEngine.getTemplates();
             const examplePrompt = templates['example-prompt'];
             
-            assert.ok(examplePrompt, 'Should have example-prompt');
-            assert.ok(examplePrompt.path, 'Should have path');
-            assert.ok(examplePrompt.description, 'Should have description');
-            assert.strictEqual(typeof examplePrompt.required, 'boolean', 'Should have required flag');
-            assert.ok(Array.isArray(examplePrompt.variables), 'Should have variables array');
+            expect(examplePrompt, 'Should have example-prompt').toBeTruthy();
+            expect(examplePrompt.path, 'Should have path').toBeTruthy();
+            expect(examplePrompt.description, 'Should have description').toBeTruthy();
+            expect(typeof examplePrompt.required, 'Should have required flag').toBe('boolean');
+            expect(Array.isArray(examplePrompt.variables), 'Should have variables array').toBeTruthy();
         });
     });
 });

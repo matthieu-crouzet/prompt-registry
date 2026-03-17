@@ -5,7 +5,6 @@
  * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { RegistryManager } from '../../src/services/RegistryManager';
@@ -38,19 +37,19 @@ function createMockManifest(): DeploymentManifest {
     };
 }
 
-suite('RegistryManager - Event Handling', () => {
+describe('RegistryManager - Event Handling', () => {
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('onBundleInstalled Event', () => {
-        test('should fire onBundleInstalled event with correct installation details', () => {
+    describe('onBundleInstalled Event', () => {
+        it('should fire onBundleInstalled event with correct installation details', () => {
             // Requirement 6.1: WHEN a bundle is installed THEN the system SHALL fire the onBundleInstalled event with the installation details
 
             // Create a mock event emitter
@@ -80,17 +79,17 @@ suite('RegistryManager - Event Handling', () => {
             eventEmitter.fire(mockInstallation);
 
             // Verify event was fired
-            assert.strictEqual(eventFired, true, 'onBundleInstalled event should be fired');
-            assert.ok(eventData, 'Event data should be provided');
-            assert.strictEqual(eventData?.bundleId, 'test-bundle', 'Event should contain correct bundle ID');
-            assert.strictEqual(eventData?.version, '1.0.0', 'Event should contain correct version');
-            assert.strictEqual(eventData?.sourceId, 'test-source', 'Event should contain correct source ID');
-            assert.strictEqual(eventData?.sourceType, 'github', 'Event should contain correct source type');
+            expect(eventFired, 'onBundleInstalled event should be fired').toBe(true);
+            expect(eventData, 'Event data should be provided').toBeTruthy();
+            expect(eventData?.bundleId, 'Event should contain correct bundle ID').toBe('test-bundle');
+            expect(eventData?.version, 'Event should contain correct version').toBe('1.0.0');
+            expect(eventData?.sourceId, 'Event should contain correct source ID').toBe('test-source');
+            expect(eventData?.sourceType, 'Event should contain correct source type').toBe('github');
         });
     });
 
-    suite('onBundleUninstalled Event', () => {
-        test('should fire onBundleUninstalled event with correct bundle ID', () => {
+    describe('onBundleUninstalled Event', () => {
+        it('should fire onBundleUninstalled event with correct bundle ID', () => {
             // Requirement 6.2: WHEN a bundle is uninstalled THEN the system SHALL fire the onBundleUninstalled event with the bundle ID
 
             // Create a mock event emitter
@@ -109,13 +108,13 @@ suite('RegistryManager - Event Handling', () => {
             eventEmitter.fire('test-bundle-v1.0.0');
 
             // Verify event was fired
-            assert.strictEqual(eventFired, true, 'onBundleUninstalled event should be fired');
-            assert.strictEqual(eventBundleId, 'test-bundle-v1.0.0', 'Event should contain correct bundle ID');
+            expect(eventFired, 'onBundleUninstalled event should be fired').toBe(true);
+            expect(eventBundleId, 'Event should contain correct bundle ID').toBe('test-bundle-v1.0.0');
         });
     });
 
-    suite('onBundleUpdated Event', () => {
-        test('should fire onBundleUpdated event with correct new installation details', () => {
+    describe('onBundleUpdated Event', () => {
+        it('should fire onBundleUpdated event with correct new installation details', () => {
             // Requirement 6.3: WHEN a bundle is updated THEN the system SHALL fire the onBundleUpdated event with the new installation details
 
             // Create a mock event emitter
@@ -145,15 +144,15 @@ suite('RegistryManager - Event Handling', () => {
             eventEmitter.fire(updatedInstallation);
 
             // Verify event was fired
-            assert.strictEqual(eventFired, true, 'onBundleUpdated event should be fired');
-            assert.ok(eventData, 'Event data should be provided');
-            assert.strictEqual(eventData?.bundleId, 'test-bundle', 'Event should contain correct bundle ID');
-            assert.strictEqual(eventData?.version, '1.1.0', 'Event should contain new version');
+            expect(eventFired, 'onBundleUpdated event should be fired').toBe(true);
+            expect(eventData, 'Event data should be provided').toBeTruthy();
+            expect(eventData?.bundleId, 'Event should contain correct bundle ID').toBe('test-bundle');
+            expect(eventData?.version, 'Event should contain new version').toBe('1.1.0');
         });
     });
 
-    suite('Event Firing Order', () => {
-        test('should fire update event (not uninstall + install)', () => {
+    describe('Event Firing Order', () => {
+        it('should fire update event (not uninstall + install)', () => {
             // Track event order
             const eventOrder: string[] = [];
 
@@ -190,13 +189,13 @@ suite('RegistryManager - Event Handling', () => {
             updateEmitter.fire(updatedInstallation);
 
             // Verify only update event was fired (not uninstall + install)
-            assert.strictEqual(eventOrder.length, 1, 'Should fire exactly one event');
-            assert.strictEqual(eventOrder[0], 'updated', 'Should fire update event');
+            expect(eventOrder.length, 'Should fire exactly one event').toBe(1);
+            expect(eventOrder[0], 'Should fire update event').toBe('updated');
         });
     });
 
-    suite('onSourceSynced Event', () => {
-        test('should fire onSourceSynced event with correct source ID and bundle count', () => {
+    describe('onSourceSynced Event', () => {
+        it('should fire onSourceSynced event with correct source ID and bundle count', () => {
             // Requirement 1.6: WHEN a source is synced THEN the Registry Manager SHALL emit an event to notify listeners that bundle metadata has been refreshed
             // Requirement 11.1: WHEN a source sync completes THEN the Registry Manager SHALL emit a source synced event
 
@@ -216,13 +215,13 @@ suite('RegistryManager - Event Handling', () => {
             eventEmitter.fire({ sourceId: 'test-source', bundleCount: 42 });
 
             // Verify event was fired
-            assert.strictEqual(eventFired, true, 'onSourceSynced event should be fired');
-            assert.ok(eventData, 'Event data should be provided');
-            assert.strictEqual(eventData?.sourceId, 'test-source', 'Event should contain correct source ID');
-            assert.strictEqual(eventData?.bundleCount, 42, 'Event should contain correct bundle count');
+            expect(eventFired, 'onSourceSynced event should be fired').toBe(true);
+            expect(eventData, 'Event data should be provided').toBeTruthy();
+            expect(eventData?.sourceId, 'Event should contain correct source ID').toBe('test-source');
+            expect(eventData?.bundleCount, 'Event should contain correct bundle count').toBe(42);
         });
 
-        test('should fire onSourceSynced event with zero bundle count for empty sources', () => {
+        it('should fire onSourceSynced event with zero bundle count for empty sources', () => {
             // Edge case: source with no bundles
 
             // Create a mock event emitter
@@ -241,10 +240,10 @@ suite('RegistryManager - Event Handling', () => {
             eventEmitter.fire({ sourceId: 'empty-source', bundleCount: 0 });
 
             // Verify event was fired
-            assert.strictEqual(eventFired, true, 'onSourceSynced event should be fired even for empty sources');
-            assert.ok(eventData, 'Event data should be provided');
-            assert.strictEqual(eventData?.sourceId, 'empty-source', 'Event should contain correct source ID');
-            assert.strictEqual(eventData?.bundleCount, 0, 'Event should contain zero bundle count');
+            expect(eventFired, 'onSourceSynced event should be fired even for empty sources').toBe(true);
+            expect(eventData, 'Event data should be provided').toBeTruthy();
+            expect(eventData?.sourceId, 'Event should contain correct source ID').toBe('empty-source');
+            expect(eventData?.bundleCount, 'Event should contain zero bundle count').toBe(0);
         });
     });
 });

@@ -2,7 +2,6 @@
  * Bundle Name Utilities Tests
  */
 
-import * as assert from 'assert';
 import { 
     generateSanitizedId, 
     formatByteSize,
@@ -11,133 +10,133 @@ import {
     generateBuildScriptBundleId
 } from '../../src/utils/bundleNameUtils';
 
-suite('bundleNameUtils', () => {
-    suite('generateSanitizedId', () => {
-        test('should convert to lowercase', () => {
-            assert.strictEqual(generateSanitizedId('MyProject'), 'myproject');
-            assert.strictEqual(generateSanitizedId('UPPERCASE'), 'uppercase');
+describe('bundleNameUtils', () => {
+    describe('generateSanitizedId', () => {
+        it('should convert to lowercase', () => {
+            expect(generateSanitizedId('MyProject')).toBe('myproject');
+            expect(generateSanitizedId('UPPERCASE')).toBe('uppercase');
         });
 
-        test('should replace spaces with hyphens', () => {
-            assert.strictEqual(generateSanitizedId('my project'), 'my-project');
-            assert.strictEqual(generateSanitizedId('hello world test'), 'hello-world-test');
+        it('should replace spaces with hyphens', () => {
+            expect(generateSanitizedId('my project')).toBe('my-project');
+            expect(generateSanitizedId('hello world test')).toBe('hello-world-test');
         });
 
-        test('should replace multiple spaces with single hyphen', () => {
-            assert.strictEqual(generateSanitizedId('my   project'), 'my-project');
-            assert.strictEqual(generateSanitizedId('hello    world'), 'hello-world');
+        it('should replace multiple spaces with single hyphen', () => {
+            expect(generateSanitizedId('my   project')).toBe('my-project');
+            expect(generateSanitizedId('hello    world')).toBe('hello-world');
         });
 
-        test('should remove special characters', () => {
-            assert.strictEqual(generateSanitizedId('my-project!!'), 'my-project');
-            assert.strictEqual(generateSanitizedId('test@#$%name'), 'test-name');
+        it('should remove special characters', () => {
+            expect(generateSanitizedId('my-project!!')).toBe('my-project');
+            expect(generateSanitizedId('test@#$%name')).toBe('test-name');
         });
 
-        test('should trim leading and trailing whitespace', () => {
-            assert.strictEqual(generateSanitizedId('  my project  '), 'my-project');
-            assert.strictEqual(generateSanitizedId('\t\ntest\t\n'), 'test');
+        it('should trim leading and trailing whitespace', () => {
+            expect(generateSanitizedId('  my project  ')).toBe('my-project');
+            expect(generateSanitizedId('\t\ntest\t\n')).toBe('test');
         });
 
-        test('should remove leading and trailing hyphens', () => {
-            assert.strictEqual(generateSanitizedId('--my-project--'), 'my-project');
-            assert.strictEqual(generateSanitizedId('!!!test!!!'), 'test');
+        it('should remove leading and trailing hyphens', () => {
+            expect(generateSanitizedId('--my-project--')).toBe('my-project');
+            expect(generateSanitizedId('!!!test!!!')).toBe('test');
         });
 
-        test('should handle complex cases', () => {
-            assert.strictEqual(generateSanitizedId('  My  Project!!  '), 'my-project');
-            assert.strictEqual(generateSanitizedId('Hello, World! 123'), 'hello-world-123');
-            assert.strictEqual(generateSanitizedId('test_name-here'), 'test-name-here');
+        it('should handle complex cases', () => {
+            expect(generateSanitizedId('  My  Project!!  ')).toBe('my-project');
+            expect(generateSanitizedId('Hello, World! 123')).toBe('hello-world-123');
+            expect(generateSanitizedId('test_name-here')).toBe('test-name-here');
         });
 
-        test('should preserve numbers', () => {
-            assert.strictEqual(generateSanitizedId('project123'), 'project123');
-            assert.strictEqual(generateSanitizedId('v2.0.0'), 'v2-0-0');
+        it('should preserve numbers', () => {
+            expect(generateSanitizedId('project123')).toBe('project123');
+            expect(generateSanitizedId('v2.0.0')).toBe('v2-0-0');
         });
 
-        test('should handle empty string', () => {
-            assert.strictEqual(generateSanitizedId(''), '');
-            assert.strictEqual(generateSanitizedId('   '), '');
-        });
-    });
-
-    suite('formatByteSize', () => {
-        test('should format bytes', () => {
-            assert.strictEqual(formatByteSize(0), '0 B');
-            assert.strictEqual(formatByteSize(512), '512 B');
-            assert.strictEqual(formatByteSize(1023), '1023 B');
-        });
-
-        test('should format kilobytes', () => {
-            assert.strictEqual(formatByteSize(1024), '1.0 KB');
-            assert.strictEqual(formatByteSize(1536), '1.5 KB');
-            assert.strictEqual(formatByteSize(10240), '10.0 KB');
-        });
-
-        test('should format megabytes', () => {
-            assert.strictEqual(formatByteSize(1024 * 1024), '1.0 MB');
-            assert.strictEqual(formatByteSize(1.5 * 1024 * 1024), '1.5 MB');
-            assert.strictEqual(formatByteSize(10 * 1024 * 1024), '10.0 MB');
+        it('should handle empty string', () => {
+            expect(generateSanitizedId('')).toBe('');
+            expect(generateSanitizedId('   ')).toBe('');
         });
     });
 
-    suite('isManifestIdMatch', () => {
-        test('should match exact IDs', () => {
-            assert.ok(isManifestIdMatch('my-bundle', '1.0.0', 'my-bundle'));
-            assert.ok(isManifestIdMatch('owner-repo-v1.0.0', '1.0.0', 'owner-repo-v1.0.0'));
+    describe('formatByteSize', () => {
+        it('should format bytes', () => {
+            expect(formatByteSize(0)).toBe('0 B');
+            expect(formatByteSize(512)).toBe('512 B');
+            expect(formatByteSize(1023)).toBe('1023 B');
         });
 
-        test('should match suffix pattern with v prefix', () => {
-            assert.ok(isManifestIdMatch('collection', '1.0.0', 'owner-repo-collection-v1.0.0'));
-            assert.ok(isManifestIdMatch('test2', '1.0.2', 'org-repo-test2-v1.0.2'));
+        it('should format kilobytes', () => {
+            expect(formatByteSize(1024)).toBe('1.0 KB');
+            expect(formatByteSize(1536)).toBe('1.5 KB');
+            expect(formatByteSize(10240)).toBe('10.0 KB');
         });
 
-        test('should match suffix pattern without v prefix', () => {
-            assert.ok(isManifestIdMatch('collection', '1.0.0', 'owner-repo-collection-1.0.0'));
-            assert.ok(isManifestIdMatch('test2', '1.0.2', 'org-repo-test2-1.0.2'));
-        });
-
-        test('should not match mismatched IDs', () => {
-            assert.ok(!isManifestIdMatch('wrong', '1.0.0', 'owner-repo-collection-v1.0.0'));
-            assert.ok(!isManifestIdMatch('collection', '2.0.0', 'owner-repo-collection-v1.0.0'));
-        });
-
-        test('should handle special characters in repo names', () => {
-            assert.ok(isManifestIdMatch('test2', '1.0.2', 'org-repo.name-test2-1.0.2'));
+        it('should format megabytes', () => {
+            expect(formatByteSize(1024 * 1024)).toBe('1.0 MB');
+            expect(formatByteSize(1.5 * 1024 * 1024)).toBe('1.5 MB');
+            expect(formatByteSize(10 * 1024 * 1024)).toBe('10.0 MB');
         });
     });
 
-    suite('generateGitHubBundleId', () => {
-        test('should generate ID with manifest info', () => {
+    describe('isManifestIdMatch', () => {
+        it('should match exact IDs', () => {
+            expect(isManifestIdMatch('my-bundle', '1.0.0', 'my-bundle')).toBeTruthy();
+            expect(isManifestIdMatch('owner-repo-v1.0.0', '1.0.0', 'owner-repo-v1.0.0')).toBeTruthy();
+        });
+
+        it('should match suffix pattern with v prefix', () => {
+            expect(isManifestIdMatch('collection', '1.0.0', 'owner-repo-collection-v1.0.0')).toBeTruthy();
+            expect(isManifestIdMatch('test2', '1.0.2', 'org-repo-test2-v1.0.2')).toBeTruthy();
+        });
+
+        it('should match suffix pattern without v prefix', () => {
+            expect(isManifestIdMatch('collection', '1.0.0', 'owner-repo-collection-1.0.0')).toBeTruthy();
+            expect(isManifestIdMatch('test2', '1.0.2', 'org-repo-test2-1.0.2')).toBeTruthy();
+        });
+
+        it('should not match mismatched IDs', () => {
+            expect(!isManifestIdMatch('wrong', '1.0.0', 'owner-repo-collection-v1.0.0')).toBeTruthy();
+            expect(!isManifestIdMatch('collection', '2.0.0', 'owner-repo-collection-v1.0.0')).toBeTruthy();
+        });
+
+        it('should handle special characters in repo names', () => {
+            expect(isManifestIdMatch('test2', '1.0.2', 'org-repo.name-test2-1.0.2')).toBeTruthy();
+        });
+    });
+
+    describe('generateGitHubBundleId', () => {
+        it('should generate ID with manifest info', () => {
             const id = generateGitHubBundleId('owner', 'repo', 'v1.0.0', 'collection', '1.0.0');
-            assert.strictEqual(id, 'owner-repo-collection-1.0.0');
+            expect(id).toBe('owner-repo-collection-1.0.0');
         });
 
-        test('should generate legacy ID without manifest info', () => {
+        it('should generate legacy ID without manifest info', () => {
             const id = generateGitHubBundleId('owner', 'repo', 'v1.0.0');
-            assert.strictEqual(id, 'owner-repo-v1.0.0');
+            expect(id).toBe('owner-repo-v1.0.0');
         });
 
-        test('should strip v prefix from tag when no manifest version', () => {
+        it('should strip v prefix from tag when no manifest version', () => {
             const id = generateGitHubBundleId('owner', 'repo', 'v2.0.0', 'test');
-            assert.strictEqual(id, 'owner-repo-test-2.0.0');
+            expect(id).toBe('owner-repo-test-2.0.0');
         });
 
-        test('should use manifest version as-is when provided', () => {
+        it('should use manifest version as-is when provided', () => {
             const id = generateGitHubBundleId('owner', 'repo', 'v2.0.0', 'test', '2.0.0');
-            assert.strictEqual(id, 'owner-repo-test-2.0.0');
+            expect(id).toBe('owner-repo-test-2.0.0');
         });
     });
 
-    suite('generateBuildScriptBundleId', () => {
-        test('should generate ID with v prefix', () => {
+    describe('generateBuildScriptBundleId', () => {
+        it('should generate ID with v prefix', () => {
             const id = generateBuildScriptBundleId('owner/repo', 'collection', '1.0.0');
-            assert.strictEqual(id, 'owner-repo-collection-v1.0.0');
+            expect(id).toBe('owner-repo-collection-v1.0.0');
         });
 
-        test('should normalize repo slug', () => {
+        it('should normalize repo slug', () => {
             const id1 = generateBuildScriptBundleId('owner/repo', 'test', '1.0.0');
             const id2 = generateBuildScriptBundleId('owner-repo', 'test', '1.0.0');
-            assert.strictEqual(id1, id2);
+            expect(id1).toBe(id2);
         });
     });
 });

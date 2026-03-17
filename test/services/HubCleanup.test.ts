@@ -6,7 +6,6 @@
  * - Remove sources that came from that hub
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -56,13 +55,13 @@ class MockRegistryManager {
     }
 }
 
-suite('Hub Cleanup', () => {
+describe('Hub Cleanup', () => {
     let hubManager: HubManager;
     let storage: HubStorage;
     let mockRegistryManager: MockRegistryManager;
     let tempDir: string;
 
-    setup(() => {
+    beforeEach(() => {
         // Create temp directory
         tempDir = path.join(__dirname, '..', '..', 'test-temp-hub-cleanup');
         if (fs.existsSync(tempDir)) {
@@ -83,15 +82,15 @@ suite('Hub Cleanup', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         sinon.restore();
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true });
         }
     });
 
-    suite('deleteHub cleanup', () => {
-        test('should remove sources linked to deleted hub', async () => {
+    describe('deleteHub cleanup', () => {
+        it('should remove sources linked to deleted hub', async () => {
             // Setup: Add sources, some from hub, some local
             mockRegistryManager.sources = [
                 { id: 'hub-test-hub-source1', name: 'Hub Source 1', hubId: 'test-hub' },
@@ -109,25 +108,13 @@ suite('Hub Cleanup', () => {
             await hubManager.deleteHub('test-hub');
 
             // Verify only sources from 'test-hub' were removed
-            assert.ok(
-                mockRegistryManager.removedSourceIds.includes('hub-test-hub-source1'),
-                'Source 1 from test-hub should be removed'
-            );
-            assert.ok(
-                mockRegistryManager.removedSourceIds.includes('hub-test-hub-source2'),
-                'Source 2 from test-hub should be removed'
-            );
-            assert.ok(
-                !mockRegistryManager.removedSourceIds.includes('local-source'),
-                'Local source should NOT be removed'
-            );
-            assert.ok(
-                !mockRegistryManager.removedSourceIds.includes('hub-other-hub-source'),
-                'Source from other hub should NOT be removed'
-            );
+            expect(mockRegistryManager.removedSourceIds.includes('hub-test-hub-source1'), 'Source 1 from test-hub should be removed').toBeTruthy();
+            expect(mockRegistryManager.removedSourceIds.includes('hub-test-hub-source2'), 'Source 2 from test-hub should be removed').toBeTruthy();
+            expect(!mockRegistryManager.removedSourceIds.includes('local-source'), 'Local source should NOT be removed').toBeTruthy();
+            expect(!mockRegistryManager.removedSourceIds.includes('hub-other-hub-source'), 'Source from other hub should NOT be removed').toBeTruthy();
         });
 
-        test('should remove favorites for deleted hub', async () => {
+        it('should remove favorites for deleted hub', async () => {
             // Import hub and add some favorites
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -142,19 +129,19 @@ suite('Hub Cleanup', () => {
 
             // Verify favorites exist
             let favorites = await hubManager.getFavoriteProfiles();
-            assert.ok(favorites['test-hub'], 'test-hub should have favorites');
-            assert.ok(favorites['other-hub'], 'other-hub should have favorites');
+            expect(favorites['test-hub'], 'test-hub should have favorites').toBeTruthy();
+            expect(favorites['other-hub'], 'other-hub should have favorites').toBeTruthy();
 
             // Delete the hub
             await hubManager.deleteHub('test-hub');
 
             // Verify favorites for deleted hub are removed
             favorites = await hubManager.getFavoriteProfiles();
-            assert.strictEqual(favorites['test-hub'], undefined, 'test-hub favorites should be removed');
-            assert.ok(favorites['other-hub'], 'other-hub favorites should remain');
+            expect(favorites['test-hub'], 'test-hub favorites should be removed').toBe(undefined);
+            expect(favorites['other-hub'], 'other-hub favorites should remain').toBeTruthy();
         });
 
-        test('should deactivate profiles linked to deleted hub', async () => {
+        it('should deactivate profiles linked to deleted hub', async () => {
             // Setup: Add profiles, some from hub, some local
             mockRegistryManager.profiles = [
                 { id: 'hub-profile1', name: 'Hub Profile 1', active: true, hubId: 'test-hub' },
@@ -172,27 +159,15 @@ suite('Hub Cleanup', () => {
             await hubManager.deleteHub('test-hub');
 
             // Verify only profiles from 'test-hub' were deactivated
-            assert.ok(
-                mockRegistryManager.deactivatedProfileIds.includes('hub-profile1'),
-                'Profile 1 from test-hub should be deactivated'
-            );
-            assert.ok(
-                mockRegistryManager.deactivatedProfileIds.includes('hub-profile2'),
-                'Profile 2 from test-hub should be deactivated'
-            );
-            assert.ok(
-                !mockRegistryManager.deactivatedProfileIds.includes('local-profile'),
-                'Local profile should NOT be deactivated'
-            );
-            assert.ok(
-                !mockRegistryManager.deactivatedProfileIds.includes('other-hub-profile'),
-                'Profile from other hub should NOT be deactivated'
-            );
+            expect(mockRegistryManager.deactivatedProfileIds.includes('hub-profile1'), 'Profile 1 from test-hub should be deactivated').toBeTruthy();
+            expect(mockRegistryManager.deactivatedProfileIds.includes('hub-profile2'), 'Profile 2 from test-hub should be deactivated').toBeTruthy();
+            expect(!mockRegistryManager.deactivatedProfileIds.includes('local-profile'), 'Local profile should NOT be deactivated').toBeTruthy();
+            expect(!mockRegistryManager.deactivatedProfileIds.includes('other-hub-profile'), 'Profile from other hub should NOT be deactivated').toBeTruthy();
         });
     });
 
-    suite('orphaned favorites cleanup', () => {
-        test('should remove favorites for hubs that no longer exist', async () => {
+    describe('orphaned favorites cleanup', () => {
+        it('should remove favorites for hubs that no longer exist', async () => {
             // Import a hub
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -206,19 +181,19 @@ suite('Hub Cleanup', () => {
 
             // Verify orphaned favorites exist
             let currentFavorites = await hubManager.getFavoriteProfiles();
-            assert.ok(currentFavorites['non-existent-hub'], 'Non-existent hub favorites should exist before cleanup');
-            assert.ok(currentFavorites['another-ghost-hub'], 'Another ghost hub favorites should exist before cleanup');
+            expect(currentFavorites['non-existent-hub'], 'Non-existent hub favorites should exist before cleanup').toBeTruthy();
+            expect(currentFavorites['another-ghost-hub'], 'Another ghost hub favorites should exist before cleanup').toBeTruthy();
 
             // Run cleanup of orphaned favorites
             await hubManager.cleanupOrphanedFavorites();
 
             // Verify orphaned favorites are removed
             currentFavorites = await hubManager.getFavoriteProfiles();
-            assert.strictEqual(currentFavorites['non-existent-hub'], undefined, 'Non-existent hub favorites should be removed');
-            assert.strictEqual(currentFavorites['another-ghost-hub'], undefined, 'Another ghost hub favorites should be removed');
+            expect(currentFavorites['non-existent-hub'], 'Non-existent hub favorites should be removed').toBe(undefined);
+            expect(currentFavorites['another-ghost-hub'], 'Another ghost hub favorites should be removed').toBe(undefined);
         });
 
-        test('should keep favorites for hubs that still exist', async () => {
+        it('should keep favorites for hubs that still exist', async () => {
             // Import a hub
             const fixturePath = path.join(__dirname, '..', 'fixtures', 'hubs', 'valid-hub-config.yml');
             const ref: HubReference = { type: 'local', location: fixturePath };
@@ -237,14 +212,14 @@ suite('Hub Cleanup', () => {
 
             // Verify existing hub favorites remain, orphaned are removed
             const currentFavorites = await hubManager.getFavoriteProfiles();
-            assert.ok(currentFavorites['existing-hub'], 'Existing hub favorites should remain');
-            assert.ok(currentFavorites['existing-hub'].includes('profile1'), 'Profile1 should still be favorited');
-            assert.strictEqual(currentFavorites['ghost-hub'], undefined, 'Ghost hub favorites should be removed');
+            expect(currentFavorites['existing-hub'], 'Existing hub favorites should remain').toBeTruthy();
+            expect(currentFavorites['existing-hub'].includes('profile1'), 'Profile1 should still be favorited').toBeTruthy();
+            expect(currentFavorites['ghost-hub'], 'Ghost hub favorites should be removed').toBe(undefined);
         });
     });
 
-    suite('setActiveHub cleanup (switching hubs)', () => {
-        test('should cleanup previous hub when switching to new hub', async () => {
+    describe('setActiveHub cleanup (switching hubs)', () => {
+        it('should cleanup previous hub when switching to new hub', async () => {
             // Setup sources from two hubs
             mockRegistryManager.sources = [
                 { id: 'hub-hub1-source1', name: 'Hub1 Source', hubId: 'hub1' },
@@ -273,23 +248,17 @@ suite('Hub Cleanup', () => {
             await hubManager.setActiveHub('hub2');
 
             // Verify hub1 profiles are deactivated
-            assert.ok(
-                mockRegistryManager.deactivatedProfileIds.includes('hub1-profile'),
-                'Hub1 profile should be deactivated when switching away'
-            );
+            expect(mockRegistryManager.deactivatedProfileIds.includes('hub1-profile'), 'Hub1 profile should be deactivated when switching away').toBeTruthy();
 
             // Verify hub1 sources are removed
-            assert.ok(
-                mockRegistryManager.removedSourceIds.includes('hub-hub1-source1'),
-                'Hub1 source should be removed when switching away'
-            );
+            expect(mockRegistryManager.removedSourceIds.includes('hub-hub1-source1'), 'Hub1 source should be removed when switching away').toBeTruthy();
 
             // Verify hub1 favorites are cleared
             const favorites = await hubManager.getFavoriteProfiles();
-            assert.strictEqual(favorites['hub1'], undefined, 'Hub1 favorites should be cleared');
+            expect(favorites['hub1'], 'Hub1 favorites should be cleared').toBe(undefined);
         });
 
-        test('should not cleanup when setting same hub as active', async () => {
+        it('should not cleanup when setting same hub as active', async () => {
             mockRegistryManager.sources = [
                 { id: 'hub-hub1-source1', name: 'Hub1 Source', hubId: 'hub1' }
             ];
@@ -304,14 +273,10 @@ suite('Hub Cleanup', () => {
             await hubManager.setActiveHub('hub1');
 
             // Verify no cleanup happened
-            assert.strictEqual(
-                mockRegistryManager.removedSourceIds.length, 
-                0, 
-                'No sources should be removed when setting same hub'
-            );
+            expect(mockRegistryManager.removedSourceIds.length, 'No sources should be removed when setting same hub').toBe(0);
         });
 
-        test('should cleanup when clearing active hub (setting to null)', async () => {
+        it('should cleanup when clearing active hub (setting to null)', async () => {
             mockRegistryManager.sources = [
                 { id: 'hub-hub1-source1', name: 'Hub1 Source', hubId: 'hub1' }
             ];
@@ -331,14 +296,8 @@ suite('Hub Cleanup', () => {
             await hubManager.setActiveHub(null);
 
             // Verify cleanup happened
-            assert.ok(
-                mockRegistryManager.removedSourceIds.includes('hub-hub1-source1'),
-                'Hub1 source should be removed when clearing active hub'
-            );
-            assert.ok(
-                mockRegistryManager.deactivatedProfileIds.includes('hub1-profile'),
-                'Hub1 profile should be deactivated when clearing active hub'
-            );
+            expect(mockRegistryManager.removedSourceIds.includes('hub-hub1-source1'), 'Hub1 source should be removed when clearing active hub').toBeTruthy();
+            expect(mockRegistryManager.deactivatedProfileIds.includes('hub1-profile'), 'Hub1 profile should be deactivated when clearing active hub').toBeTruthy();
         });
     });
 });

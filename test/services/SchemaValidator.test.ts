@@ -2,12 +2,11 @@
  * SchemaValidator Unit Tests
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SchemaValidator, ValidationResult } from '../../src/services/SchemaValidator';
 
-suite('SchemaValidator', () => {
+describe('SchemaValidator', () => {
     let validator: SchemaValidator;
     let tempDir: string;
     let testSchemaPath: string;
@@ -33,7 +32,7 @@ suite('SchemaValidator', () => {
         items: []
     };
 
-    setup(() => {
+    beforeEach(() => {
         validator = new SchemaValidator(process.cwd());
         tempDir = path.join(__dirname, '..', '..', 'test-temp-schema');
         
@@ -59,7 +58,7 @@ suite('SchemaValidator', () => {
         testCollectionSchemaPath = path.join(process.cwd(), 'schemas', 'collection.schema.json');
     });
 
-    teardown(() => {
+    afterEach(() => {
         // Cleanup temp directory
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
@@ -69,107 +68,107 @@ suite('SchemaValidator', () => {
         validator.clearCache();
     });
 
-    suite('Schema Loading', () => {
-        test('should load and compile a valid schema', async () => {
+    describe('Schema Loading', () => {
+        it('should load and compile a valid schema', async () => {
             const result = await validator.validate({ name: 'Test' }, testSchemaPath);
-            assert.ok(result);
-            assert.strictEqual(result.valid, true);
+            expect(result).toBeTruthy();
+            expect(result.valid).toBe(true);
         });
 
-        test('should cache loaded schemas', async () => {
+        it('should cache loaded schemas', async () => {
             // First load
             await validator.validate({ name: 'Test1' }, testSchemaPath);
             
             // Second load (should use cache)
             const result = await validator.validate({ name: 'Test2' }, testSchemaPath);
-            assert.strictEqual(result.valid, true);
+            expect(result.valid).toBe(true);
         });
 
-        test('should throw error for non-existent schema', async () => {
+        it('should throw error for non-existent schema', async () => {
             const badPath = path.join(tempDir, 'nonexistent.schema.json');
             const result = await validator.validate({ name: 'Test' }, badPath);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
-            assert.ok(result.errors[0].includes('Validation error'));
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
+            expect(result.errors[0].includes('Validation error')).toBeTruthy();
         });
 
-        test('should throw error for invalid JSON schema', async () => {
+        it('should throw error for invalid JSON schema', async () => {
             const invalidSchemaPath = path.join(tempDir, 'invalid.schema.json');
             fs.writeFileSync(invalidSchemaPath, 'not valid json');
             
             const result = await validator.validate({ name: 'Test' }, invalidSchemaPath);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
     });
 
-    suite('Basic Validation', () => {
-        test('should validate valid data', async () => {
+    describe('Basic Validation', () => {
+        it('should validate valid data', async () => {
             const validData = { name: 'John', age: 30 };
             const result = await validator.validate(validData, testSchemaPath);
             
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should detect missing required field', async () => {
+        it('should detect missing required field', async () => {
             const invalidData = { age: 30 };
             const result = await validator.validate(invalidData, testSchemaPath);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
-            assert.ok(result.errors[0].includes('Missing required field'));
-            assert.ok(result.errors[0].includes('name'));
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
+            expect(result.errors[0].includes('Missing required field')).toBeTruthy();
+            expect(result.errors[0].includes('name')).toBeTruthy();
         });
 
-        test('should detect wrong type', async () => {
+        it('should detect wrong type', async () => {
             const invalidData = { name: 'John', age: 'thirty' };
             const result = await validator.validate(invalidData, testSchemaPath);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('must be number')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('must be number'))).toBeTruthy();
         });
 
-        test('should detect value below minimum', async () => {
+        it('should detect value below minimum', async () => {
             const invalidData = { name: 'John', age: -5 };
             const result = await validator.validate(invalidData, testSchemaPath);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.length > 0);
+            expect(result.valid).toBe(false);
+            expect(result.errors.length > 0).toBeTruthy();
         });
     });
 
-    suite('Collection Validation', () => {
-        test('should validate valid collection', async function() {
+    describe('Collection Validation', () => {
+        it('should validate valid collection', async ({ skip }: any) => {
             // Skip if schema doesn't exist yet
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
             const result = await validator.validateCollection(validCollection);
             
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should validate minimal valid collection', async function() {
+        it('should validate minimal valid collection', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
             const result = await validator.validateCollection(minimalCollection);
             
-            assert.strictEqual(result.valid, true);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should detect missing required fields in collection', async function() {
+        it('should detect missing required fields in collection', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -181,13 +180,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(invalidCollection);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('description')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('description'))).toBeTruthy();
         });
 
-        test('should detect invalid id format', async function() {
+        it('should detect invalid id format', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -200,13 +199,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(invalidCollection);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('pattern') || e.includes('id')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('pattern') || e.includes('id'))).toBeTruthy();
         });
 
-        test('should detect invalid item kind', async function() {
+        it('should detect invalid item kind', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -221,13 +220,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(invalidCollection);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('allowed values') || e.includes('enum')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('allowed values') || e.includes('enum'))).toBeTruthy();
         });
 
-        test('should detect description too long', async function() {
+        it('should detect description too long', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -240,14 +239,14 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(invalidCollection);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('maximum') || e.includes('500')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('maximum') || e.includes('500'))).toBeTruthy();
         });
     });
 
-        test('should validate collection with valid MCP configuration', async function() {
+        it('should validate collection with valid MCP configuration', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -280,12 +279,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collectionWithMcp);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
-        test('should validate MCP with environment variables', async function() {
+        it('should validate MCP with environment variables', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -311,12 +310,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(mcpWithEnv);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate MCP with variable substitution in args', async function() {
+        it('should validate MCP with variable substitution in args', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -344,13 +343,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(mcpWithVariables);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
 
-        test('should detect stdio MCP server missing required command', async function() {
+        it('should detect stdio MCP server missing required command', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -372,13 +371,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(invalidStdioMcp);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('command')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('command'))).toBeTruthy();
         });
 
-        test('should detect http MCP server missing required url', async function() {
+        it('should detect http MCP server missing required url', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -400,13 +399,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(invalidHttpMcp);
             
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('url')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('url'))).toBeTruthy();
         });
 
-        test('should validate http MCP server with url', async function() {
+        it('should validate http MCP server with url', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -430,13 +429,13 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(httpMcpCollection);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
 
-        test('should allow collection without MCP (optional)', async function() {
+        it('should allow collection without MCP (optional)', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -451,12 +450,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collectionWithoutMcp);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate collection with valid MCP configuration', async function() {
+        it('should validate collection with valid MCP configuration', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -489,12 +488,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collectionWithMcp);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
-        test('should validate MCP with environment variables', async function() {
+        it('should validate MCP with environment variables', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -520,12 +519,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(mcpWithEnv);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate MCP with variable substitution in args', async function() {
+        it('should validate MCP with variable substitution in args', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -553,12 +552,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(mcpWithVariables);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should allow collection without MCP (optional)', async function() {
+        it('should allow collection without MCP (optional)', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -573,12 +572,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collectionWithoutMcp);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate collection with valid MCP configuration', async function() {
+        it('should validate collection with valid MCP configuration', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -611,12 +610,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collectionWithMcp);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
-            assert.strictEqual(result.errors.length, 0);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
+            expect(result.errors.length).toBe(0);
         });
-        test('should validate MCP with environment variables', async function() {
+        it('should validate MCP with environment variables', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -642,12 +641,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(mcpWithEnv);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate MCP with variable substitution in args', async function() {
+        it('should validate MCP with variable substitution in args', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -675,12 +674,12 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(mcpWithVariables);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should allow collection without MCP (optional)', async function() {
+        it('should allow collection without MCP (optional)', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -695,33 +694,33 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collectionWithoutMcp);
             
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-    suite('Error Formatting', () => {
-        test('should format required field errors', async () => {
+    describe('Error Formatting', () => {
+        it('should format required field errors', async () => {
             const result = await validator.validate({}, testSchemaPath);
             
-            assert.ok(result.errors.some(e => e.includes('Missing required field: name')));
+            expect(result.errors.some(e => e.includes('Missing required field: name'))).toBeTruthy();
         });
 
-        test('should format type errors', async () => {
+        it('should format type errors', async () => {
             const result = await validator.validate({ name: 123 }, testSchemaPath);
             
-            assert.ok(result.errors.some(e => e.includes('must be string')));
+            expect(result.errors.some(e => e.includes('must be string'))).toBeTruthy();
         });
 
-        test('should format minLength errors', async () => {
+        it('should format minLength errors', async () => {
             const result = await validator.validate({ name: '' }, testSchemaPath);
             
-            assert.ok(result.errors.some(e => e.includes('minimum 1 characters')));
+            expect(result.errors.some(e => e.includes('minimum 1 characters'))).toBeTruthy();
         });
     });
 
-    suite('File Reference Validation', () => {
-        test('should not check file references by default', async function() {
+    describe('File Reference Validation', () => {
+        it('should not check file references by default', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -737,14 +736,14 @@ suite('SchemaValidator', () => {
             const result = await validator.validateCollection(collectionWithRefs);
             
             // Should be valid (schema-wise) even if files don't exist
-            assert.strictEqual(result.valid, true);
+            expect(result.valid).toBe(true);
             // Should not have file reference errors
-            assert.ok(!result.errors.some(e => e.includes('not found')));
+            expect(!result.errors.some(e => e.includes('not found'))).toBeTruthy();
         });
 
-        test('should check file references when option enabled', async function() {
+        it('should check file references when option enabled', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -763,12 +762,12 @@ suite('SchemaValidator', () => {
             });
             
             // Should have file reference errors
-            assert.ok(result.errors.some(e => e.includes('not found')));
+            expect(result.errors.some(e => e.includes('not found'))).toBeTruthy();
         });
 
-        test('should pass when referenced files exist', async function() {
+        it('should pass when referenced files exist', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -791,14 +790,14 @@ suite('SchemaValidator', () => {
             });
             
             // Should not have file reference errors
-            assert.ok(!result.errors.some(e => e.includes('not found')));
+            expect(!result.errors.some(e => e.includes('not found'))).toBeTruthy();
         });
     });
 
-    suite('Warning Generation', () => {
-        test('should warn about long descriptions', async function() {
+    describe('Warning Generation', () => {
+        it('should warn about long descriptions', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -811,23 +810,23 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collection);
             
-            assert.ok(result.warnings.some(w => w.includes('quite long')));
+            expect(result.warnings.some(w => w.includes('quite long'))).toBeTruthy();
         });
 
-        test('should warn about empty collections', async function() {
+        it('should warn about empty collections', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
             const result = await validator.validateCollection(minimalCollection);
             
-            assert.ok(result.warnings.some(w => w.includes('no items')));
+            expect(result.warnings.some(w => w.includes('no items'))).toBeTruthy();
         });
 
-        test('should warn about too many items', async function() {
+        it('should warn about too many items', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -845,34 +844,34 @@ suite('SchemaValidator', () => {
 
             const result = await validator.validateCollection(collection);
             
-            assert.ok(result.warnings.some(w => w.includes('many items')));
+            expect(result.warnings.some(w => w.includes('many items'))).toBeTruthy();
         });
 
-        test('should warn about missing version', async function() {
+        it('should warn about missing version', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
             const result = await validator.validateCollection(minimalCollection);
             
-            assert.ok(result.warnings.some(w => w.includes('version')));
+            expect(result.warnings.some(w => w.includes('version'))).toBeTruthy();
         });
 
-        test('should warn about missing author', async function() {
+        it('should warn about missing author', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
             const result = await validator.validateCollection(minimalCollection);
             
-            assert.ok(result.warnings.some(w => w.includes('author')));
+            expect(result.warnings.some(w => w.includes('author'))).toBeTruthy();
         });
 
-        test('should not warn when metadata is complete', async function() {
+        it('should not warn when metadata is complete', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -882,14 +881,14 @@ suite('SchemaValidator', () => {
             const metadataWarnings = result.warnings.filter(w => 
                 w.includes('version') || w.includes('author')
             );
-            assert.strictEqual(metadataWarnings.length, 0);
+            expect(metadataWarnings.length).toBe(0);
         });
     });
 
-    suite('MCP Remote Server Types (HTTP/SSE)', () => {
-        test('should validate HTTP MCP server with url', async function() {
+    describe('MCP Remote Server Types (HTTP/SSE)', () => {
+        it('should validate HTTP MCP server with url', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -909,12 +908,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(httpMcpCollection);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate SSE MCP server with url', async function() {
+        it('should validate SSE MCP server with url', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -934,12 +933,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(sseMcpCollection);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate HTTP MCP server with headers', async function() {
+        it('should validate HTTP MCP server with headers', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -963,12 +962,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(httpWithHeaders);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should reject HTTP MCP server without url', async function() {
+        it('should reject HTTP MCP server without url', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -987,13 +986,13 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(invalidHttpMcp);
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('url')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('url'))).toBeTruthy();
         });
 
-        test('should reject SSE MCP server without url', async function() {
+        it('should reject SSE MCP server without url', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1015,15 +1014,15 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(invalidSseMcp);
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('url')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('url'))).toBeTruthy();
         });
     });
 
-    suite('MCP Stdio Server with envFile', () => {
-        test('should validate stdio MCP server with envFile', async function() {
+    describe('MCP Stdio Server with envFile', () => {
+        it('should validate stdio MCP server with envFile', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1045,12 +1044,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(stdioWithEnvFile);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate stdio MCP server with both env and envFile', async function() {
+        it('should validate stdio MCP server with both env and envFile', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1075,14 +1074,14 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(stdioWithBoth);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
     });
 
-    suite('MCP URL Format Support', () => {
-        test('should validate Unix socket URL', async function() {
+    describe('MCP URL Format Support', () => {
+        it('should validate Unix socket URL', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1102,12 +1101,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(unixSocketMcp);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate Windows named pipe URL', async function() {
+        it('should validate Windows named pipe URL', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1127,12 +1126,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(namedPipeMcp);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate standard HTTP URL', async function() {
+        it('should validate standard HTTP URL', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1152,12 +1151,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(httpUrlMcp);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should validate HTTPS URL', async function() {
+        it('should validate HTTPS URL', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1177,14 +1176,14 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(httpsUrlMcp);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
     });
 
-    suite('MCP Backward Compatibility', () => {
-        test('should accept stdio server without explicit type (defaults to stdio)', async function() {
+    describe('MCP Backward Compatibility', () => {
+        it('should accept stdio server without explicit type (defaults to stdio)', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1204,12 +1203,12 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(legacyStdioMcp);
-            assert.strictEqual(result.valid, true, `Validation failed: ${result.errors.join(', ')}`);
+            expect(result.valid, `Validation failed: ${result.errors.join(', ')}`).toBe(true);
         });
 
-        test('should reject server without type and without command', async function() {
+        it('should reject server without type and without command', async ({ skip }: any) => {
             if (!fs.existsSync(testCollectionSchemaPath)) {
-                this.skip();
+                skip();
                 return;
             }
 
@@ -1228,13 +1227,13 @@ suite('SchemaValidator', () => {
             };
 
             const result = await validator.validateCollection(invalidMcp);
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('command')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('command'))).toBeTruthy();
         });
     });
 
-    suite('Cache Management', () => {
-        test('should clear cache', async () => {
+    describe('Cache Management', () => {
+        it('should clear cache', async () => {
             // Load schema
             await validator.validate({ name: 'Test' }, testSchemaPath);
             
@@ -1243,10 +1242,10 @@ suite('SchemaValidator', () => {
             
             // Should still work after clearing
             const result = await validator.validate({ name: 'Test' }, testSchemaPath);
-            assert.strictEqual(result.valid, true);
+            expect(result.valid).toBe(true);
         });
 
-        test('should reload schema after cache clear', async () => {
+        it('should reload schema after cache clear', async () => {
             // Load schema
             await validator.validate({ name: 'Test' }, testSchemaPath);
             
@@ -1269,8 +1268,8 @@ suite('SchemaValidator', () => {
             const result = await validator.validate({ name: 'Test' }, testSchemaPath);
             
             // Should fail because email is now required
-            assert.strictEqual(result.valid, false);
-            assert.ok(result.errors.some(e => e.includes('email')));
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.includes('email'))).toBeTruthy();
         });
     });
 });

@@ -9,21 +9,20 @@
  * Validates Requirement 3.1: Auto-update preference storage after installation
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { RegistryManager } from '../../src/services/RegistryManager';
 import { RegistryStorage } from '../../src/storage/RegistryStorage';
 import { AutoUpdateService } from '../../src/services/AutoUpdateService';
 
-suite('Auto-Update Preference Storage - Integration', () => {
+describe('Auto-Update Preference Storage - Integration', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let registryManager: RegistryManager;
     let storage: RegistryStorage;
     let autoUpdateService: AutoUpdateService;
 
-    setup(async () => {
+    beforeEach(async () => {
         sandbox = sinon.createSandbox();
         
         // Create mock context with real storage behavior
@@ -88,21 +87,21 @@ suite('Auto-Update Preference Storage - Integration', () => {
         );
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    suite('RegistryManager.getStorage() integration', () => {
-        test('should provide access to storage for setting auto-update preferences', async () => {
+    describe('RegistryManager.getStorage() integration', () => {
+        it('should provide access to storage for setting auto-update preferences', async () => {
             // Execute: Get storage from RegistryManager
             const storageFromManager = registryManager.getStorage();
 
             // Verify: Storage is accessible
-            assert.ok(storageFromManager, 'Should return storage instance');
-            assert.strictEqual(storageFromManager, storage, 'Should return the same storage instance');
+            expect(storageFromManager, 'Should return storage instance').toBeTruthy();
+            expect(storageFromManager, 'Should return the same storage instance').toBe(storage);
         });
 
-        test('should allow storing and retrieving auto-update preference', async () => {
+        it('should allow storing and retrieving auto-update preference', async () => {
             const bundleId = 'test-bundle';
             
             // Execute: Store auto-update preference via RegistryManager's storage
@@ -111,10 +110,10 @@ suite('Auto-Update Preference Storage - Integration', () => {
 
             // Verify: Preference can be retrieved
             const preference = await storageFromManager.getUpdatePreference(bundleId);
-            assert.strictEqual(preference, true, 'Should retrieve stored preference');
+            expect(preference, 'Should retrieve stored preference').toBe(true);
         });
 
-        test('should integrate with AutoUpdateService', async () => {
+        it('should integrate with AutoUpdateService', async () => {
             const bundleId = 'test-bundle-auto';
             
             // Execute: Store preference via RegistryManager's storage
@@ -123,10 +122,10 @@ suite('Auto-Update Preference Storage - Integration', () => {
 
             // Verify: AutoUpdateService can read the preference
             const isEnabled = await autoUpdateService.isAutoUpdateEnabled(bundleId);
-            assert.strictEqual(isEnabled, true, 'AutoUpdateService should read stored preference');
+            expect(isEnabled, 'AutoUpdateService should read stored preference').toBe(true);
         });
 
-        test('should default to false for bundles without stored preference', async () => {
+        it('should default to false for bundles without stored preference', async () => {
             const bundleId = 'new-bundle-without-preference';
             
             // Execute: Check preference for bundle that hasn't been configured
@@ -134,27 +133,27 @@ suite('Auto-Update Preference Storage - Integration', () => {
             const preference = await storageFromManager.getUpdatePreference(bundleId);
 
             // Verify: Defaults to false (opt-in model)
-            assert.strictEqual(preference, false, 'Should default to false for unconfigured bundles');
+            expect(preference, 'Should default to false for unconfigured bundles').toBe(false);
         });
 
-        test('should allow updating existing preference', async () => {
+        it('should allow updating existing preference', async () => {
             const bundleId = 'test-bundle-update';
             const storageFromManager = registryManager.getStorage();
             
             // Execute: Set initial preference
             await storageFromManager.setUpdatePreference(bundleId, true);
             let preference = await storageFromManager.getUpdatePreference(bundleId);
-            assert.strictEqual(preference, true, 'Initial preference should be true');
+            expect(preference, 'Initial preference should be true').toBe(true);
 
             // Execute: Update preference
             await storageFromManager.setUpdatePreference(bundleId, false);
             preference = await storageFromManager.getUpdatePreference(bundleId);
 
             // Verify: Preference was updated
-            assert.strictEqual(preference, false, 'Updated preference should be false');
+            expect(preference, 'Updated preference should be false').toBe(false);
         });
 
-        test('should store preferences for multiple bundles independently', async () => {
+        it('should store preferences for multiple bundles independently', async () => {
             const storageFromManager = registryManager.getStorage();
             
             // Execute: Store different preferences for different bundles
@@ -163,14 +162,14 @@ suite('Auto-Update Preference Storage - Integration', () => {
             await storageFromManager.setUpdatePreference('bundle-3', true);
 
             // Verify: Each bundle has its own preference
-            assert.strictEqual(await storageFromManager.getUpdatePreference('bundle-1'), true);
-            assert.strictEqual(await storageFromManager.getUpdatePreference('bundle-2'), false);
-            assert.strictEqual(await storageFromManager.getUpdatePreference('bundle-3'), true);
+            expect(await storageFromManager.getUpdatePreference('bundle-1')).toBe(true);
+            expect(await storageFromManager.getUpdatePreference('bundle-2')).toBe(false);
+            expect(await storageFromManager.getUpdatePreference('bundle-3')).toBe(true);
         });
     });
 
-    suite('Auto-Update Event Emission and Synchronization', () => {
-        test('should emit onAutoUpdatePreferenceChanged event when enabling auto-update via RegistryManager', async () => {
+    describe('Auto-Update Event Emission and Synchronization', () => {
+        it('should emit onAutoUpdatePreferenceChanged event when enabling auto-update via RegistryManager', async () => {
             const bundleId = 'test-bundle-event';
             let eventFired = false;
             let eventData: any = null;
@@ -188,12 +187,12 @@ suite('Auto-Update Preference Storage - Integration', () => {
             await registryManager.enableAutoUpdate(bundleId);
 
             // Verify: Event was fired with correct data
-            assert.strictEqual(eventFired, true, 'Event should be fired');
-            assert.strictEqual(eventData.bundleId, bundleId, 'Event should contain correct bundleId');
-            assert.strictEqual(eventData.enabled, true, 'Event should indicate enabled = true');
+            expect(eventFired, 'Event should be fired').toBe(true);
+            expect(eventData.bundleId, 'Event should contain correct bundleId').toBe(bundleId);
+            expect(eventData.enabled, 'Event should indicate enabled = true').toBe(true);
         });
 
-        test('should emit onAutoUpdatePreferenceChanged event when disabling auto-update via RegistryManager', async () => {
+        it('should emit onAutoUpdatePreferenceChanged event when disabling auto-update via RegistryManager', async () => {
             const bundleId = 'test-bundle-disable';
             let eventFired = false;
             let eventData: any = null;
@@ -216,12 +215,12 @@ suite('Auto-Update Preference Storage - Integration', () => {
             await registryManager.disableAutoUpdate(bundleId);
 
             // Verify: Event was fired with correct data
-            assert.strictEqual(eventFired, true, 'Event should be fired');
-            assert.strictEqual(eventData.bundleId, bundleId, 'Event should contain correct bundleId');
-            assert.strictEqual(eventData.enabled, false, 'Event should indicate enabled = false');
+            expect(eventFired, 'Event should be fired').toBe(true);
+            expect(eventData.bundleId, 'Event should contain correct bundleId').toBe(bundleId);
+            expect(eventData.enabled, 'Event should indicate enabled = false').toBe(false);
         });
 
-        test('should NOT emit event when directly calling autoUpdateService.setAutoUpdate', async () => {
+        it('should NOT emit event when directly calling autoUpdateService.setAutoUpdate', async () => {
             const bundleId = 'test-bundle-direct-service';
             let eventFired = false;
 
@@ -236,10 +235,10 @@ suite('Auto-Update Preference Storage - Integration', () => {
             await autoUpdateService.setAutoUpdate(bundleId, true);
 
             // Verify: Event should NOT be fired (because we bypassed RegistryManager)
-            assert.strictEqual(eventFired, false, 'Event should not be fired when bypassing RegistryManager');
+            expect(eventFired, 'Event should not be fired when bypassing RegistryManager').toBe(false);
         });
 
-        test('should allow multiple components to listen to auto-update changes independently', async () => {
+        it('should allow multiple components to listen to auto-update changes independently', async () => {
             const bundleId = 'test-bundle-multi-listener';
             registryManager.setAutoUpdateService(autoUpdateService);
 
@@ -264,8 +263,8 @@ suite('Auto-Update Preference Storage - Integration', () => {
             await registryManager.enableAutoUpdate(bundleId);
 
             // Verify: Both listeners received the event
-            assert.strictEqual(treeViewEventFired, true, 'Tree view should receive event');
-            assert.strictEqual(marketplaceEventFired, true, 'Marketplace should receive event');
+            expect(treeViewEventFired, 'Tree view should receive event').toBe(true);
+            expect(marketplaceEventFired, 'Marketplace should receive event').toBe(true);
         });
     });
 });

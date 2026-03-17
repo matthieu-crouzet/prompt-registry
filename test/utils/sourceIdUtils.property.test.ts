@@ -10,7 +10,6 @@
  * - Property 6: Hub key stability - same URL+branch always produces same key
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import {
     generateHubSourceId,
@@ -18,7 +17,7 @@ import {
 } from '../../src/utils/sourceIdUtils';
 import { PropertyTestConfig } from '../helpers/propertyTestHelpers';
 
-suite('sourceIdUtils Property Tests', () => {
+describe('sourceIdUtils Property Tests', () => {
     /**
      * Generators for property tests
      */
@@ -63,7 +62,7 @@ suite('sourceIdUtils Property Tests', () => {
         )
     };
 
-    suite('Property 2: SourceId Determinism', () => {
+    describe('Property 2: SourceId Determinism', () => {
         /**
          * **Validates: Requirements 5.2, 5.5**
          * 
@@ -72,7 +71,7 @@ suite('sourceIdUtils Property Tests', () => {
          * 
          * This ensures lockfiles remain stable and predictable.
          */
-        test('generateHubSourceId always produces same output for same inputs', async () => {
+        it('generateHubSourceId always produces same output for same inputs', async () => {
             await fc.assert(
                 fc.property(
                     Generators.sourceType(),
@@ -99,7 +98,7 @@ suite('sourceIdUtils Property Tests', () => {
          * Property: generateHubSourceId with arbitrary string inputs is still deterministic.
          * Tests with a broader range of source types beyond the common ones.
          */
-        test('generateHubSourceId is deterministic with arbitrary source types', async () => {
+        it('generateHubSourceId is deterministic with arbitrary source types', async () => {
             await fc.assert(
                 fc.property(
                     Generators.arbitrarySourceType(),
@@ -124,14 +123,14 @@ suite('sourceIdUtils Property Tests', () => {
         });
     });
 
-    suite('Property 3: SourceId Format', () => {
+    describe('Property 3: SourceId Format', () => {
         /**
          * **Validates: Requirements 5.3**
          * 
          * Property: generateHubSourceId output always matches the format `{type}-{12-hex-chars}`.
          * The hash portion must be exactly 12 lowercase hexadecimal characters.
          */
-        test('generateHubSourceId output matches {type}-{12-hex-chars} pattern', async () => {
+        it('generateHubSourceId output matches {type}-{12-hex-chars} pattern', async () => {
             await fc.assert(
                 fc.property(
                     Generators.sourceType(),
@@ -154,14 +153,14 @@ suite('sourceIdUtils Property Tests', () => {
 
     });
 
-    suite('Property 6: Hub Key Stability', () => {
+    describe('Property 6: Hub Key Stability', () => {
         /**
          * **Validates: Requirements 4.6, 5.6**
          * 
          * Property: generateHubKey is deterministic - same URL and branch always
          * produce the same key.
          */
-        test('generateHubKey always produces same output for same URL and branch', async () => {
+        it('generateHubKey always produces same output for same URL and branch', async () => {
             await fc.assert(
                 fc.property(
                     Generators.url(),
@@ -187,7 +186,7 @@ suite('sourceIdUtils Property Tests', () => {
          * Property: Hub key format is correct - either 12 hex chars or 12 hex chars + branch.
          * Main/master branches should not be appended.
          */
-        test('generateHubKey output has correct format', async () => {
+        it('generateHubKey output has correct format', async () => {
             await fc.assert(
                 fc.property(
                     Generators.url(),
@@ -218,7 +217,7 @@ suite('sourceIdUtils Property Tests', () => {
          * Property: The hash portion of the hub key is consistent regardless of branch.
          * This ensures the same URL always produces the same base hash.
          */
-        test('generateHubKey hash portion is consistent across branches', async () => {
+        it('generateHubKey hash portion is consistent across branches', async () => {
             await fc.assert(
                 fc.property(
                     Generators.url(),
@@ -246,7 +245,7 @@ suite('sourceIdUtils Property Tests', () => {
          * 
          * Property: Main and master branches produce identical keys (no branch suffix).
          */
-        test('generateHubKey treats main and master branches identically', async () => {
+        it('generateHubKey treats main and master branches identically', async () => {
             await fc.assert(
                 fc.property(
                     Generators.url(),

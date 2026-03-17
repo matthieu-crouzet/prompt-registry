@@ -3,21 +3,20 @@
  * Feature: bundle-update-notifications
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as fc from 'fast-check';
 import { BundleUpdateNotifications } from '../../src/notifications/BundleUpdateNotifications';
 import { Logger } from '../../src/utils/logger';
 
-suite('BundleUpdateNotifications - Property Tests', () => {
+describe('BundleUpdateNotifications - Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let showInformationMessageStub: sinon.SinonStub;
     let showErrorMessageStub: sinon.SinonStub;
     let executeCommandStub: sinon.SinonStub;
     let openExternalStub: sinon.SinonStub;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
 
         showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage');
@@ -36,7 +35,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
         }
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
@@ -44,7 +43,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
      * Property 6: Update notification displays for available updates
      * **Validates: Requirements 2.1**
      */
-    test('Property 6: Update notification displays for available updates', async () => {
+    it('Property 6: Update notification displays for available updates', async () => {
         // Generator for update check results
         const updateResultArb = fc.record({
             bundleId: fc.string({ minLength: 1, maxLength: 50 }),
@@ -74,11 +73,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
 
                     // Property: For any update check that finds available updates,
                     // the Notification System should display a notification
-                    assert.strictEqual(
-                        showInformationMessageStub.called,
-                        true,
-                        'Notification should be displayed when updates are available'
-                    );
+                    expect(showInformationMessageStub.called, 'Notification should be displayed when updates are available').toBe(true);
 
                     // Verify the notification contains bundle names and version numbers
                     const callArgs = showInformationMessageStub.firstCall.args;
@@ -86,11 +81,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
 
                     // Check that at least one bundle ID appears in the message
                     const containsBundleId = updates.some(u => message.includes(u.bundleId));
-                    assert.strictEqual(
-                        containsBundleId,
-                        true,
-                        'Notification message should contain bundle name(s)'
-                    );
+                    expect(containsBundleId, 'Notification message should contain bundle name(s)').toBe(true);
                 }
             ),
             { verbose: false, numRuns: 50 }
@@ -101,7 +92,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
      * Property 7: Notification action buttons present
      * **Validates: Requirements 2.2**
      */
-    test('Property 7: Notification action buttons present', async () => {
+    it('Property 7: Notification action buttons present', async () => {
         // Generator for update check results
         const updateResultArb = fc.record({
             bundleId: fc.string({ minLength: 1, maxLength: 50 }),
@@ -131,39 +122,19 @@ suite('BundleUpdateNotifications - Property Tests', () => {
 
                     // Property: For any update notification displayed,
                     // the notification should include exactly three action buttons
-                    assert.strictEqual(
-                        showInformationMessageStub.called,
-                        true,
-                        'Notification should be displayed'
-                    );
+                    expect(showInformationMessageStub.called, 'Notification should be displayed').toBe(true);
 
                     const callArgs = showInformationMessageStub.firstCall.args;
                     // args[0] is the message, args[1..n] are the action buttons
                     const buttons = callArgs.slice(1);
 
-                    assert.strictEqual(
-                        buttons.length,
-                        3,
-                        'Notification should have exactly 3 action buttons'
-                    );
+                    expect(buttons.length, 'Notification should have exactly 3 action buttons').toBe(3);
 
-                    assert.strictEqual(
-                        buttons.includes('Update Now'),
-                        true,
-                        'Notification should include "Update Now" button'
-                    );
+                    expect(buttons.includes('Update Now'), 'Notification should include "Update Now" button').toBe(true);
 
-                    assert.strictEqual(
-                        buttons.includes('View Changes'),
-                        true,
-                        'Notification should include "View Changes" button'
-                    );
+                    expect(buttons.includes('View Changes'), 'Notification should include "View Changes" button').toBe(true);
 
-                    assert.strictEqual(
-                        buttons.includes('Dismiss'),
-                        true,
-                        'Notification should include "Dismiss" button'
-                    );
+                    expect(buttons.includes('Dismiss'), 'Notification should include "Dismiss" button').toBe(true);
                 }
             ),
             { verbose: false, numRuns: 50 }
@@ -174,7 +145,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
      * Property 10: Multiple updates grouped in notification
      * **Validates: Requirements 2.5**
      */
-    test('Property 10: Multiple updates grouped in notification', async () => {
+    it('Property 10: Multiple updates grouped in notification', async () => {
         // Generator for update check results
         const updateResultArb = fc.record({
             bundleId: fc.string({ minLength: 1, maxLength: 50 }),
@@ -204,32 +175,20 @@ suite('BundleUpdateNotifications - Property Tests', () => {
 
                     // Property: For any update check that finds updates for N bundles where N > 1,
                     // the Notification System should display a single grouped notification
-                    assert.strictEqual(
-                        showInformationMessageStub.callCount,
-                        1,
-                        'Should display exactly one notification for multiple updates'
-                    );
+                    expect(showInformationMessageStub.callCount, 'Should display exactly one notification for multiple updates').toBe(1);
 
                     const callArgs = showInformationMessageStub.firstCall.args;
                     const message = callArgs[0] as string;
 
                     // Verify the message indicates multiple updates
-                    assert.strictEqual(
-                        message.includes(updates.length.toString()),
-                        true,
-                        'Notification should mention the number of updates'
-                    );
+                    expect(message.includes(updates.length.toString()), 'Notification should mention the number of updates').toBe(true);
 
                     // Verify all bundle IDs are listed in the notification
                     // (or at least the count is mentioned)
                     const allBundlesListed = updates.every(u => message.includes(u.bundleId));
                     const countMentioned = message.includes(updates.length.toString());
 
-                    assert.strictEqual(
-                        allBundlesListed || countMentioned,
-                        true,
-                        'Notification should list all bundles or mention the count'
-                    );
+                    expect(allBundlesListed || countMentioned, 'Notification should list all bundles or mention the count').toBe(true);
                 }
             ),
             { verbose: false, numRuns: 50 }
@@ -240,7 +199,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
      * Property 8: Update Now triggers update process
      * **Validates: Requirements 2.3**
      */
-    test('Property 8: Update Now triggers update process', async () => {
+    it('Property 8: Update Now triggers update process', async () => {
         // Generator for update check results
         const updateResultArb = fc.record({
             bundleId: fc.string({ minLength: 1, maxLength: 50 }),
@@ -274,27 +233,16 @@ suite('BundleUpdateNotifications - Property Tests', () => {
 
                     // Property: For any user click on "Update Now" button,
                     // the Registry Manager should initiate the updateBundle() method
-                    assert.strictEqual(
-                        executeCommandStub.called,
-                        true,
-                        'Update command should be executed when "Update Now" is clicked'
-                    );
+                    expect(executeCommandStub.called, 'Update command should be executed when "Update Now" is clicked').toBe(true);
 
                     // Verify the correct command was called with the bundle ID
                     const commandCall = executeCommandStub.getCalls().find(
                         call => call.args[0] === 'promptRegistry.updateBundle'
                     );
 
-                    assert.ok(
-                        commandCall,
-                        'Should execute promptRegistry.updateBundle command'
-                    );
+                    expect(commandCall, 'Should execute promptRegistry.updateBundle command').toBeTruthy();
 
-                    assert.strictEqual(
-                        commandCall?.args[1],
-                        update.bundleId,
-                        'Should pass the correct bundle ID to the update command'
-                    );
+                    expect(commandCall?.args[1], 'Should pass the correct bundle ID to the update command').toBe(update.bundleId);
                 }
             ),
             { verbose: false, numRuns: 100 }
@@ -305,7 +253,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
      * Property 9: View Changes opens release notes
      * **Validates: Requirements 2.4**
      */
-    test('Property 9: View Changes opens release notes', async () => {
+    it('Property 9: View Changes opens release notes', async () => {
         // Generator for update check results with release notes
         const updateResultArb = fc.record({
             bundleId: fc.string({ minLength: 1, maxLength: 50 }),
@@ -339,25 +287,14 @@ suite('BundleUpdateNotifications - Property Tests', () => {
 
                     // Property: For any user click on "View Changes" button,
                     // the system should open the release notes URL
-                    assert.strictEqual(
-                        openExternalStub.called,
-                        true,
-                        'Release notes URL should be opened when "View Changes" is clicked'
-                    );
+                    expect(openExternalStub.called, 'Release notes URL should be opened when "View Changes" is clicked').toBe(true);
 
                     // Verify the correct URL was opened
                     const openCall = openExternalStub.firstCall;
-                    assert.ok(
-                        openCall,
-                        'Should call openExternal'
-                    );
+                    expect(openCall, 'Should call openExternal').toBeTruthy();
 
                     const uri = openCall.args[0] as vscode.Uri;
-                    assert.strictEqual(
-                        uri.toString(),
-                        update.releaseNotes,
-                        'Should open the correct release notes URL'
-                    );
+                    expect(uri.toString(), 'Should open the correct release notes URL').toBe(update.releaseNotes);
                 }
             ),
             { verbose: false, numRuns: 100 }
@@ -368,7 +305,7 @@ suite('BundleUpdateNotifications - Property Tests', () => {
      * Property 40: Notification manager reuses existing utilities
      * **Validates: Requirements 9.1**
      */
-    test('Property 40: Notification manager reuses existing utilities', async () => {
+    it('Property 40: Notification manager reuses existing utilities', async () => {
         // This property verifies that NotificationManager uses the Logger utility
         // for all notification operations
         
@@ -404,21 +341,13 @@ suite('BundleUpdateNotifications - Property Tests', () => {
         
         // Property: For any notification display, the NotificationManager should use
         // the existing Logger utility for logging
-        assert.strictEqual(
-            loggerInfoStub.called,
-            true,
-            'NotificationManager should use Logger.info for information notifications'
-        );
+        expect(loggerInfoStub.called, 'NotificationManager should use Logger.info for information notifications').toBe(true);
         
         // Test error notification logging
         loggerErrorStub.reset();
         await bundleNotifications.showUpdateFailure('test-bundle', 'Test error');
         
-        assert.strictEqual(
-            loggerErrorStub.called,
-            true,
-            'NotificationManager should use Logger.error for error notifications'
-        );
+        expect(loggerErrorStub.called, 'NotificationManager should use Logger.error for error notifications').toBe(true);
         
         // Restore stubs
         loggerInfoStub.restore();

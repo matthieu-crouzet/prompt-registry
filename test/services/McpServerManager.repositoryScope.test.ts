@@ -5,7 +5,6 @@
  * Requirements: 1.7, 10.5
  */
 
-import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as os from 'os';
@@ -14,7 +13,7 @@ import { McpServerManager } from '../../src/services/McpServerManager';
 import { McpServersManifest, McpConfiguration, McpTrackingMetadata } from '../../src/types/mcp';
 import { RepositoryCommitMode } from '../../src/types/registry';
 
-suite('McpServerManager Repository Scope Test Suite', () => {
+describe('McpServerManager Repository Scope Test Suite', () => {
     let manager: McpServerManager;
     let testWorkspaceRoot: string;
     let sandbox: sinon.SinonSandbox;
@@ -78,22 +77,22 @@ suite('McpServerManager Repository Scope Test Suite', () => {
         }
     };
 
-    setup(async () => {
+    beforeEach(async () => {
         sandbox = sinon.createSandbox();
         manager = new McpServerManager();
         testWorkspaceRoot = path.join(os.tmpdir(), 'mcp-repo-test-' + Date.now());
         await setupTestWorkspace();
     });
 
-    teardown(async () => {
+    afterEach(async () => {
         sandbox.restore();
         if (await fs.pathExists(testWorkspaceRoot)) {
             await fs.remove(testWorkspaceRoot);
         }
     });
 
-    suite('installServersToWorkspace()', () => {
-        test('should create .vscode/mcp.json if it does not exist', async () => {
+    describe('installServersToWorkspace()', () => {
+        it('should create .vscode/mcp.json if it does not exist', async () => {
             // Arrange
             const manifest: McpServersManifest = {
                 'test-server': {
@@ -112,15 +111,15 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
-            assert.strictEqual(result.serversInstalled, 1);
+            expect(result.success).toBe(true);
+            expect(result.serversInstalled).toBe(1);
             
             const config = await readMcpConfig();
-            assert.ok(config, '.vscode/mcp.json should be created');
-            assert.ok(config.servers, 'servers object should exist');
+            expect(config, '.vscode/mcp.json should be created').toBeTruthy();
+            expect(config.servers, 'servers object should exist').toBeTruthy();
         });
 
-        test('should merge MCP servers into existing .vscode/mcp.json', async () => {
+        it('should merge MCP servers into existing .vscode/mcp.json', async () => {
             // Arrange - create existing config with a server
             const existingConfig: McpConfiguration = {
                 servers: {
@@ -149,18 +148,15 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
             
             const config = await readMcpConfig();
-            assert.ok(config);
-            assert.ok(config.servers['existing-server'], 'existing server should be preserved');
-            assert.ok(
-                Object.keys(config.servers).some(k => k.includes('new-server')),
-                'new server should be added'
-            );
+            expect(config).toBeTruthy();
+            expect(config.servers['existing-server'], 'existing server should be preserved').toBeTruthy();
+            expect(Object.keys(config.servers).some(k => k.includes('new-server')), 'new server should be added').toBeTruthy();
         });
 
-        test('should preserve existing MCP servers in .vscode/mcp.json', async () => {
+        it('should preserve existing MCP servers in .vscode/mcp.json', async () => {
             // Arrange
             const existingConfig: McpConfiguration = {
                 servers: {
@@ -193,15 +189,15 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
             
             const config = await readMcpConfig();
-            assert.ok(config);
-            assert.ok(config.servers['user-server-1'], 'user-server-1 should be preserved');
-            assert.ok(config.servers['user-server-2'], 'user-server-2 should be preserved');
+            expect(config).toBeTruthy();
+            expect(config.servers['user-server-1'], 'user-server-1 should be preserved').toBeTruthy();
+            expect(config.servers['user-server-2'], 'user-server-2 should be preserved').toBeTruthy();
         });
 
-        test('should track bundle-specific MCP servers for uninstallation', async () => {
+        it('should track bundle-specific MCP servers for uninstallation', async () => {
             // Arrange
             const manifest: McpServersManifest = {
                 'server-a': {
@@ -224,19 +220,19 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
-            assert.strictEqual(result.serversInstalled, 2);
+            expect(result.success).toBe(true);
+            expect(result.serversInstalled).toBe(2);
             
             const tracking = await readTrackingMetadata();
-            assert.ok(tracking, 'tracking metadata should be created');
+            expect(tracking, 'tracking metadata should be created').toBeTruthy();
             
             // Check that servers are tracked with bundle ID
             const trackedServers = Object.entries(tracking.managedServers)
                 .filter(([_, meta]) => meta.bundleId === 'test-bundle');
-            assert.strictEqual(trackedServers.length, 2, 'both servers should be tracked');
+            expect(trackedServers.length, 'both servers should be tracked').toBe(2);
         });
 
-        test('should handle conflict when same server ID exists', async () => {
+        it('should handle conflict when same server ID exists', async () => {
             // Arrange - create existing config with conflicting server name
             const existingConfig: McpConfiguration = {
                 servers: {
@@ -265,11 +261,11 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert - should report conflict
-            assert.strictEqual(result.success, false);
-            assert.ok(result.errors && result.errors.length > 0, 'should have conflict errors');
+            expect(result.success).toBe(false);
+            expect(result.errors && result.errors.length > 0, 'should have conflict errors').toBeTruthy();
         });
 
-        test('should overwrite conflicting server when overwrite option is true', async () => {
+        it('should overwrite conflicting server when overwrite option is true', async () => {
             // Arrange
             const existingConfig: McpConfiguration = {
                 servers: {
@@ -298,17 +294,17 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
             
             const config = await readMcpConfig();
-            assert.ok(config);
+            expect(config).toBeTruthy();
             const serverConfig = config.servers['prompt-registry:test-bundle:my-server'];
-            assert.ok(serverConfig);
-            assert.ok(!serverConfig.type || serverConfig.type === 'stdio', 'should be stdio server');
-            assert.strictEqual((serverConfig as any).command, 'node', 'server should be overwritten');
+            expect(serverConfig).toBeTruthy();
+            expect(!serverConfig.type || serverConfig.type === 'stdio', 'should be stdio server').toBeTruthy();
+            expect((serverConfig as any).command, 'server should be overwritten').toBe('node');
         });
 
-        test('should add .vscode/mcp.json to git exclude for local-only mode', async () => {
+        it('should add .vscode/mcp.json to git exclude for local-only mode', async () => {
             // Arrange
             const manifest: McpServersManifest = {
                 'test-server': {
@@ -327,17 +323,14 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
             
             const excludeContent = await readGitExclude();
-            assert.ok(excludeContent, 'git exclude should exist');
-            assert.ok(
-                excludeContent.includes('.vscode/mcp.json'),
-                '.vscode/mcp.json should be in git exclude'
-            );
+            expect(excludeContent, 'git exclude should exist').toBeTruthy();
+            expect(excludeContent.includes('.vscode/mcp.json'), '.vscode/mcp.json should be in git exclude').toBeTruthy();
         });
 
-        test('should NOT add .vscode/mcp.json to git exclude for commit mode', async () => {
+        it('should NOT add .vscode/mcp.json to git exclude for commit mode', async () => {
             // Arrange
             const manifest: McpServersManifest = {
                 'test-server': {
@@ -356,19 +349,16 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
             
             const excludeContent = await readGitExclude();
             // Either no exclude file or it doesn't contain mcp.json
             if (excludeContent) {
-                assert.ok(
-                    !excludeContent.includes('.vscode/mcp.json'),
-                    '.vscode/mcp.json should NOT be in git exclude for commit mode'
-                );
+                expect(!excludeContent.includes('.vscode/mcp.json'), '.vscode/mcp.json should NOT be in git exclude for commit mode').toBeTruthy();
             }
         });
 
-        test('should handle empty manifest gracefully', async () => {
+        it('should handle empty manifest gracefully', async () => {
             // Act
             const result = await manager.installServersToWorkspace(
                 'test-bundle',
@@ -379,11 +369,11 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
-            assert.strictEqual(result.serversInstalled, 0);
+            expect(result.success).toBe(true);
+            expect(result.serversInstalled).toBe(0);
         });
 
-        test('should create .vscode directory if it does not exist', async () => {
+        it('should create .vscode directory if it does not exist', async () => {
             // Arrange - ensure .vscode doesn't exist
             const vscodeDir = path.join(testWorkspaceRoot, '.vscode');
             if (await fs.pathExists(vscodeDir)) {
@@ -407,14 +397,14 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             );
 
             // Assert
-            assert.strictEqual(result.success, true);
-            assert.ok(await fs.pathExists(vscodeDir), '.vscode directory should be created');
-            assert.ok(await fs.pathExists(getMcpConfigPath()), 'mcp.json should be created');
+            expect(result.success).toBe(true);
+            expect(await fs.pathExists(vscodeDir), '.vscode directory should be created').toBeTruthy();
+            expect(await fs.pathExists(getMcpConfigPath()), 'mcp.json should be created').toBeTruthy();
         });
     });
 
-    suite('uninstallServersFromWorkspace()', () => {
-        test('should remove MCP servers from .vscode/mcp.json on uninstall', async () => {
+    describe('uninstallServersFromWorkspace()', () => {
+        it('should remove MCP servers from .vscode/mcp.json on uninstall', async () => {
             // Arrange - install servers first
             const manifest: McpServersManifest = {
                 'server-to-remove': {
@@ -433,26 +423,23 @@ suite('McpServerManager Repository Scope Test Suite', () => {
 
             // Verify server was installed
             let config = await readMcpConfig();
-            assert.ok(config);
+            expect(config).toBeTruthy();
             const serverKey = Object.keys(config.servers).find(k => k.includes('server-to-remove'));
-            assert.ok(serverKey, 'server should be installed');
+            expect(serverKey, 'server should be installed').toBeTruthy();
 
             // Act
             const result = await manager.uninstallServersFromWorkspace('test-bundle', testWorkspaceRoot);
 
             // Assert
-            assert.strictEqual(result.success, true);
-            assert.strictEqual(result.serversRemoved, 1);
+            expect(result.success).toBe(true);
+            expect(result.serversRemoved).toBe(1);
             
             config = await readMcpConfig();
-            assert.ok(config);
-            assert.ok(
-                !Object.keys(config.servers).some(k => k.includes('server-to-remove')),
-                'server should be removed'
-            );
+            expect(config).toBeTruthy();
+            expect(!Object.keys(config.servers).some(k => k.includes('server-to-remove')), 'server should be removed').toBeTruthy();
         });
 
-        test('should preserve other bundles servers on uninstall', async () => {
+        it('should preserve other bundles servers on uninstall', async () => {
             // Arrange - install servers from two bundles
             const manifest1: McpServersManifest = {
                 'bundle1-server': {
@@ -486,21 +473,15 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             const result = await manager.uninstallServersFromWorkspace('bundle-1', testWorkspaceRoot);
 
             // Assert
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
             
             const config = await readMcpConfig();
-            assert.ok(config);
-            assert.ok(
-                !Object.keys(config.servers).some(k => k.includes('bundle1-server')),
-                'bundle-1 server should be removed'
-            );
-            assert.ok(
-                Object.keys(config.servers).some(k => k.includes('bundle2-server')),
-                'bundle-2 server should be preserved'
-            );
+            expect(config).toBeTruthy();
+            expect(!Object.keys(config.servers).some(k => k.includes('bundle1-server')), 'bundle-1 server should be removed').toBeTruthy();
+            expect(Object.keys(config.servers).some(k => k.includes('bundle2-server')), 'bundle-2 server should be preserved').toBeTruthy();
         });
 
-        test('should clean up git exclude entries on uninstall for local-only mode', async () => {
+        it('should clean up git exclude entries on uninstall for local-only mode', async () => {
             // Arrange - install with local-only mode
             const manifest: McpServersManifest = {
                 'local-server': {
@@ -519,7 +500,7 @@ suite('McpServerManager Repository Scope Test Suite', () => {
 
             // Verify git exclude was added
             let excludeContent = await readGitExclude();
-            assert.ok(excludeContent?.includes('.vscode/mcp.json'), 'mcp.json should be in git exclude');
+            expect(excludeContent?.includes('.vscode/mcp.json'), 'mcp.json should be in git exclude').toBeTruthy();
 
             // Act
             await manager.uninstallServersFromWorkspace('test-bundle', testWorkspaceRoot);
@@ -528,21 +509,21 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             // Note: The exact behavior depends on whether other local-only bundles exist
             // For this test, we just verify the uninstall succeeded
             const result = await manager.uninstallServersFromWorkspace('test-bundle', testWorkspaceRoot);
-            assert.strictEqual(result.success, true);
+            expect(result.success).toBe(true);
         });
 
-        test('should handle uninstall when bundle has no servers', async () => {
+        it('should handle uninstall when bundle has no servers', async () => {
             // Act - try to uninstall non-existent bundle
             const result = await manager.uninstallServersFromWorkspace('non-existent-bundle', testWorkspaceRoot);
 
             // Assert
-            assert.strictEqual(result.success, true);
-            assert.strictEqual(result.serversRemoved, 0);
+            expect(result.success).toBe(true);
+            expect(result.serversRemoved).toBe(0);
         });
     });
 
-    suite('getServersForBundleInWorkspace()', () => {
-        test('should return servers for a specific bundle', async () => {
+    describe('getServersForBundleInWorkspace()', () => {
+        it('should return servers for a specific bundle', async () => {
             // Arrange
             const manifest: McpServersManifest = {
                 'server-a': { command: 'node', args: ['a.js'] },
@@ -561,16 +542,16 @@ suite('McpServerManager Repository Scope Test Suite', () => {
             const servers = await manager.getServersForBundleInWorkspace('test-bundle', testWorkspaceRoot);
 
             // Assert
-            assert.strictEqual(servers.length, 2);
+            expect(servers.length).toBe(2);
         });
 
-        test('should return empty array for bundle with no servers', async () => {
+        it('should return empty array for bundle with no servers', async () => {
             // Act
             const servers = await manager.getServersForBundleInWorkspace('non-existent', testWorkspaceRoot);
 
             // Assert
-            assert.ok(Array.isArray(servers));
-            assert.strictEqual(servers.length, 0);
+            expect(Array.isArray(servers)).toBeTruthy();
+            expect(servers.length).toBe(0);
         });
     });
 });

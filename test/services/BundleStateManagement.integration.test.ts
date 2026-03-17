@@ -11,7 +11,6 @@
  * Requirements: All (1.1-6.6)
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { RegistryManager } from '../../src/services/RegistryManager';
@@ -47,14 +46,14 @@ function createMockManifest(): DeploymentManifest {
 }
 
 
-suite('Bundle State Management - Integration Tests', () => {
+describe('Bundle State Management - Integration Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let mockContext: vscode.ExtensionContext;
     let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
     let mockInstaller: sinon.SinonStubbedInstance<BundleInstaller>;
     let registryManager: RegistryManager;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create mock context
@@ -98,13 +97,13 @@ suite('Bundle State Management - Integration Tests', () => {
         (registryManager as any).installer = mockInstaller;
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
 
-    suite('Workflow 1: Install GitHub bundle → Uninstall → Verify UI shows Install button', () => {
-        test('should show Install button after uninstalling GitHub bundle', async () => {
+    describe('Workflow 1: Install GitHub bundle → Uninstall → Verify UI shows Install button', () => {
+        it('should show Install button after uninstalling GitHub bundle', async () => {
             // Setup: Create GitHub bundle
             const bundle = BundleBuilder.github('microsoft', 'vscode-copilot')
                 .withVersion('1.0.0')
@@ -149,7 +148,7 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.installBundle(bundle.id, { scope: 'user' });
 
             // Verify installation was recorded
-            assert.ok(mockStorage.recordInstallation.calledOnce, 'Installation should be recorded');
+            expect(mockStorage.recordInstallation.calledOnce, 'Installation should be recorded').toBeTruthy();
 
             // Step 2: Uninstall the bundle
             mockStorage.getInstalledBundle.withArgs(bundle.id).resolves(installedBundle);
@@ -160,7 +159,7 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.uninstallBundle(bundle.id, 'user');
 
             // Verify uninstallation
-            assert.ok(mockStorage.removeInstallation.calledOnce, 'Installation record should be removed');
+            expect(mockStorage.removeInstallation.calledOnce, 'Installation record should be removed').toBeTruthy();
 
             // Step 3: Verify UI state (button should be "install")
             const installed = await mockStorage.getInstalledBundles();
@@ -173,13 +172,13 @@ suite('Bundle State Management - Integration Tests', () => {
                 bundle.version
             );
 
-            assert.strictEqual(buttonState, 'install', 'Button state should be "install" after uninstall');
+            expect(buttonState, 'Button state should be "install" after uninstall').toBe('install');
         });
     });
 
 
-    suite('Workflow 2: Install v1.0.0 → Sync (v1.1.0 available) → Verify Update button shown', () => {
-        test('should show Update button when newer version available after sync', async () => {
+    describe('Workflow 2: Install v1.0.0 → Sync (v1.1.0 available) → Verify Update button shown', () => {
+        it('should show Update button when newer version available after sync', async () => {
             // Setup: Create GitHub bundle v1.0.0
             const bundleV1 = BundleBuilder.github('microsoft', 'vscode-copilot')
                 .withVersion('1.0.0')
@@ -237,7 +236,7 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.syncSource('github-source');
 
             // Verify cache was updated
-            assert.ok(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated');
+            expect(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated').toBeTruthy();
 
             // Step 3: Verify UI state (button should be "update")
             const installed = await mockStorage.getInstalledBundles();
@@ -250,13 +249,13 @@ suite('Bundle State Management - Integration Tests', () => {
                 bundleV1_1.version
             );
 
-            assert.strictEqual(buttonState, 'update', 'Button state should be "update" when newer version available');
+            expect(buttonState, 'Button state should be "update" when newer version available').toBe('update');
         });
     });
 
 
-    suite('Workflow 3: Install v1.0.0 → Select v1.0.1 from dropdown → Verify v1.0.1 installed', () => {
-        test('should install specific version when selected from dropdown', async () => {
+    describe('Workflow 3: Install v1.0.0 → Select v1.0.1 from dropdown → Verify v1.0.1 installed', () => {
+        it('should install specific version when selected from dropdown', async () => {
             // Setup: Create GitHub bundle with specific version
             const bundleV1_0_1 = BundleBuilder.github('microsoft', 'vscode-copilot')
                 .withVersion('1.0.1')
@@ -310,18 +309,18 @@ suite('Bundle State Management - Integration Tests', () => {
                 matchesBundleIdentity(i.bundleId, bundleV1_0_1.id, source.type)
             );
 
-            assert.ok(matchingInstalled, 'Bundle should be installed');
-            assert.strictEqual(matchingInstalled?.version, '1.0.1', 'Installed version should be 1.0.1');
+            expect(matchingInstalled, 'Bundle should be installed').toBeTruthy();
+            expect(matchingInstalled?.version, 'Installed version should be 1.0.1').toBe('1.0.1');
             
             // Verify version parameter was passed to installBundle
             const installCalls = mockInstaller.installFromBuffer.getCalls();
-            assert.strictEqual(installCalls.length, 1, 'Should have called installFromBuffer once');
+            expect(installCalls.length, 'Should have called installFromBuffer once').toBe(1);
         });
     });
 
 
-    suite('Workflow 4: Sync GitHub source → Verify no auto-installation', () => {
-        test('should NOT auto-install bundles when syncing GitHub source', async () => {
+    describe('Workflow 4: Sync GitHub source → Verify no auto-installation', () => {
+        it('should NOT auto-install bundles when syncing GitHub source', async () => {
             // Setup: Create GitHub source with bundles
             const bundle = BundleBuilder.github('microsoft', 'vscode-copilot')
                 .withVersion('1.0.0')
@@ -356,16 +355,16 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.syncSource('github-source');
 
             // Step 2: Verify cache was updated but no installation occurred
-            assert.ok(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated');
-            assert.ok(mockInstaller.installFromBuffer.notCalled, 'Should NOT auto-install bundles from GitHub source');
-            assert.ok(mockStorage.recordInstallation.notCalled, 'Should NOT record any installations');
+            expect(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated').toBeTruthy();
+            expect(mockInstaller.installFromBuffer.notCalled, 'Should NOT auto-install bundles from GitHub source').toBeTruthy();
+            expect(mockStorage.recordInstallation.notCalled, 'Should NOT record any installations').toBeTruthy();
 
             // Verify no bundles were installed
             const installed = await mockStorage.getInstalledBundles();
-            assert.strictEqual(installed.length, 0, 'No bundles should be auto-installed from GitHub source');
+            expect(installed.length, 'No bundles should be auto-installed from GitHub source').toBe(0);
         });
 
-        test('should NOT auto-update installed bundles when syncing GitHub source', async () => {
+        it('should NOT auto-update installed bundles when syncing GitHub source', async () => {
             // Setup: Bundle v1.0.0 is installed, v1.1.0 becomes available
             const bundleV1 = BundleBuilder.github('microsoft', 'vscode-copilot')
                 .withVersion('1.0.0')
@@ -413,11 +412,11 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.syncSource('github-source');
 
             // Step 2: Verify cache was updated but no auto-update occurred
-            assert.ok(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated');
+            expect(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated').toBeTruthy();
             
             // Verify no update operations were performed
             const installCallCount = mockInstaller.installFromBuffer.callCount;
-            assert.strictEqual(installCallCount, 0, 'Should NOT auto-update bundles from GitHub source');
+            expect(installCallCount, 'Should NOT auto-update bundles from GitHub source').toBe(0);
 
             // Verify installed bundle is still v1.0.0
             const installed = await mockStorage.getInstalledBundles();
@@ -425,14 +424,14 @@ suite('Bundle State Management - Integration Tests', () => {
                 matchesBundleIdentity(i.bundleId, bundleV1.id, source.type)
             );
 
-            assert.ok(matchingInstalled, 'Bundle should still be installed');
-            assert.strictEqual(matchingInstalled?.version, '1.0.0', 'Version should remain 1.0.0 (not auto-updated)');
+            expect(matchingInstalled, 'Bundle should still be installed').toBeTruthy();
+            expect(matchingInstalled?.version, 'Version should remain 1.0.0 (not auto-updated)').toBe('1.0.0');
         });
     });
 
 
-    suite('Workflow 5: Sync Awesome Copilot source → Verify auto-update of installed bundles', () => {
-        test('should auto-update installed bundles when syncing Awesome Copilot source', async () => {
+    describe('Workflow 5: Sync Awesome Copilot source → Verify auto-update of installed bundles', () => {
+        it('should auto-update installed bundles when syncing Awesome Copilot source', async () => {
             // Setup: Bundle v1.0.0 is installed, v1.1.0 becomes available
             const bundleV1 = BundleBuilder.fromSource('awesome-bundle', 'AWESOME_COPILOT')
                 .withVersion('1.0.0')
@@ -493,15 +492,15 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.syncSource('awesome-copilot-source');
 
             // Step 2: Verify cache was updated AND auto-update occurred
-            assert.ok(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated');
+            expect(mockStorage.cacheSourceBundles.calledOnce, 'Cache should be updated').toBeTruthy();
             
             // Verify update operations were performed via installer.update()
             const updateOccurred = mockInstaller.update.called;
             
-            assert.ok(updateOccurred, 'Should auto-update bundles from Awesome Copilot source');
+            expect(updateOccurred, 'Should auto-update bundles from Awesome Copilot source').toBeTruthy();
         });
 
-        test('should NOT auto-update bundles from other sources when syncing Awesome Copilot source', async () => {
+        it('should NOT auto-update bundles from other sources when syncing Awesome Copilot source', async () => {
             // Setup: Two bundles installed from different sources
             const awesomeBundle = BundleBuilder.fromSource('awesome-bundle', 'AWESOME_COPILOT')
                 .withVersion('1.0.0')
@@ -578,13 +577,13 @@ suite('Bundle State Management - Integration Tests', () => {
             const installed = await mockStorage.getInstalledBundles();
             const githubInstalled = installed.find(i => i.sourceId === 'github-source');
             
-            assert.ok(githubInstalled, 'GitHub bundle should still be installed');
-            assert.strictEqual(githubInstalled?.version, '1.0.0', 'GitHub bundle version should remain unchanged');
+            expect(githubInstalled, 'GitHub bundle should still be installed').toBeTruthy();
+            expect(githubInstalled?.version, 'GitHub bundle version should remain unchanged').toBe('1.0.0');
         });
     });
 
-    suite('Bug Fix: Install specific older version', () => {
-        test('should install older version v1.0.16 when v1.0.17 is latest', async () => {
+    describe('Bug Fix: Install specific older version', () => {
+        it('should install older version v1.0.16 when v1.0.17 is latest', async () => {
             // This reproduces the bug: "Bundle ID mismatch: expected amadeus-airlines-solutions-workflow-instructions-1.0.17, 
             // got amadeus-airlines-solutions-workflow-instructions-1.0.16"
             
@@ -650,21 +649,21 @@ suite('Bundle State Management - Integration Tests', () => {
                 matchesBundleIdentity(i.bundleId, bundleV1_0_16.id, source.type)
             );
 
-            assert.ok(matchingInstalled, 'Bundle should be installed');
-            assert.strictEqual(matchingInstalled?.version, '1.0.16', 'Installed version should be 1.0.16, not 1.0.17');
-            assert.strictEqual(matchingInstalled?.bundleId, bundleV1_0_16.id, 'Bundle ID should match the requested version');
+            expect(matchingInstalled, 'Bundle should be installed').toBeTruthy();
+            expect(matchingInstalled?.version, 'Installed version should be 1.0.16, not 1.0.17').toBe('1.0.16');
+            expect(matchingInstalled?.bundleId, 'Bundle ID should match the requested version').toBe(bundleV1_0_16.id);
             
             // Verify the correct bundle was passed to the installer
             const installCalls = mockInstaller.installFromBuffer.getCalls();
-            assert.strictEqual(installCalls.length, 1, 'Should have called installFromBuffer once');
+            expect(installCalls.length, 'Should have called installFromBuffer once').toBe(1);
             const installedBundle = installCalls[0].args[0];
-            assert.strictEqual(installedBundle.id, bundleV1_0_16.id, 'Should install v1.0.16, not v1.0.17');
-            assert.strictEqual(installedBundle.version, '1.0.16', 'Bundle version should be 1.0.16');
+            expect(installedBundle.id, 'Should install v1.0.16, not v1.0.17').toBe(bundleV1_0_16.id);
+            expect(installedBundle.version, 'Bundle version should be 1.0.16').toBe('1.0.16');
         });
     });
 
-    suite('Bug Fix: Downgrade removes old version from display', () => {
-        test('should show bug: v1.0.18 and v1.0.17 both installed after downgrade', async () => {
+    describe('Bug Fix: Downgrade removes old version from display', () => {
+        it('should show bug: v1.0.18 and v1.0.17 both installed after downgrade', async () => {
             // This test reproduces the bug where downgrading from 1.0.18 to 1.0.17
             // still shows both 1.0.18 AND 1.0.17 in the list of installed bundles
             // This happens because the old version file isn't deleted
@@ -695,8 +694,8 @@ suite('Bundle State Management - Integration Tests', () => {
             await storage.recordInstallation(installedV1_0_18);
 
             let installed = await storage.getInstalledBundles('user');
-            assert.strictEqual(installed.length, 1, 'Should have v1.0.18 installed initially');
-            assert.strictEqual(installed[0].version, '1.0.18', 'Initial version should be 1.0.18');
+            expect(installed.length, 'Should have v1.0.18 installed initially').toBe(1);
+            expect(installed[0].version, 'Initial version should be 1.0.18').toBe('1.0.18');
 
             // Step 2: Record v1.0.17 WITHOUT removing v1.0.18 (simulating the bug)
             const installedV1_0_17: InstalledBundle = {
@@ -715,12 +714,12 @@ suite('Bundle State Management - Integration Tests', () => {
             // Step 3: Verify BUG: both versions are now installed
             installed = await storage.getInstalledBundles('user');
             
-            assert.strictEqual(installed.length, 2, 'BUG REPRODUCED: Both 1.0.18 and 1.0.17 are installed');
+            expect(installed.length, 'BUG REPRODUCED: Both 1.0.18 and 1.0.17 are installed').toBe(2);
             const versions = installed.map(b => b.version).sort();
-            assert.deepStrictEqual(versions, ['1.0.17', '1.0.18'], 'Both versions present (bug)');
+            expect(versions, 'Both versions present (bug)').toEqual(['1.0.17', '1.0.18']);
         });
 
-        test('should cleanup old version when downgrading through RegistryManager', async () => {
+        it('should cleanup old version when downgrading through RegistryManager', async () => {
             // This test verifies that the fix properly removes old versions during downgrade
             
             const bundleIdBase = 'amadeus-airlines-solutions-workflow-instructions';
@@ -750,8 +749,8 @@ suite('Bundle State Management - Integration Tests', () => {
 
             // Verify v1.0.18 is installed
             let installed = await storage.getInstalledBundles('user');
-            assert.strictEqual(installed.length, 1, 'Initially v1.0.18 should be installed');
-            assert.strictEqual(installed[0].version, '1.0.18', 'Should be version 1.0.18');
+            expect(installed.length, 'Initially v1.0.18 should be installed').toBe(1);
+            expect(installed[0].version, 'Should be version 1.0.18').toBe('1.0.18');
 
             // Now simulate what RegistryManager.cleanupOldVersions does:
             // 1. Extract base identity
@@ -786,14 +785,14 @@ suite('Bundle State Management - Integration Tests', () => {
             // Verify only v1.0.17 is now installed (v1.0.18 was removed)
             installed = await storage.getInstalledBundles('user');
             
-            assert.strictEqual(installed.length, 1, 'After downgrade, only one version should be installed');
-            assert.strictEqual(installed[0].version, '1.0.17', 'Installed version should be 1.0.17');
-            assert.strictEqual(installed[0].bundleId, `${bundleIdBase}-1.0.17`, 'Bundle ID should match v1.0.17');
+            expect(installed.length, 'After downgrade, only one version should be installed').toBe(1);
+            expect(installed[0].version, 'Installed version should be 1.0.17').toBe('1.0.17');
+            expect(installed[0].bundleId, 'Bundle ID should match v1.0.17').toBe(`${bundleIdBase}-1.0.17`);
         });
     });
 
-    suite('Rollback & Failure Recovery - Integration Tests', () => {
-        test('should FAIL if cleanup happens BEFORE recording (catches the bug)', async () => {
+    describe('Rollback & Failure Recovery - Integration Tests', () => {
+        it('should FAIL if cleanup happens BEFORE recording (catches the bug)', async () => {
             // CRITICAL TEST: Verifies that when changing versions:
             // 1. New version is recorded in storage (recordInstallation called)
             // 2. Old version cleanup is attempted (or completes if possible)
@@ -870,15 +869,15 @@ suite('Bundle State Management - Integration Tests', () => {
             await registryManager.installBundle(`${bundleIdBase}`, { scope: 'user', version: '1.0.18' });
 
             // Verify the new version was recorded (main assertion)
-            assert.ok(recordInstallationCalled, 'recordInstallation must be called during installation');
-            assert.ok(installedBundles.has(`${bundleIdBase}-1.0.18`), 'v1.0.18 should be recorded');
+            expect(recordInstallationCalled, 'recordInstallation must be called during installation').toBeTruthy();
+            expect(installedBundles.has(`${bundleIdBase}-1.0.18`), 'v1.0.18 should be recorded').toBeTruthy();
             
             // Verify old version is cleaned up (this verifies proper order and functionality)
-            assert.ok(removeInstallationCalled, 'removeInstallation should be called during cleanup');
-            assert.ok(!installedBundles.has(`${bundleIdBase}-1.0.17`), 'v1.0.17 should be cleaned up');
+            expect(removeInstallationCalled, 'removeInstallation should be called during cleanup').toBeTruthy();
+            expect(!installedBundles.has(`${bundleIdBase}-1.0.17`), 'v1.0.17 should be cleaned up').toBeTruthy();
         });
 
-        test('should preserve old version when update fails during storage recording', async () => {
+        it('should preserve old version when update fails during storage recording', async () => {
             // CRITICAL TEST: Verifies that old version metadata is NOT cleaned up if recording fails
             // This catches the bug where cleanup happens BEFORE recording
             // 
@@ -915,8 +914,8 @@ suite('Bundle State Management - Integration Tests', () => {
             await storage.recordInstallation(installedV1_0_17);
 
             let installed = await storage.getInstalledBundles('user');
-            assert.strictEqual(installed.length, 1, 'Should have v1.0.17 installed initially');
-            assert.strictEqual(installed[0].version, '1.0.17', 'Version should be 1.0.17');
+            expect(installed.length, 'Should have v1.0.17 installed initially').toBe(1);
+            expect(installed[0].version, 'Version should be 1.0.17').toBe('1.0.17');
 
             // Step 2: Simulate update to v1.0.18 with storage failure
             // This tests the correct order: Record FIRST, cleanup AFTER
@@ -939,7 +938,7 @@ suite('Bundle State Management - Integration Tests', () => {
 
                 // Step 2b: Now both versions are in storage
                 let bothInstalled = await storage.getInstalledBundles('user');
-                assert.strictEqual(bothInstalled.length, 2, 'After recording, both versions should exist');
+                expect(bothInstalled.length, 'After recording, both versions should exist').toBe(2);
 
                 // Step 2c: Now try to cleanup (simulate this might fail)
                 // We'll intentionally skip cleanup to simulate a failure after recording
@@ -956,30 +955,18 @@ suite('Bundle State Management - Integration Tests', () => {
 
                 // Step 3: Verify BOTH were present before cleanup
                 // This proves we kept the old version safe during recording
-                assert.ok(
-                    bothInstalled.some(b => b.version === '1.0.17'),
-                    'CRITICAL: Old version must be in storage BEFORE cleanup (for rollback)'
-                );
-                assert.ok(
-                    bothInstalled.some(b => b.version === '1.0.18'),
-                    'CRITICAL: New version must be in storage after successful record'
-                );
+                expect(bothInstalled.some(b => b.version === '1.0.17'), 'CRITICAL: Old version must be in storage BEFORE cleanup (for rollback)').toBeTruthy();
+                expect(bothInstalled.some(b => b.version === '1.0.18'), 'CRITICAL: New version must be in storage after successful record').toBeTruthy();
 
             } catch (error) {
                 // If recording fails, old version should still be there
                 const afterFailure = await storage.getInstalledBundles('user');
-                assert.ok(
-                    afterFailure.some(b => b.version === '1.0.17'),
-                    'OLD VERSION MUST BE PRESERVED IF RECORDING FAILS (this is the rollback mechanism)'
-                );
-                assert.ok(
-                    afterFailure.every(b => b.version !== '1.0.18'),
-                    'Failed version should not be in storage'
-                );
+                expect(afterFailure.some(b => b.version === '1.0.17'), 'OLD VERSION MUST BE PRESERVED IF RECORDING FAILS (this is the rollback mechanism)').toBeTruthy();
+                expect(afterFailure.every(b => b.version !== '1.0.18'), 'Failed version should not be in storage').toBeTruthy();
             }
         });
 
-        test('should allow retry of failed update by checking if old version still exists', async () => {
+        it('should allow retry of failed update by checking if old version still exists', async () => {
             // INTEGRATION TEST: Verifies complete retry scenario
             // 1. v1.0.17 is installed
             // 2. Update to v1.0.18 fails
@@ -1035,8 +1022,8 @@ suite('Bundle State Management - Integration Tests', () => {
             const v1_0_17_exists = current.some(b => b.version === '1.0.17');
             const v1_0_18_exists = current.some(b => b.version === '1.0.18');
 
-            assert.ok(v1_0_18_exists, 'New version should be recorded');
-            assert.ok(v1_0_17_exists, 'Old version should still be available for rollback');
+            expect(v1_0_18_exists, 'New version should be recorded').toBeTruthy();
+            expect(v1_0_17_exists, 'Old version should still be available for rollback').toBeTruthy();
 
             // Step 4: Simulate retry of the failed cleanup
             // Application detects v1.0.17 still exists and safely removes it after v1.0.18 is confirmed
@@ -1048,14 +1035,14 @@ suite('Bundle State Management - Integration Tests', () => {
 
             // Step 5: Verify cleanup succeeded, now only v1.0.18 exists
             const afterCleanup = await storage.getInstalledBundles('user');
-            assert.strictEqual(afterCleanup.length, 1, 'After successful cleanup, only new version should remain');
-            assert.strictEqual(afterCleanup[0].version, '1.0.18', 'Should be the updated version');
+            expect(afterCleanup.length, 'After successful cleanup, only new version should remain').toBe(1);
+            expect(afterCleanup[0].version, 'Should be the updated version').toBe('1.0.18');
         });
     });
 
 
-    suite('Bundle Details View: Opening details for installed versioned bundles', () => {
-        test('should find bundle details when opening installed GitHub bundle with versioned ID (e.g., bundle-1.0.17)', async () => {
+    describe('Bundle Details View: Opening details for installed versioned bundles', () => {
+        it('should find bundle details when opening installed GitHub bundle with versioned ID (e.g., bundle-1.0.17)', async () => {
             // ISSUE: Clicking on an installed bundle in the Registry Explorer
             // shows "Bundle not found" error because:
             // 1. Installed bundle has versioned ID: "amadeus-airlines-solutions-workflow-instructions-1.0.17"
@@ -1118,10 +1105,10 @@ suite('Bundle State Management - Integration Tests', () => {
             const bundleDetails = await registryManager.getBundleDetails(versionedBundleId);
             
             // Verify bundle was found
-            assert.ok(bundleDetails, 'Bundle details should be found');
-            assert.strictEqual(bundleDetails.id, bundleIdentity, 'Bundle ID should match identity');
-            assert.strictEqual(bundleDetails.name, bundle.name, 'Bundle name should match');
-            assert.strictEqual(bundleDetails.version, bundleVersion, 'Bundle version should match');
+            expect(bundleDetails, 'Bundle details should be found').toBeTruthy();
+            expect(bundleDetails.id, 'Bundle ID should match identity').toBe(bundleIdentity);
+            expect(bundleDetails.name, 'Bundle name should match').toBe(bundle.name);
+            expect(bundleDetails.version, 'Bundle version should match').toBe(bundleVersion);
         });
     });
 

@@ -13,7 +13,6 @@
  * - The bundle cache/storage should remain in extension global storage
  */
 
-import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -26,7 +25,7 @@ import { Bundle, InstallOptions } from '../../src/types/registry';
 import { IScopeService } from '../../src/services/IScopeService';
 import { BundleBuilder } from '../helpers/bundleTestHelpers';
 
-suite('BundleInstaller - Bundle Storage Location', () => {
+describe('BundleInstaller - Bundle Storage Location', () => {
     let sandbox: sinon.SinonSandbox;
     let installer: BundleInstaller;
     let mockContext: vscode.ExtensionContext;
@@ -40,9 +39,9 @@ suite('BundleInstaller - Bundle Storage Location', () => {
         .withDescription('Test bundle for storage location')
         .build();
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
-        tempDir = path.join(__dirname, '..', '..', '..', 'test-temp-storage-location');
+        tempDir = path.join(__dirname, '..', '..', 'test-temp-storage-location');
         workspaceDir = path.join(tempDir, 'workspace');
         globalStorageDir = path.join(tempDir, 'global-storage');
 
@@ -105,7 +104,7 @@ suite('BundleInstaller - Bundle Storage Location', () => {
         installer = new BundleInstaller(mockContext);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         
         // Cleanup temp directories
@@ -114,8 +113,8 @@ suite('BundleInstaller - Bundle Storage Location', () => {
         }
     });
 
-    suite('Repository Scope Bundle Storage', () => {
-        test('should NOT create .prompt-registry directory inside the repository workspace', async () => {
+    describe('Repository Scope Bundle Storage', () => {
+        it('should NOT create .prompt-registry directory inside the repository workspace', async () => {
             // This test verifies the bug fix: bundle cache should NOT be in the repository
             const options: InstallOptions = {
                 scope: 'repository',
@@ -151,14 +150,10 @@ prompts:
             const promptRegistryInWorkspace = path.join(workspaceDir, '.prompt-registry');
             const exists = fs.existsSync(promptRegistryInWorkspace);
             
-            assert.strictEqual(
-                exists, 
-                false, 
-                `Bundle cache directory '.prompt-registry' should NOT be created inside the repository workspace at ${promptRegistryInWorkspace}`
-            );
+            expect(exists, `Bundle cache directory '.prompt-registry' should NOT be created inside the repository workspace at ${promptRegistryInWorkspace}`).toBe(false);
         });
 
-        test('should store bundle cache in extension global storage for repository scope', async () => {
+        it('should store bundle cache in extension global storage for repository scope', async () => {
             // Bundle cache should be in the extension's global storage, not in the workspace
             const options: InstallOptions = {
                 scope: 'repository',
@@ -190,29 +185,19 @@ prompts:
                 // If installation fails, we can't check the path
                 // But we should still verify no .prompt-registry in workspace
                 const promptRegistryInWorkspace = path.join(workspaceDir, '.prompt-registry');
-                assert.strictEqual(
-                    fs.existsSync(promptRegistryInWorkspace),
-                    false,
-                    'Bundle cache should not be in workspace even if installation fails'
-                );
+                expect(fs.existsSync(promptRegistryInWorkspace), 'Bundle cache should not be in workspace even if installation fails').toBe(false);
                 return;
             }
 
             // If installation succeeded, verify the install path is in global storage
             if (installedBundle && installedBundle.installPath) {
-                assert.ok(
-                    installedBundle.installPath.startsWith(globalStorageDir),
-                    `Install path should be in global storage (${globalStorageDir}), but was: ${installedBundle.installPath}`
-                );
+                expect(installedBundle.installPath.startsWith(globalStorageDir), `Install path should be in global storage (${globalStorageDir}), but was: ${installedBundle.installPath}`).toBeTruthy();
                 
-                assert.ok(
-                    !installedBundle.installPath.startsWith(workspaceDir),
-                    `Install path should NOT be in workspace (${workspaceDir}), but was: ${installedBundle.installPath}`
-                );
+                expect(!installedBundle.installPath.startsWith(workspaceDir), `Install path should NOT be in workspace (${workspaceDir}), but was: ${installedBundle.installPath}`).toBeTruthy();
             }
         });
 
-        test('should only place proper content files in .github directories', async () => {
+        it('should only place proper content files in .github directories', async () => {
             // Only the actual prompt/agent/instruction files should go to .github/
             // Not the bundle cache, manifest, or other internal files
             const options: InstallOptions = {
@@ -248,20 +233,12 @@ prompts:
             const manifestInWorkspace = path.join(workspaceDir, 'deployment-manifest.yml');
             const manifestInGithub = path.join(workspaceDir, '.github', 'deployment-manifest.yml');
             
-            assert.strictEqual(
-                fs.existsSync(manifestInWorkspace),
-                false,
-                'deployment-manifest.yml should NOT be in workspace root'
-            );
+            expect(fs.existsSync(manifestInWorkspace), 'deployment-manifest.yml should NOT be in workspace root').toBe(false);
             
-            assert.strictEqual(
-                fs.existsSync(manifestInGithub),
-                false,
-                'deployment-manifest.yml should NOT be in .github directory'
-            );
+            expect(fs.existsSync(manifestInGithub), 'deployment-manifest.yml should NOT be in .github directory').toBe(false);
         });
 
-        test('user scope should continue to use global storage', async () => {
+        it('user scope should continue to use global storage', async () => {
             // Verify user scope still works correctly with global storage
             const options: InstallOptions = {
                 scope: 'user'
@@ -289,10 +266,7 @@ prompts: []
 
             if (installedBundle && installedBundle.installPath) {
                 // User scope should use global storage
-                assert.ok(
-                    installedBundle.installPath.startsWith(globalStorageDir),
-                    `User scope install path should be in global storage: ${installedBundle.installPath}`
-                );
+                expect(installedBundle.installPath.startsWith(globalStorageDir), `User scope install path should be in global storage: ${installedBundle.installPath}`).toBeTruthy();
             }
         });
     });

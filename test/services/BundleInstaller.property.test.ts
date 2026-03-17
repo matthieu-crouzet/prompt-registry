@@ -10,7 +10,6 @@
  * - Property 6: Update Scope Isolation (Requirements 8.1-8.4)
  */
 
-import * as assert from 'assert';
 import * as fc from 'fast-check';
 import * as sinon from 'sinon';
 import * as fs from 'fs';
@@ -27,7 +26,7 @@ import { PropertyTestConfig, BundleGenerators } from '../helpers/propertyTestHel
 import { LockfileGenerators, LockfileBuilder } from '../helpers/lockfileTestHelpers';
 import { BundleBuilder, createMockInstalledBundle } from '../helpers/bundleTestHelpers';
 
-suite('BundleInstaller Property Tests', () => {
+describe('BundleInstaller Property Tests', () => {
     let sandbox: sinon.SinonSandbox;
     let tempDir: string;
     let mockContext: vscode.ExtensionContext;
@@ -50,7 +49,7 @@ suite('BundleInstaller Property Tests', () => {
         }
     };
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         tempDir = createTempDir();
         lockfileCreateOrUpdateCalls = [];
@@ -130,7 +129,7 @@ suite('BundleInstaller Property Tests', () => {
         ]);
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
         cleanupTempDir(tempDir);
     });
@@ -145,7 +144,7 @@ suite('BundleInstaller Property Tests', () => {
      * **Validates: Requirements 2.1, 2.3**
      * **Feature: lockfile-source-of-truth, Property 4: Repository Scope Operations Don't Modify RegistryStorage**
      */
-    suite('Property 4: Repository Scope Operations Don\'t Modify RegistryStorage', () => {
+    describe('Property 4: Repository Scope Operations Don\'t Modify RegistryStorage', () => {
         let mockStorage: sinon.SinonStubbedInstance<RegistryStorage>;
         let manager: RegistryManager;
         let recordInstallationCalls: Array<{ bundleId: string; scope: InstallationScope }>;
@@ -168,7 +167,7 @@ suite('BundleInstaller Property Tests', () => {
             });
         };
 
-        setup(() => {
+        beforeEach(() => {
             recordInstallationCalls = [];
             removeInstallationCalls = [];
 
@@ -200,11 +199,11 @@ suite('BundleInstaller Property Tests', () => {
             (manager as any).storage = mockStorage;
         });
 
-        teardown(() => {
+        afterEach(() => {
             (RegistryManager as any).instance = undefined;
         });
 
-        test('repository scope install should NOT call RegistryStorage.recordInstallation', async () => {
+        it('repository scope install should NOT call RegistryStorage.recordInstallation', async () => {
             /**
              * Property: For any bundle installed at repository scope,
              * RegistryStorage.recordInstallation() should NOT be called.
@@ -237,11 +236,7 @@ suite('BundleInstaller Property Tests', () => {
                             call => call.scope === 'repository'
                         );
                         
-                        assert.strictEqual(
-                            repoScopeCalls.length,
-                            0,
-                            `RegistryStorage.recordInstallation should NOT be called for repository scope bundle ${bundleId}`
-                        );
+                        expect(repoScopeCalls.length, `RegistryStorage.recordInstallation should NOT be called for repository scope bundle ${bundleId}`).toBe(0);
 
                         return true;
                     }
@@ -253,7 +248,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('repository scope uninstall should NOT call RegistryStorage.removeInstallation', async () => {
+        it('repository scope uninstall should NOT call RegistryStorage.removeInstallation', async () => {
             /**
              * Property: For any bundle uninstalled from repository scope,
              * RegistryStorage.removeInstallation() should NOT be called.
@@ -286,11 +281,7 @@ suite('BundleInstaller Property Tests', () => {
                             call => call.scope === 'repository'
                         );
                         
-                        assert.strictEqual(
-                            repoScopeCalls.length,
-                            0,
-                            `RegistryStorage.removeInstallation should NOT be called for repository scope bundle ${bundleId}`
-                        );
+                        expect(repoScopeCalls.length, `RegistryStorage.removeInstallation should NOT be called for repository scope bundle ${bundleId}`).toBe(0);
 
                         return true;
                     }
@@ -302,7 +293,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('user/workspace scope install SHOULD call RegistryStorage.recordInstallation', async () => {
+        it('user/workspace scope install SHOULD call RegistryStorage.recordInstallation', async () => {
             /**
              * Property: For any bundle installed at user or workspace scope,
              * RegistryStorage.recordInstallation() SHOULD be called.
@@ -335,11 +326,7 @@ suite('BundleInstaller Property Tests', () => {
                             call => call.bundleId === bundleId && call.scope === scope
                         );
                         
-                        assert.strictEqual(
-                            scopeCalls.length,
-                            1,
-                            `RegistryStorage.recordInstallation SHOULD be called for ${scope} scope bundle ${bundleId}`
-                        );
+                        expect(scopeCalls.length, `RegistryStorage.recordInstallation SHOULD be called for ${scope} scope bundle ${bundleId}`).toBe(1);
 
                         return true;
                     }
@@ -351,7 +338,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('user/workspace scope uninstall SHOULD call RegistryStorage.removeInstallation', async () => {
+        it('user/workspace scope uninstall SHOULD call RegistryStorage.removeInstallation', async () => {
             /**
              * Property: For any bundle uninstalled from user or workspace scope,
              * RegistryStorage.removeInstallation() SHOULD be called.
@@ -384,11 +371,7 @@ suite('BundleInstaller Property Tests', () => {
                             call => call.bundleId === bundleId && call.scope === scope
                         );
                         
-                        assert.strictEqual(
-                            scopeCalls.length,
-                            1,
-                            `RegistryStorage.removeInstallation SHOULD be called for ${scope} scope bundle ${bundleId}`
-                        );
+                        expect(scopeCalls.length, `RegistryStorage.removeInstallation SHOULD be called for ${scope} scope bundle ${bundleId}`).toBe(1);
 
                         return true;
                     }
@@ -400,7 +383,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('scope isolation should hold for any valid bundle ID and version', async () => {
+        it('scope isolation should hold for any valid bundle ID and version', async () => {
             /**
              * Property: For any combination of scope, bundle ID, and version,
              * the RegistryStorage interaction rule should be consistent:
@@ -440,17 +423,10 @@ suite('BundleInstaller Property Tests', () => {
                         
                         if (shouldModifyStorage) {
                             // User/workspace scope should have storage calls
-                            assert.ok(
-                                recordInstallationCalls.length > 0 || removeInstallationCalls.length > 0,
-                                `${scope} scope should modify RegistryStorage`
-                            );
+                            expect(recordInstallationCalls.length > 0 || removeInstallationCalls.length > 0, `${scope} scope should modify RegistryStorage`).toBeTruthy();
                         } else {
                             // Repository scope should NOT have storage calls
-                            assert.strictEqual(
-                                recordInstallationCalls.length + removeInstallationCalls.length,
-                                0,
-                                `Repository scope should NOT modify RegistryStorage`
-                            );
+                            expect(recordInstallationCalls.length + removeInstallationCalls.length, `Repository scope should NOT modify RegistryStorage`).toBe(0);
                         }
 
                         return true;
@@ -474,7 +450,7 @@ suite('BundleInstaller Property Tests', () => {
      * **Validates: Requirements 2.2, 2.4**
      * **Feature: lockfile-source-of-truth, Property 5: Repository Scope Operations Update Lockfile**
      */
-    suite('Property 5: Repository Scope Operations Update Lockfile', () => {
+    describe('Property 5: Repository Scope Operations Update Lockfile', () => {
         /**
          * Generator for test bundle data
          */
@@ -485,7 +461,7 @@ suite('BundleInstaller Property Tests', () => {
             });
         };
 
-        test('repository scope install should update lockfile via LockfileManager', async () => {
+        it('repository scope install should update lockfile via LockfileManager', async () => {
             /**
              * Property: For any bundle installed at repository scope,
              * the lockfile should be updated via LockfileManager.createOrUpdate().
@@ -514,11 +490,7 @@ suite('BundleInstaller Property Tests', () => {
                             call => call.bundleId === bundleId
                         );
                         
-                        assert.strictEqual(
-                            lockfileCalls.length,
-                            1,
-                            `LockfileManager.createOrUpdate should be called for repository scope bundle ${bundleId}`
-                        );
+                        expect(lockfileCalls.length, `LockfileManager.createOrUpdate should be called for repository scope bundle ${bundleId}`).toBe(1);
 
                         return true;
                     }
@@ -530,7 +502,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('repository scope uninstall should remove from lockfile via LockfileManager', async () => {
+        it('repository scope uninstall should remove from lockfile via LockfileManager', async () => {
             /**
              * Property: For any bundle uninstalled from repository scope,
              * the lockfile entry should be removed via LockfileManager.remove().
@@ -551,11 +523,7 @@ suite('BundleInstaller Property Tests', () => {
                             call => call.bundleId === bundleId
                         );
                         
-                        assert.strictEqual(
-                            removeCalls.length,
-                            1,
-                            `LockfileManager.remove should be called for repository scope bundle ${bundleId}`
-                        );
+                        expect(removeCalls.length, `LockfileManager.remove should be called for repository scope bundle ${bundleId}`).toBe(1);
 
                         return true;
                     }
@@ -567,7 +535,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('user/workspace scope operations should NOT update lockfile', async () => {
+        it('user/workspace scope operations should NOT update lockfile', async () => {
             /**
              * Property: For any bundle installed or uninstalled at user/workspace scope,
              * the lockfile should NOT be modified.
@@ -594,17 +562,9 @@ suite('BundleInstaller Property Tests', () => {
                         // (The actual code in BundleInstaller only calls lockfile methods for repository scope)
 
                         // Property assertion: No lockfile calls for user/workspace scope
-                        assert.strictEqual(
-                            lockfileCreateOrUpdateCalls.length,
-                            0,
-                            `LockfileManager.createOrUpdate should NOT be called for ${scope} scope`
-                        );
+                        expect(lockfileCreateOrUpdateCalls.length, `LockfileManager.createOrUpdate should NOT be called for ${scope} scope`).toBe(0);
                         
-                        assert.strictEqual(
-                            lockfileRemoveCalls.length,
-                            0,
-                            `LockfileManager.remove should NOT be called for ${scope} scope`
-                        );
+                        expect(lockfileRemoveCalls.length, `LockfileManager.remove should NOT be called for ${scope} scope`).toBe(0);
 
                         return true;
                     }
@@ -616,7 +576,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('lockfile update should include correct bundle metadata', async () => {
+        it('lockfile update should include correct bundle metadata', async () => {
             /**
              * Property: When lockfile is updated for repository scope,
              * the update should include correct bundle ID, version, and source info.
@@ -645,7 +605,7 @@ suite('BundleInstaller Property Tests', () => {
 
                         // Property assertion: Lockfile update should have correct metadata
                         const call = lockfileCreateOrUpdateCalls.find(c => c.bundleId === bundleId);
-                        assert.ok(call, `Lockfile should be updated for bundle ${bundleId}`);
+                        expect(call, `Lockfile should be updated for bundle ${bundleId}`).toBeTruthy();
 
                         return true;
                     }
@@ -667,7 +627,7 @@ suite('BundleInstaller Property Tests', () => {
      * 
      * **Validates: Requirements 8.1-8.4**
      */
-    suite('Property 6: Update Scope Isolation', () => {
+    describe('Property 6: Update Scope Isolation', () => {
         /**
          * Generator for installation scopes
          */
@@ -685,7 +645,7 @@ suite('BundleInstaller Property Tests', () => {
             });
         };
 
-        test('repository scope operations should interact with lockfile', async () => {
+        it('repository scope operations should interact with lockfile', async () => {
             /**
              * Property: For any bundle installed at repository scope,
              * the lockfile should be updated.
@@ -711,18 +671,12 @@ suite('BundleInstaller Property Tests', () => {
                         // After implementation, this will verify lockfile is updated
                         
                         // For now, verify the scope is correctly identified
-                        assert.strictEqual(
-                            installed.scope,
-                            'repository',
-                            'Bundle should be at repository scope'
-                        );
+                        expect(installed.scope, 'Bundle should be at repository scope').toBe('repository');
 
                         // Property assertion (will be meaningful after implementation):
                         // When repository scope installation completes, lockfile should be updated
-                        // assert.ok(
-                        //     lockfileCreateOrUpdateCalls.some(call => call.bundleId === bundleId),
-                        //     `Lockfile should be updated for repository scope bundle ${bundleId}`
-                        // );
+                        // expect(//     lockfileCreateOrUpdateCalls.some(call => call.bundleId === bundleId), //     `Lockfile should be updated for repository scope bundle ${bundleId}`
+                        //).toBeTruthy();
 
                         return true;
                     }
@@ -734,7 +688,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('user scope operations should NOT interact with lockfile', async () => {
+        it('user scope operations should NOT interact with lockfile', async () => {
             /**
              * Property: For any bundle installed at user scope,
              * the lockfile should NOT be modified.
@@ -754,24 +708,12 @@ suite('BundleInstaller Property Tests', () => {
                         });
 
                         // Property: User scope should NOT trigger lockfile interaction
-                        assert.strictEqual(
-                            installed.scope,
-                            'user',
-                            'Bundle should be at user scope'
-                        );
+                        expect(installed.scope, 'Bundle should be at user scope').toBe('user');
 
                         // Property assertion: Lockfile should NOT be touched for user scope
-                        assert.strictEqual(
-                            lockfileCreateOrUpdateCalls.filter(call => call.bundleId === bundleId).length,
-                            0,
-                            `Lockfile should NOT be updated for user scope bundle ${bundleId}`
-                        );
+                        expect(lockfileCreateOrUpdateCalls.filter(call => call.bundleId === bundleId).length, `Lockfile should NOT be updated for user scope bundle ${bundleId}`).toBe(0);
 
-                        assert.strictEqual(
-                            lockfileRemoveCalls.filter(call => call.bundleId === bundleId).length,
-                            0,
-                            `Lockfile should NOT be modified for user scope bundle ${bundleId}`
-                        );
+                        expect(lockfileRemoveCalls.filter(call => call.bundleId === bundleId).length, `Lockfile should NOT be modified for user scope bundle ${bundleId}`).toBe(0);
 
                         return true;
                     }
@@ -783,7 +725,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('workspace scope operations should NOT interact with lockfile', async () => {
+        it('workspace scope operations should NOT interact with lockfile', async () => {
             /**
              * Property: For any bundle installed at workspace scope,
              * the lockfile should NOT be modified.
@@ -803,18 +745,10 @@ suite('BundleInstaller Property Tests', () => {
                         });
 
                         // Property: Workspace scope should NOT trigger lockfile interaction
-                        assert.strictEqual(
-                            installed.scope,
-                            'workspace',
-                            'Bundle should be at workspace scope'
-                        );
+                        expect(installed.scope, 'Bundle should be at workspace scope').toBe('workspace');
 
                         // Property assertion: Lockfile should NOT be touched for workspace scope
-                        assert.strictEqual(
-                            lockfileCreateOrUpdateCalls.filter(call => call.bundleId === bundleId).length,
-                            0,
-                            `Lockfile should NOT be updated for workspace scope bundle ${bundleId}`
-                        );
+                        expect(lockfileCreateOrUpdateCalls.filter(call => call.bundleId === bundleId).length, `Lockfile should NOT be updated for workspace scope bundle ${bundleId}`).toBe(0);
 
                         return true;
                     }
@@ -826,7 +760,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('scope isolation should hold for any valid bundle ID and version', async () => {
+        it('scope isolation should hold for any valid bundle ID and version', async () => {
             /**
              * Property: For any combination of scope, bundle ID, and version,
              * the lockfile interaction rule should be consistent:
@@ -853,24 +787,15 @@ suite('BundleInstaller Property Tests', () => {
                         const shouldModifyLockfile = scope === 'repository';
                         
                         // Verify scope is correctly set
-                        assert.strictEqual(
-                            installed.scope,
-                            scope,
-                            `Bundle should be at ${scope} scope`
-                        );
+                        expect(installed.scope, `Bundle should be at ${scope} scope`).toBe(scope);
 
                         // After implementation, verify:
                         // if (shouldModifyLockfile) {
-                        //     assert.ok(
-                        //         lockfileCreateOrUpdateCalls.length > 0 || lockfileRemoveCalls.length > 0,
-                        //         `Repository scope should modify lockfile`
-                        //     );
+                        //     expect(//         lockfileCreateOrUpdateCalls.length > 0 || lockfileRemoveCalls.length > 0, //         `Repository scope should modify lockfile`
+                        //).toBeTruthy();
                         // } else {
-                        //     assert.strictEqual(
-                        //         lockfileCreateOrUpdateCalls.length + lockfileRemoveCalls.length,
-                        //         0,
-                        //         `${scope} scope should NOT modify lockfile`
-                        //     );
+                        //     expect(//         lockfileCreateOrUpdateCalls.length + lockfileRemoveCalls.length, //         `${scope} scope should NOT modify lockfile`
+                        //).toBe(//         0);
                         // }
 
                         return true;
@@ -883,7 +808,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('lockfile updates should include correct bundle metadata', async () => {
+        it('lockfile updates should include correct bundle metadata', async () => {
             /**
              * Property: When lockfile is updated for repository scope,
              * the update should include correct bundle ID and version.
@@ -904,10 +829,10 @@ suite('BundleInstaller Property Tests', () => {
 
                         // Property: Bundle entry should have correct metadata
                         const bundleEntry = lockfile.bundles[bundleId];
-                        assert.ok(bundleEntry, `Bundle ${bundleId} should exist in lockfile`);
-                        assert.strictEqual(bundleEntry.version, version, 'Version should match');
-                        assert.strictEqual(bundleEntry.sourceId, sourceId, 'Source ID should match');
-                        assert.strictEqual(bundleEntry.commitMode, commitMode, 'Commit mode should match');
+                        expect(bundleEntry, `Bundle ${bundleId} should exist in lockfile`).toBeTruthy();
+                        expect(bundleEntry.version, 'Version should match').toBe(version);
+                        expect(bundleEntry.sourceId, 'Source ID should match').toBe(sourceId);
+                        expect(bundleEntry.commitMode, 'Commit mode should match').toBe(commitMode);
 
                         return true;
                     }
@@ -919,7 +844,7 @@ suite('BundleInstaller Property Tests', () => {
             );
         });
 
-        test('update indicator should reflect scope correctly', async () => {
+        it('update indicator should reflect scope correctly', async () => {
             /**
              * Property: Update indicators should be shown for bundles
              * at both user and repository scopes (Requirements 8.1-8.2).
@@ -941,17 +866,10 @@ suite('BundleInstaller Property Tests', () => {
                         // Property: Update should be detectable regardless of scope
                         const hasUpdate = currentVersion !== latestVersion;
                         
-                        assert.ok(
-                            hasUpdate,
-                            `Update should be detectable for ${scope} scope bundle`
-                        );
+                        expect(hasUpdate, `Update should be detectable for ${scope} scope bundle`).toBeTruthy();
 
                         // Property: Scope should be indicated with update
-                        assert.strictEqual(
-                            installed.scope,
-                            scope,
-                            `Scope should be ${scope} for update indication`
-                        );
+                        expect(installed.scope, `Scope should be ${scope} for update indication`).toBe(scope);
 
                         return true;
                     }
