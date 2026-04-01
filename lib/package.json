@@ -17,13 +17,14 @@
     "hub-release-analyzer": "./bin/hub-release-analyzer.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "nx run @prompt-registry/collection-scripts:build",
+    "compile-src": "nx run @prompt-registry/collection-scripts:compile-src",
+    "compile-tests": "nx run @prompt-registry/collection-scripts:compile-tests",
+    "test": "nx run @prompt-registry/collection-scripts:test",
+    "lint": "nx run @prompt-registry/collection-scripts:lint",
+    "lint:fix": "nx run @prompt-registry/collection-scripts:lint:fix",
     "watch": "tsc --watch",
-    "compile-tests": "tsc -p tsconfig.test.json",
-    "test": "npm run compile-tests && mocha 'dist-test/test/**/*.test.js'",
-    "lint": "eslint src test",
-    "lint:fix": "eslint src test --fix",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "nx run @prompt-registry/collection-scripts:build"
   },
   "repository": {
     "type": "git",

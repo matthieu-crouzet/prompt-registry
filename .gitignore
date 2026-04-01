@@ -156,10 +156,13 @@ post-compile-fixes-cross-platform.js
 !package.json
 !package-lock.json
 !tsconfig*.json
+!nx.json
+!project.json
 .c8_output/
 
 # Cache directories
 .cache/
+.nx/
 
 # Claude local settings file
 .claude/settings.local.json

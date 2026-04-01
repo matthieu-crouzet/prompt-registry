@@ -3,20 +3,8 @@ name: Continuous Integration
 on:
   push:
     branches: [main, develop]
-    paths:
-      - "src/**"
-      - "*.json"
-      - "*.js"
-      - "*.ts"
-      - "!lib/**"
   pull_request:
     branches: [main, develop]
-    paths:
-      - "src/**"
-      - "*.json"
-      - "*.js"
-      - "*.ts"
-      - "!lib/**"
   workflow_dispatch:
 
 # Security: Restrict permissions to minimum necessary (SLSA Level 2)
@@ -54,13 +42,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: "${{ env.EXTENSION_DIR }}/package-lock.json"
-
-      - name: Build lib package
-        working-directory: lib
-        shell: bash
-        run: |
-          npm ci --fund=false
-          npm run build
 
       - name: Install dependencies with audit
         working-directory: ${{ env.EXTENSION_DIR }}
@@ -106,12 +87,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: "package-lock.json"
 
-      - name: Build lib package
-        working-directory: lib
-        run: |
-          npm ci --fund=false
-          npm run build
-
       - name: Install dependencies
         run: npm ci --fund=false
 
@@ -136,22 +111,13 @@ jobs:
             license-summary.txt
             license-report.csv
 
-  # Multi-platform validation
-  # VSIX Packaging with Production Configuration:
-  # - Automatically switches to .vscodeignore.production before packaging
-  # - Creates optimized VSIX with minimal size (excludes dev files, tests, sources)
-  # - Restores original .vscodeignore after packaging
-  # - Ensures consistent production packaging regardless of development state
+  # Nx-powered validation across all projects
   validate:
-    name: Validate Extension
-    runs-on: ${{ matrix.os }}
+    name: Validate All Projects
+    runs-on: ubuntu-latest
     needs: [security-scan, dependency-analysis]
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [24]
+    outputs:
+      extension-affected: ${{ steps.check-affected.outputs.extension-affected }}
 
     steps:
       - name: Harden Runner
@@ -163,131 +129,90 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: "package-lock.json"
 
       - name: Install dependencies
         run: npm ci --fund=false
 
-      - name: Build lib package
-        run: npm run compile-lib
+      - name: Determine NX_BASE
+        id: nx-base
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "NX_BASE=origin/${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+          else
+            echo "NX_BASE=${{ github.event.before }}" >> $GITHUB_ENV
+          fi
 
-      - name: Run linting
-        run: npm run lint -- --quiet
+      - name: Run affected lint
+        shell: bash
+        run: npx nx affected -t lint --base=$NX_BASE --head=HEAD
 
-      - name: Run type checking
-        run: npm run compile
+      - name: Run affected format check
+        shell: bash
+        run: npx nx affected -t format-check --base=$NX_BASE --head=HEAD
 
       - name: Install VS Code dependencies (Linux)
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libasound2-dev
 
-      - name: Apply post-compilation fixes
-        if: runner.os != 'Windows'
+      - name: Run affected test (includes build + compile-tests via Nx graph)
         shell: bash
-        run: |
-          # Ensure the post-compilation fixes script exists and is executable
-          # Create VS Code mock and apply fixes
-          if [ -f "./ensure-test-index.sh" ]; then
-            chmod +x ./ensure-test-index.sh
-            ./ensure-test-index.sh
-          fi
-          if [ -f "./create-vscode-mock.sh" ]; then
-            chmod +x ./create-vscode-mock.sh
-            ./create-vscode-mock.sh
-          fi
-          if [ -f "./post_compile_fixes.sh" ]; then
-            chmod +x ./post_compile_fixes.sh
-            ./post_compile_fixes.sh
-          fi
+        run: xvfb-run -a npx nx affected -t test --base=$NX_BASE --head=HEAD
 
-      - name: Run unit tests
+      - name: Check if extension is affected
+        id: check-affected
         shell: bash
         run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            xvfb-run -a npm test
+          AFFECTED=$(npx nx show projects --affected --base=$NX_BASE --head=HEAD)
+          if echo "$AFFECTED" | grep -q "prompt-registry"; then
+            echo "extension-affected=true" >> $GITHUB_OUTPUT
           else
-            npm test
+            echo "extension-affected=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Switch to production .vscodeignore for packaging
-        if: matrix.node-version == ${{ env.NODE_VERSION }}
-        shell: bash
-        run: |
-          echo "🔄 Switching to production .vscodeignore for VSIX packaging..."
-          # Backup current .vscodeignore if it exists
-          if [ -f ".vscodeignore" ]; then
-            cp .vscodeignore .vscodeignore.ci-backup
-            echo "✅ Backed up current .vscodeignore to .vscodeignore.ci-backup"
-          fi
-
-          # Use production .vscodeignore for packaging (creates smaller, proper VSIX)
-          if [ -f ".vscodeignore.production" ]; then
-            cp .vscodeignore.production .vscodeignore
-            echo "✅ Switched to production .vscodeignore for optimal VSIX packaging"
-            echo "📦 Production mode excludes: source files, tests, dev tools, CI files"
-          else
-            echo "⚠️ Warning: .vscodeignore.production not found, using current .vscodeignore"
-          fi
-
-      - name: Package extension
-        if: matrix.node-version == ${{ env.NODE_VERSION }}
+      - name: Package extension (build + prepare + vsix + cleanup via Nx)
+        if: steps.check-affected.outputs.extension-affected == 'true'
         shell: bash
         run: |
           npm install -g @vscode/vsce
-          echo "📦 Creating VSIX package with production .vscodeignore..."
-          vsce package --out ${{ env.EXTENSION_NAME }}-${{ matrix.os }}-${{ matrix.node-version }}.vsix
-
-          # Show package size for verification
-          if [ -f "${{env.EXTENSION_NAME}}-${{ matrix.os }}-${{ matrix.node-version }}.vsix" ]; then
-            PACKAGE_SIZE=$(ls -lh ${{env.EXTENSION_NAME}}-${{ matrix.os }}-${{ matrix.node-version }}.vsix | awk '{print $5}')
-            echo "✅ VSIX package created successfully (size: $PACKAGE_SIZE)"
-          fi
-
-      - name: Restore original .vscodeignore after packaging
-        if: matrix.node-version == ${{ env.NODE_VERSION }}
-        shell: bash
-        run: |
-          # Restore the original .vscodeignore if backup exists
-          if [ -f ".vscodeignore.ci-backup" ]; then
-            cp .vscodeignore.ci-backup .vscodeignore
-            rm .vscodeignore.ci-backup
-            echo "✅ Restored original .vscodeignore from backup"
-          fi
+          npx nx run prompt-registry:package
 
       - name: Validate VSIX package
-        if: matrix.node-version == ${{ env.NODE_VERSION }}
+        if: steps.check-affected.outputs.extension-affected == 'true'
         shell: bash
         run: |
-          # Extract and validate package contents
-          unzip -l ${{env.EXTENSION_NAME}}-${{ matrix.os }}-${{ matrix.node-version }}.vsix
-
-          # Verify package.json integrity
-          if command -v jq &> /dev/null; then
-            unzip -p ${{env.EXTENSION_NAME}}-${{ matrix.os }}-${{ matrix.node-version }}.vsix extension/package.json | jq '.'
+          VSIX_FILE=$(ls *.vsix 2>/dev/null | head -1)
+          if [ -n "$VSIX_FILE" ]; then
+            unzip -l "$VSIX_FILE"
+            if command -v jq &> /dev/null; then
+              unzip -p "$VSIX_FILE" extension/package.json | jq '.'
+            fi
           fi
 
       - name: Upload extension artifacts
-        if: matrix.node-version == ${{ env.NODE_VERSION }}
+        if: steps.check-affected.outputs.extension-affected == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: vsix-${{ matrix.os }}-node${{ matrix.node-version }}
+          name: vsix-ubuntu-latest
           path: ${{ env.EXTENSION_DIR }}/*.vsix
           retention-days: 7
 
-  # Integration tests with VS Code
+  # Integration tests with VS Code (only when extension is affected)
   integration-test:
     name: Integration Tests
     runs-on: ${{ matrix.os }}
     needs: validate
+    if: needs.validate.outputs.extension-affected == 'true'
 
     strategy:
       fail-fast: false
@@ -313,45 +238,30 @@ jobs:
           cache: "npm"
           cache-dependency-path: "package-lock.json"
 
-      - name: Build lib package
-        working-directory: lib
-        run: |
-          npm ci --fund=false
-          npm run build
-
       - name: Install dependencies
         run: npm ci --fund=false
 
-      - name: Compile extension and tests
-        run: |
-          npm run compile
-          npm run compile-tests
-          node .github/workflows/scripts/post-compile-fixes-essential.js
+      - name: Compile tests via Nx graph
+        run: npx nx run prompt-registry:compile-tests
 
-      - name: Install VS Code and dependencies (Linux)
+      - name: Apply post-compilation fixes
+        run: |
+          node .github/workflows/scripts/post-compile-fixes-essential.js
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            for script in ensure-test-index.sh create-vscode-mock.sh post_compile_fixes.sh; do
+              if [ -f "./.github/workflows/scripts/$script" ]; then
+                chmod +x "./.github/workflows/scripts/$script"
+                "./.github/workflows/scripts/$script"
+              fi
+            done
+          fi
+
+      - name: Install VS Code dependencies (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libasound2-dev
-      - name: Apply post-compilation fixes
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          # Ensure the post-compilation fixes script exists and is executable
-          # Create VS Code mock and apply fixes
-          if [ -f "./.github/workflows/scripts/ensure-test-index.sh" ]; then
-            chmod +x ./.github/workflows/scripts/ensure-test-index.sh
-            ./.github/workflows/scripts/ensure-test-index.sh
-          fi
-          if [ -f "./.github/workflows/scripts/create-vscode-mock.sh" ]; then
-            chmod +x ./.github/workflows/scripts/create-vscode-mock.sh
-            ./.github/workflows/scripts/create-vscode-mock.sh
-          fi
-          if [ -f "./.github/workflows/scripts/post_compile_fixes.sh" ]; then
-            chmod +x ./.github/workflows/scripts/post_compile_fixes.sh
-            ./.github/workflows/scripts/post_compile_fixes.sh
-          fi
 
       - name: Run VS Code Extension Tests
         env:
@@ -445,11 +355,11 @@ jobs:
           echo "- SBOM generated" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Testing & Validation ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- Multi-platform testing (Linux, Windows, macOS)" >> $GITHUB_STEP_SUMMARY
-          echo "- Multi-version Node.js testing (18, 20)" >> $GITHUB_STEP_SUMMARY
+          echo "- Nx affected used for targeted validation" >> $GITHUB_STEP_SUMMARY
+          echo "- Multi-platform integration testing (Linux, Windows, macOS)" >> $GITHUB_STEP_SUMMARY
           echo "- VS Code integration testing" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts Generated 📦" >> $GITHUB_STEP_SUMMARY
-          echo "- VSIX packages for all platforms" >> $GITHUB_STEP_SUMMARY
+          echo "- VSIX packages (when extension affected)" >> $GITHUB_STEP_SUMMARY
           echo "- Security scan reports" >> $GITHUB_STEP_SUMMARY
           echo "- Compliance documentation" >> $GITHUB_STEP_SUMMARY

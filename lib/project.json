@@ -1,0 +1,55 @@
+{
+  "name": "@prompt-registry/collection-scripts",
+  "targets": {
+    "compile-src": {
+      "command": "tsc",
+      "options": { "cwd": "{projectRoot}" },
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/tsconfig.json"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "build": {
+      "dependsOn": ["compile-src"]
+    },
+    "compile-tests": {
+      "command": "tsc -p tsconfig.test.json",
+      "options": { "cwd": "{projectRoot}" },
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/tsconfig.test.json"
+      ],
+      "outputs": [
+        "{projectRoot}/dist-test"
+      ]
+    },
+    "test": {
+      "command": "mocha 'dist-test/test/**/*.test.js'",
+      "options": { "cwd": "{projectRoot}" },
+      "inputs": [
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/dist-test/**/*"
+      ]
+    },
+    "lint": {
+      "command": "eslint src test",
+      "options": { "cwd": "{projectRoot}" },
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/test/**/*"
+      ]
+    },
+    "lint:fix": {
+      "command": "eslint src test --fix",
+      "options": { "cwd": "{projectRoot}" },
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/test/**/*"
+      ]
+    }
+  }
+}

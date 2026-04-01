@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "!{projectRoot}/**/dist/**",
+      "!{projectRoot}/**/dist-test/**",
+      "!{projectRoot}/**/out/**",
+      "!{projectRoot}/**/*.test.*"
+    ],
+    "production": [
+      "default",
+      "!{projectRoot}/test/**"
+    ]
+  },
+  "targetDefaults": {
+    "compile-src": {
+      "dependsOn": ["^build"],
+      "inputs": ["production"],
+      "cache": true
+    },
+    "build": {
+      "dependsOn": ["compile-src"],
+      "cache": true
+    },
+    "compile-tests": {
+      "dependsOn": ["compile-src"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["compile-tests"],
+      "cache": true
+    },
+    "lint": {
+      "inputs": ["default"],
+      "cache": true
+    },
+    "format-check": {
+      "cache": true
+    },
+    "copy-webview": {
+      "cache": true
+    },
+    "copy-skill-references": {
+      "cache": true
+    }
+  }
+}

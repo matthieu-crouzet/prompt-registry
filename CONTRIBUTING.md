@@ -46,19 +46,108 @@ This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participatin
    npm install
    ```
 
-3. **Build the extension**
+3. **Build all projects**
    ```bash
-   npm run compile
+   npx nx run-many -t build
    ```
 
 4. **Run tests**
    ```bash
-   npm test
+   npx nx run-many -t test
    ```
 
 5. **Launch in VS Code**
    - Press `F5` in VS Code to open Extension Development Host
    - The extension will be loaded and ready to test
+
+---
+
+## Nx Monorepo
+
+This repository uses [Nx](https://nx.dev/) for task orchestration across its npm workspaces.
+
+### Projects
+
+| Project | Location | Description |
+|---------|----------|-------------|
+| `prompt-registry` | `.` (root) | VS Code extension |
+| `collection-scripts` | `lib/` | Published npm package for collection scripts |
+| `validate-collections-action` | `github-actions/validate-collections/` | GitHub Action for collection validation |
+
+### Available Targets
+
+Targets are granular and independently cached. Nx resolves dependencies automatically.
+
+| Target | Description | Projects |
+|--------|-------------|----------|
+| `compile-src` | Compile source (webpack/tsc/rollup) | all |
+| `copy-webview` | Copy webview assets to dist | prompt-registry |
+| `copy-skill-references` | Copy docs to resources | prompt-registry |
+| `build` | Orchestration (compile-src + copy assets) | all |
+| `compile-tests` | Compile test TypeScript | prompt-registry, collection-scripts |
+| `test` | Run tests (mocha) | prompt-registry, collection-scripts |
+| `lint` | ESLint | prompt-registry, collection-scripts |
+| `format-check` | Prettier check | prompt-registry |
+| `package` | Create .vsix package | prompt-registry |
+
+**Task dependency graph:**
+```
+^build → compile-src ──→ build (orchestration: compile-src + copy-webview + copy-skill-references)
+         compile-src ──→ compile-tests → test
+         build ─────────→ package
+lint, format-check (independent)
+```
+
+`build` is the entry point for "make everything production-ready." It depends on `compile-src`, `copy-webview`, and `copy-skill-references`. `test` only needs `compile-src` → `compile-tests`, skipping the copy steps.
+
+### Running Tasks
+
+```bash
+# Compile source only (fastest feedback loop)
+npx nx run-many -t compile-src
+
+# Full build (compile + copy assets)
+npx nx run-many -t build
+
+# Compile and run tests
+npx nx run-many -t test
+
+# Lint and check formatting
+npx nx run-many -t lint format-check
+
+# Run a specific target for a specific project
+npx nx run collection-scripts:compile-src
+npx nx run prompt-registry:test
+
+# Full pipeline: build + create .vsix
+npx nx run prompt-registry:package
+```
+
+### Affected Commands
+
+Nx determines which projects are affected by your changes and only runs tasks for those:
+
+```bash
+# Only build/test/lint projects affected by your changes
+npx nx affected -t compile-src
+npx nx affected -t build
+npx nx affected -t compile-tests
+npx nx affected -t test
+npx nx affected -t lint
+npx nx affected -t format-check
+```
+
+This is used in CI to avoid running the full test suite when only one project changed.
+
+### Dependency Graph
+
+Visualize the project dependency graph:
+
+```bash
+npx nx graph
+```
+
+This opens an interactive browser view showing project dependencies and task pipelines.
 
 ---
 
@@ -404,9 +493,10 @@ and error handling.
 
 2. **Run all checks**
    ```bash
-   npm run lint
-   npm run compile
-   npm test
+   npx nx affected -t lint
+   npx nx affected -t format-check
+   npx nx affected -t build
+   npx nx affected -t test
    ```
 
 3. **Update documentation** if needed

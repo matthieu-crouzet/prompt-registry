@@ -1,0 +1,103 @@
+{
+  "name": "prompt-registry",
+  "implicitDependencies": ["@prompt-registry/collection-scripts"],
+  "targets": {
+    "compile-src": {
+      "command": "webpack --mode production",
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/webpack.config.js",
+        "{projectRoot}/tsconfig.json"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "copy-webview": {
+      "command": "cpy \"src/ui/webview/marketplace/*\" dist/webview/marketplace && cpy \"src/ui/webview/bundle-details/*\" dist/webview/bundle-details",
+      "inputs": [
+        "{projectRoot}/src/ui/webview/**/*"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/webview"
+      ]
+    },
+    "copy-skill-references": {
+      "command": "cpy docs/README.md resources/skills/prompt-registry-helper/references/docs-index.md && cpy \"docs/**\" \"!docs/README.md\" \"!docs/contributor-guide\" \"!docs/contributor-guide/**\" \"!docs/reference/adapter-api.md\" \"!docs/AGENTS.md\" resources/skills/prompt-registry-helper/references",
+      "inputs": [
+        "{projectRoot}/docs/**/*"
+      ],
+      "outputs": [
+        "{projectRoot}/resources/skills/prompt-registry-helper/references"
+      ]
+    },
+    "build": {
+      "dependsOn": ["compile-src", "copy-webview", "copy-skill-references"]
+    },
+    "compile-tests": {
+      "command": "tsc -p tsconfig.test.json && node scripts/copy-test-fixtures.js",
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/tsconfig.test.json"
+      ],
+      "outputs": [
+        "{projectRoot}/test-dist"
+      ]
+    },
+    "test": {
+      "command": "LOG_LEVEL=ERROR npx mocha --ui tdd --require ./test/mocha.setup.js --require ./test/unit.setup.js 'test-dist/test/**/*.test.js' --ignore 'test-dist/test/suite/**/*.test.js' --timeout 5000",
+      "inputs": [
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/test-dist/**/*"
+      ]
+    },
+    "test:integration": {
+      "command": "node ./test/runExtensionTests.js",
+      "dependsOn": ["compile-tests"],
+      "inputs": [
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/test-dist/**/*"
+      ]
+    },
+    "lint": {
+      "command": "eslint src test",
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/eslint.config.mjs",
+        "{projectRoot}/eslint.shared.mjs"
+      ]
+    },
+    "lint:fix": {
+      "command": "eslint src test --fix",
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/test/**/*",
+        "{projectRoot}/eslint.config.mjs",
+        "{projectRoot}/eslint.shared.mjs"
+      ]
+    },
+    "format": {
+      "command": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/test/**/*.ts"
+      ]
+    },
+    "format-check": {
+      "command": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/test/**/*.ts"
+      ]
+    },
+    "package": {
+      "command": "node scripts/package-helpers.js prod && vsce package && node scripts/package-helpers.js dev",
+      "dependsOn": ["build"],
+      "outputs": [
+        "{projectRoot}/*.vsix"
+      ]
+    }
+  }
+}

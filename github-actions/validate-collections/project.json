@@ -1,0 +1,21 @@
+{
+  "name": "validate-collections-action",
+  "targets": {
+    "compile-src": {
+      "command": "rollup --config rollup.config.js",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/rollup.config.js"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "build": {
+      "dependsOn": ["compile-src"]
+    }
+  }
+}

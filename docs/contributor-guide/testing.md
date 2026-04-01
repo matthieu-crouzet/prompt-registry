@@ -178,6 +178,25 @@ npm run test:coverage       # Generate coverage report
 npm run test:one -- <path>  # Run single test file
 ```
 
+### Nx-Powered Testing
+
+Run tests across all monorepo projects:
+
+```bash
+# Test all projects
+npx nx run-many -t test
+
+# Test only projects affected by your changes
+npx nx affected -t test
+
+# Test a specific project
+npx nx run collection-scripts:test
+npx nx run prompt-registry:test
+```
+
+Note: The `prompt-registry` test target runs unit tests only. Integration tests
+requiring VS Code are run separately via `npm run test:integration`.
+
 ### Debugging Tests
 
 ```bash

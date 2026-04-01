@@ -157,6 +157,16 @@ This is a VS Code extension (Prompt Registry) that provides a marketplace and re
 
 ### Architecture Overview
 
+This is an Nx-managed monorepo with three projects:
+
+| Project | Location | Build |
+|---------|----------|-------|
+| `prompt-registry` | `.` (root) | webpack |
+| `collection-scripts` | `lib/` | tsc |
+| `validate-collections-action` | `github-actions/validate-collections/` | rollup |
+
+Nx orchestrates tasks across projects, respecting the dependency graph (`prompt-registry` depends on `collection-scripts`). See `nx.json` for task pipeline configuration and each project's `project.json` for target definitions.
+
 ```
 src/
 ├── adapters/     → Source-specific implementations (GitHub, GitLab, Local, etc.)
@@ -213,6 +223,25 @@ LOG_LEVEL=ERROR npm test 2>&1 | tee test.log | tail -20
 
 npm run lint                   # ESLint (v9 flat config: eslint.config.mjs)
 npm run package:vsix           # Create .vsix package
+
+# Nx task orchestration (monorepo)
+# Targets are granular and cached independently. Nx resolves the dependency graph:
+#   ^build → compile-src → build (orchestration: compile-src + copy-webview + copy-skill-references)
+#            compile-src → compile-tests → test
+#   lint, format-check (independent)
+#   build → package
+npx nx run-many -t compile-src        # Compile source (webpack/tsc/rollup)
+npx nx run-many -t build              # Full build (compile-src + copy assets)
+npx nx run-many -t compile-tests      # Compile test TypeScript
+npx nx run-many -t test               # Run tests (mocha)
+npx nx run-many -t lint               # Lint all projects (eslint)
+npx nx run-many -t format-check       # Check formatting (prettier)
+npx nx run prompt-registry:package    # Full build + create .vsix
+npx nx affected -t build              # Build only affected projects
+npx nx affected -t test               # Test only affected projects
+npx nx affected -t lint               # Lint only affected projects
+npx nx run <project>:<target>         # Run specific target
+npx nx graph                          # Visualize project dependency graph
 ```
 
 ### Log Management

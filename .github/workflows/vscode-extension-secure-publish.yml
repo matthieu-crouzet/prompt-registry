@@ -116,13 +116,15 @@ jobs:
           exit-code: "1"
           severity: "CRITICAL,HIGH"
 
-      - name: Build and package extension
+      - name: Build extension (via Nx)
+        working-directory: ${{ env.EXTENSION_DIR }}
+        run: npx nx run prompt-registry:build
+
+      - name: Package extension
         working-directory: ${{ env.EXTENSION_DIR }}
         run: |
-          npm run compile
           npm install -g @vscode/vsce
-
-          npm run package:prepare
+          npm run ignore:prod
 
           # Package with integrity verification
           if [ "${{ steps.version.outputs.is_prerelease }}" = "true" ]; then
@@ -131,7 +133,7 @@ jobs:
             vsce package --out ${{env.EXTENSION_NAME}}-${{ steps.version.outputs.version }}.vsix
           fi
 
-          npm run package:cleanup
+          npm run ignore:dev
 
       - name: Generate package checksums and attestation
         id: package
